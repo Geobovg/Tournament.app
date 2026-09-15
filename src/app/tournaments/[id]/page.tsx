@@ -1,0 +1,312 @@
+import { cookies } from "next/headers";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { GoalOfTheRound } from "@/components/goal-of-the-round";
+import { MatchRow } from "@/components/match-row";
+import {
+  LockRegistrationForm,
+  RegisterTeamForm,
+} from "@/components/registration-forms";
+import { StandingsTable } from "@/components/standings-table";
+import { cardClass } from "@/components/ui";
+import {
+  getTournament,
+  listGoalClips,
+  listMatches,
+  listTeams,
+  listVotes,
+} from "@/lib/data";
+import { knockoutRoundLabel, statusLabel, typeLabel } from "@/lib/labels";
+import { knockoutCutoff } from "@/lib/tournament/bracket";
+import { computeStandings } from "@/lib/tournament/standings";
+import { resolveTie } from "@/lib/tournament/tie";
+import type {
+  GoalClip,
+  Match,
+  MatchStage,
+  Tournament,
+  Vote,
+} from "@/lib/tournament/types";
+
+export const dynamic = "force-dynamic";
+
+function groupByRound(matches: Match[]): Map<number, Match[]> {
+  const rounds = new Map<number, Match[]>();
+  for (const match of matches) {
+    rounds.set(match.round_number, [
+      ...(rounds.get(match.round_number) ?? []),
+      match,
+    ]);
+  }
+  return new Map([...rounds.entries()].sort((a, b) => a[0] - b[0]));
+}
+
+function groupByTie(matches: Match[]): Match[][] {
+  const ties = new Map<string, Match[]>();
+  for (const match of matches) {
+    const key = match.tie_id ?? match.id;
+    ties.set(key, [...(ties.get(key) ?? []), match]);
+  }
+  return [...ties.values()].sort(
+    (a, b) => a[0].tie_position - b[0].tie_position,
+  );
+}
+
+function RoundVoting({
+  stage,
+  roundNumber,
+  matches,
+  clips,
+  votes,
+  teamNames,
+  voterId,
+}: {
+  stage: MatchStage;
+  roundNumber: number;
+  matches: Match[];
+  clips: GoalClip[];
+  votes: Vote[];
+  teamNames: Map<string, string>;
+  voterId: string | null;
+}) {
+  const matchIds = new Set(matches.map((match) => match.id));
+  const roundClips = clips.filter((clip) => matchIds.has(clip.match_id));
+  const roundVotes = votes.filter(
+    (vote) => vote.stage === stage && vote.round_number === roundNumber,
+  );
+  const myVoteClipId =
+    roundVotes.find((vote) => vote.voter_id === voterId)?.goal_clip_id ?? null;
+
+  return (
+    <details className="mt-4 rounded-lg border border-border p-3">
+      <summary className="cursor-pointer text-sm font-medium">
+        Rundens mål ({roundClips.length}{" "}
+        {roundClips.length === 1 ? "klipp" : "klipp"})
+      </summary>
+      <div className="mt-4">
+        <GoalOfTheRound
+          clips={roundClips}
+          matches={matches}
+          teamNames={teamNames}
+          votes={roundVotes}
+          myVoteClipId={myVoteClipId}
+        />
+      </div>
+    </details>
+  );
+}
+
+function KnockoutTie({
+  legs,
+  teamNames,
+  tournament,
+}: {
+  legs: Match[];
+  teamNames: Map<string, string>;
+  tournament: Tournament;
+}) {
+  const state = resolveTie(legs, tournament.type);
+  const first = legs[0];
+  const homeName = first.home_team_id ? teamNames.get(first.home_team_id) : null;
+  const awayName = first.away_team_id ? teamNames.get(first.away_team_id) : null;
+
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="font-medium">
+          {first.is_bye ? `${homeName} (fribytte)` : `${homeName} mot ${awayName}`}
+        </p>
+        {state.decided && state.winnerTeamId ? (
+          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
+            {teamNames.get(state.winnerTeamId)} videre
+          </span>
+        ) : null}
+      </div>
+      <ul className="grid gap-2">
+        {legs.map((leg) => (
+          <MatchRow
+            key={leg.id}
+            match={leg}
+            teamNames={teamNames}
+            tournamentId={tournament.id}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default async function TournamentPage({
+  params,
+}: PageProps<"/tournaments/[id]">) {
+  const { id } = await params;
+  const tournament = await getTournament(id);
+  if (!tournament) notFound();
+
+  const [teams, matches, votes] = await Promise.all([
+    listTeams(id),
+    listMatches(id),
+    listVotes(id),
+  ]);
+  const clips = await listGoalClips(matches.map((match) => match.id));
+  const voterId = (await cookies()).get("futebol_voter")?.value ?? null;
+
+  const teamNames = new Map(teams.map((team) => [team.id, team.name]));
+  const leagueMatches = matches.filter((match) => match.stage === "league");
+  const knockoutMatches = matches.filter((match) => match.stage === "knockout");
+  const standings = computeStandings(teams, leagueMatches, tournament.type);
+  const cutoff = knockoutCutoff(teams.length);
+
+  const knockoutRounds = groupByRound(knockoutMatches);
+  const lastRound = [...knockoutRounds.values()].at(-1);
+  const champion =
+    tournament.status === "completed" && lastRound
+      ? resolveTie(lastRound, tournament.type).winnerTeamId
+      : null;
+
+  return (
+    <div data-theme={tournament.type} className="grid gap-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <Link href="/" className="text-sm text-muted hover:underline">
+            ← Alle turneringer
+          </Link>
+          <h1 className="mt-2 text-2xl font-semibold">{tournament.name}</h1>
+          <p className="text-muted">
+            {typeLabel(tournament.type)} · {statusLabel(tournament.status)} ·{" "}
+            {teams.length} lag
+          </p>
+        </div>
+        <Link
+          href={`/tournaments/${id}/stats`}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-surface-raised"
+        >
+          Statistikk
+        </Link>
+      </div>
+
+      {champion ? (
+        <div className="rounded-xl border border-accent bg-accent-soft p-5 text-center">
+          <p className="text-sm text-muted">Turneringsvinner</p>
+          <p className="text-2xl font-semibold">{teamNames.get(champion)} 🏆</p>
+        </div>
+      ) : null}
+
+      {tournament.status === "registration" ? (
+        <div className="grid gap-6 md:grid-cols-2">
+          <section className={cardClass}>
+            <h2 className="mb-4 text-lg font-semibold">Meld på laget ditt</h2>
+            <RegisterTeamForm tournamentId={id} />
+          </section>
+
+          <section className={cardClass}>
+            <h2 className="mb-4 text-lg font-semibold">
+              Påmeldte lag ({teams.length}/{tournament.max_teams})
+            </h2>
+            {teams.length === 0 ? (
+              <p className="text-muted">Ingen lag påmeldt ennå.</p>
+            ) : (
+              <ul className="mb-5 grid gap-2">
+                {teams.map((team) => (
+                  <li
+                    key={team.id}
+                    className="rounded-lg border border-border px-3 py-2 text-sm"
+                  >
+                    {team.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <p className="mb-4 text-sm text-muted">
+              Med {teams.length} lag går topp {knockoutCutoff(teams.length)} videre
+              til sluttspillet. Sluttspillet spilles med{" "}
+              {tournament.legs_per_knockout_round === 2 ? "2 kamper" : "1 kamp"} per
+              duell (finalen alltid 1 kamp).
+            </p>
+
+            <LockRegistrationForm tournamentId={id} teamCount={teams.length} />
+          </section>
+        </div>
+      ) : null}
+
+      {leagueMatches.length > 0 ? (
+        <section className={cardClass}>
+          <h2 className="mb-4 text-lg font-semibold">Tabell</h2>
+          <StandingsTable
+            rows={standings}
+            type={tournament.type}
+            qualifiedCount={tournament.status === "league" ? cutoff : undefined}
+          />
+        </section>
+      ) : null}
+
+      {leagueMatches.length > 0 ? (
+        <section className="grid gap-4">
+          <h2 className="text-lg font-semibold">Ligaspill</h2>
+          {[...groupByRound(leagueMatches).entries()].map(
+            ([roundNumber, roundMatches]) => (
+              <div key={roundNumber} className={cardClass}>
+                <h3 className="mb-3 font-medium">Runde {roundNumber}</h3>
+                <ul className="grid gap-2">
+                  {roundMatches.map((match) => (
+                    <MatchRow
+                      key={match.id}
+                      match={match}
+                      teamNames={teamNames}
+                      tournamentId={id}
+                    />
+                  ))}
+                </ul>
+                <RoundVoting
+                  stage="league"
+                  roundNumber={roundNumber}
+                  matches={roundMatches}
+                  clips={clips}
+                  votes={votes}
+                  teamNames={teamNames}
+                  voterId={voterId}
+                />
+              </div>
+            ),
+          )}
+        </section>
+      ) : null}
+
+      {knockoutMatches.length > 0 ? (
+        <section className="grid gap-4">
+          <h2 className="text-lg font-semibold">Sluttspill</h2>
+          {[...knockoutRounds.entries()].map(([roundNumber, roundMatches]) => {
+            const ties = groupByTie(roundMatches);
+            return (
+              <div key={roundNumber} className={cardClass}>
+                <h3 className="mb-3 font-medium">
+                  {knockoutRoundLabel(ties.length)}
+                </h3>
+                <div className="grid gap-3">
+                  {ties.map((legs) => (
+                    <KnockoutTie
+                      key={legs[0].tie_id ?? legs[0].id}
+                      legs={legs}
+                      teamNames={teamNames}
+                      tournament={tournament}
+                    />
+                  ))}
+                </div>
+                <RoundVoting
+                  stage="knockout"
+                  roundNumber={roundNumber}
+                  matches={roundMatches}
+                  clips={clips}
+                  votes={votes}
+                  teamNames={teamNames}
+                  voterId={voterId}
+                />
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+    </div>
+  );
+}
