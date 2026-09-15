@@ -17,19 +17,16 @@ export type Crest = {
   colors: [string, string, string];
 };
 
-export type PoseName =
-  | "threeFingers"
-  | "armsCrossed"
-  | "heartHands"
-  | "trophyKiss"
-  | "vikingStance"
-  | "defend"
-  | "goalie"
-  | "skate"
-  | "slapshot"
-  | "celebrateStick"
-  | "standStick"
-  | "defendStick";
+export type PoseName = "defend" | "defendStick";
+
+export type ShirtSpec = {
+  name: string;
+  number: string;
+  body: string;
+  stripe?: string;
+  sleeve?: string;
+  collar?: string;
+};
 
 export type Kit = {
   jersey: string;
@@ -45,7 +42,7 @@ export type BoardAd = { brand: string; slogan: string };
 export type TournamentTheme = {
   emoji: string;
   tagline: string;
-  lineup: FigureSpec[];
+  kits: ShirtSpec[];
   defender: FigureSpec;
   clubs: Crest[];
   featured: string[];
@@ -101,12 +98,15 @@ export const tournamentThemes: Record<TournamentType, TournamentTheme> = {
   fifa: {
     emoji: "⚽",
     tagline: "Flomlyset er på og gresset er klippet.",
-    lineup: [
-      { pose: "threeFingers", onMobile: true, kit: { jersey: "#a50044", shorts: "#004d98", socks: "#a50044", number: "11" } },
-      { pose: "armsCrossed", onMobile: false, kit: { jersey: "#f4f4f4", shorts: "#f4f4f4", socks: "#1b2a4a", number: "10" } },
-      { pose: "heartHands", onMobile: false, kit: { jersey: "#ef0107", shorts: "#f4f4f4", socks: "#ef0107", number: "8" } },
-      { pose: "trophyKiss", onMobile: true, kit: { jersey: "#75aadb", shorts: "#f4f4f4", socks: "#f4f4f4", number: "10" } },
-      { pose: "vikingStance", onMobile: true, kit: { jersey: "#f2f2f0", shorts: "#f2f2f0", socks: "#f2f2f0", number: "9" } },
+    kits: [
+      { name: "Haaland", number: "9", body: "#ba0c2f", collar: "#ffffff" },
+      { name: "Mbappé", number: "9", body: "#f4f4f4", collar: "#1b2a4a" },
+      { name: "Yamal", number: "10", body: "#a50044", stripe: "#004d98", collar: "#edbb00" },
+      { name: "Raphinha", number: "11", body: "#a50044", stripe: "#004d98", collar: "#edbb00" },
+      { name: "Ødegaard", number: "8", body: "#ef0107", sleeve: "#ffffff", collar: "#ffffff" },
+      { name: "Messi", number: "10", body: "#ffffff", stripe: "#75aadb", collar: "#75aadb" },
+      { name: "Maguire", number: "5", body: "#da291c", collar: "#111111" },
+      { name: "Martínez", number: "1", body: "#14654a", collar: "#f2f2f0" },
     ],
     defender: {
       pose: "defend",
@@ -129,12 +129,15 @@ export const tournamentThemes: Record<TournamentType, TournamentTheme> = {
   nhl: {
     emoji: "🏒",
     tagline: "Isen er lagt og pucken er i spill.",
-    lineup: [
-      { pose: "goalie", onMobile: true, kit: { jersey: "#f4f4f4", shorts: "#00205b", socks: "#f4f4f4", number: "30" } },
-      { pose: "skate", onMobile: false, kit: { jersey: "#ff4c00", shorts: "#041e42", socks: "#ff4c00", number: "97" } },
-      { pose: "slapshot", onMobile: true, kit: { jersey: "#1a1a1a", shorts: "#fcb514", socks: "#1a1a1a", number: "87" } },
-      { pose: "celebrateStick", onMobile: true, kit: { jersey: "#af1e2d", shorts: "#192168", socks: "#af1e2d", number: "9" } },
-      { pose: "standStick", onMobile: false, kit: { jersey: "#00205b", shorts: "#f4f4f4", socks: "#00205b", number: "34" } },
+    kits: [
+      { name: "Gretzky", number: "99", body: "#041e42", sleeve: "#ff4c00", collar: "#ff4c00" },
+      { name: "McDavid", number: "97", body: "#ff4c00", collar: "#041e42" },
+      { name: "Crosby", number: "87", body: "#1a1a1a", collar: "#fcb514" },
+      { name: "Ovechkin", number: "8", body: "#c8102e", sleeve: "#ffffff", collar: "#ffffff" },
+      { name: "Matthews", number: "34", body: "#00205b", collar: "#ffffff" },
+      { name: "Hughes", number: "43", body: "#154734", collar: "#eaaa00" },
+      { name: "Lemieux", number: "66", body: "#fcb514", collar: "#1a1a1a" },
+      { name: "Roy", number: "33", body: "#af1e2d", sleeve: "#192168", collar: "#ffffff" },
     ],
     defender: {
       pose: "defendStick",

@@ -2,12 +2,13 @@ import { tournamentThemes } from "@/lib/theme";
 import type { TournamentType } from "@/lib/tournament/types";
 import { CrestArt } from "./crest";
 import { Figure } from "./figure";
+import { Shirt } from "./shirt";
 
 type Variant = "wide" | "narrow";
 
 const LAYOUT = {
-  wide: { w: 1200, h: 580, figureX: [130, 365, 600, 835, 1070], scale: 1.3, wallRows: [3, 7] },
-  narrow: { w: 540, h: 560, figureX: [112, 270, 428], scale: 1.32, wallRows: [3, 4] },
+  wide: { w: 1200, h: 540, kitScale: 1, wallRows: [3, 7] },
+  narrow: { w: 540, h: 520, kitScale: 0.72, wallRows: [3, 4] },
 } as const;
 
 const PALETTE = {
@@ -131,9 +132,9 @@ function Boards({
             x={panel * index + panel / 2}
             y={top + height * 0.45}
             textAnchor="middle"
-            fontSize={height * 0.26}
+            fontSize={height * 0.3}
             fontWeight={800}
-            letterSpacing={1.2}
+            letterSpacing={1.4}
             fill="#ffffff"
             opacity={0.92}
           >
@@ -141,9 +142,9 @@ function Boards({
           </text>
           <text
             x={panel * index + panel / 2}
-            y={top + height * 0.76}
+            y={top + height * 0.78}
             textAnchor="middle"
-            fontSize={height * 0.16}
+            fontSize={height * 0.19}
             fill="#ffffff"
             opacity={0.6}
           >
@@ -151,6 +152,56 @@ function Boards({
           </text>
         </g>
       ))}
+    </g>
+  );
+}
+
+/** Draktene ligger med ryggen opp på gresset, i to rader med litt perspektiv. */
+function KitRack({
+  type,
+  w,
+  top,
+  depth,
+  kitScale,
+}: {
+  type: TournamentType;
+  w: number;
+  top: number;
+  depth: number;
+  kitScale: number;
+}) {
+  const kits = tournamentThemes[type].kits;
+  const rows = [
+    { items: kits.slice(0, 4), at: 0.26, scale: 0.88, x: [0.13, 0.38, 0.63, 0.88], tilt: [-7, 5, -4, 8] },
+    { items: kits.slice(4, 8), at: 0.7, scale: 1.05, x: [0.22, 0.46, 0.7, 0.93], tilt: [6, -6, 4, -8] },
+  ];
+
+  return (
+    <g>
+      {rows.map((row, rowIndex) =>
+        row.items.map((kit, index) => {
+          const sx = kitScale * row.scale;
+          const sy = sx * 0.62;
+          const cx = w * row.x[index];
+          const cy = top + depth * row.at;
+          return (
+            <g key={kit.name}>
+              <ellipse
+                cx={cx}
+                cy={cy + 34 * sy}
+                rx={58 * sx}
+                ry={13 * sy}
+                fill="rgba(0,0,0,0.3)"
+              />
+              <g
+                transform={`translate(${cx} ${cy}) rotate(${row.tilt[index]}) scale(${sx} ${sy}) translate(-60 -70)`}
+              >
+                <Shirt spec={kit} uid={`${type}-${rowIndex}-${index}`} />
+              </g>
+            </g>
+          );
+        }),
+      )}
     </g>
   );
 }
@@ -225,17 +276,12 @@ export function HeroScene({
   type: TournamentType;
   variant: Variant;
 }) {
-  const { w, h, figureX, scale, wallRows } = LAYOUT[variant];
+  const { w, h, kitScale, wallRows } = LAYOUT[variant];
   const palette = PALETTE[type];
   const uid = `${type}-${variant}`;
-  const boardsHeight = h * 0.1;
-  const boardsTop = h * 0.56;
+  const boardsHeight = h * 0.125;
+  const boardsTop = h * 0.54;
   const groundTop = boardsTop + boardsHeight;
-  const feet = h * 0.935;
-
-  const lineup = tournamentThemes[type].lineup.filter(
-    (figure) => variant === "wide" || figure.onMobile,
-  );
 
   return (
     <svg
@@ -262,23 +308,13 @@ export function HeroScene({
 
       <Boards type={type} w={w} top={boardsTop} height={boardsHeight} />
       <Ground type={type} w={w} h={h} top={groundTop} uid={uid} />
-
-      {lineup.map((spec, index) => (
-        <g key={`${spec.pose}-${index}`}>
-          <ellipse
-            cx={figureX[index]}
-            cy={feet + 6}
-            rx={62 * scale}
-            ry={11 * scale}
-            fill="rgba(0,0,0,0.38)"
-          />
-          <g
-            transform={`translate(${figureX[index] - 75 * scale} ${feet - 240 * scale}) scale(${scale})`}
-          >
-            <Figure spec={spec} />
-          </g>
-        </g>
-      ))}
+      <KitRack
+        type={type}
+        w={w}
+        top={groundTop}
+        depth={h - groundTop}
+        kitScale={kitScale}
+      />
     </svg>
   );
 }
