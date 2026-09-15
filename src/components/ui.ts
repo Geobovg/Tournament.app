@@ -4,6 +4,7 @@ export const buttonClass =
 export const secondaryButtonClass =
   "rounded-lg border border-border px-4 py-2 font-medium transition hover:bg-surface-raised disabled:opacity-50";
 
-export const cardClass = "rounded-xl border border-border bg-surface p-5";
+export const cardClass =
+  "rounded-xl border border-border bg-surface p-5 backdrop-blur-sm";
 
 export const labelClass = "block text-sm font-medium text-muted";

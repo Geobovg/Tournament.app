@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClipForm } from "@/components/clip-form";
 import { MatchActions } from "@/components/match-actions";
+import { ThemeBackdrop, ThemePanel } from "@/components/tournament-theme";
 import { cardClass } from "@/components/ui";
+import { tournamentThemes } from "@/lib/theme";
 import {
   getMatch,
   getTournament,
@@ -54,6 +56,7 @@ export default async function MatchPage({
 
   return (
     <div data-theme={tournament.type} className="mx-auto grid max-w-2xl gap-6">
+      <ThemeBackdrop />
       <div>
         <Link
           href={`/tournaments/${id}`}
@@ -62,30 +65,30 @@ export default async function MatchPage({
           ← {tournament.name}
         </Link>
         <p className="mt-2 text-sm text-muted">
-          {typeLabel(tournament.type)} ·{" "}
+          {tournamentThemes[tournament.type].emoji} {typeLabel(tournament.type)} ·{" "}
           {match.stage === "league"
             ? `Ligaspill, runde ${match.round_number}`
             : `Sluttspill${tieLegs.length > 1 ? `, kamp ${match.leg_number} av duellen` : ""}`}
         </p>
       </div>
 
-      <div className={cardClass}>
+      <ThemePanel type={tournament.type}>
         <div className="flex items-center justify-between gap-4 text-lg font-semibold">
           <span className="flex-1">{homeTeam?.name ?? "—"}</span>
-          <span className="font-mono">
+          <span className="font-mono text-3xl">
             {match.status === "scheduled"
               ? "–"
               : `${match.home_score}–${match.away_score}`}
           </span>
           <span className="flex-1 text-right">{awayTeam?.name ?? "—"}</span>
         </div>
-        <p className="mt-2 text-center text-sm text-muted">
+        <p className="mt-2 text-center text-sm text-white/75">
           {extra ?? matchStatusLabel(match)}
         </p>
 
         {otherLegs.length > 0 ? (
-          <div className="mt-4 border-t border-border pt-3 text-sm text-muted">
-            <p className="mb-1 font-medium text-foreground">Andre kamper i duellen</p>
+          <div className="mt-4 border-t border-white/20 pt-3 text-sm text-white/75">
+            <p className="mb-1 font-medium text-white">Andre kamper i duellen</p>
             <ul className="grid gap-1">
               {otherLegs.map((leg) => (
                 <li key={leg.id}>
@@ -100,7 +103,7 @@ export default async function MatchPage({
             </ul>
           </div>
         ) : null}
-      </div>
+      </ThemePanel>
 
       {match.is_bye ? (
         <div className={cardClass}>

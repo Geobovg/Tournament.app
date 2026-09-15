@@ -8,6 +8,7 @@ import {
   RegisterTeamForm,
 } from "@/components/registration-forms";
 import { StandingsTable } from "@/components/standings-table";
+import { ThemeBackdrop, TournamentHero } from "@/components/tournament-theme";
 import { cardClass } from "@/components/ui";
 import {
   getTournament,
@@ -166,24 +167,25 @@ export default async function TournamentPage({
 
   return (
     <div data-theme={tournament.type} className="grid gap-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+      <ThemeBackdrop />
+      <TournamentHero
+        type={tournament.type}
+        title={tournament.name}
+        meta={`${typeLabel(tournament.type)} · ${statusLabel(tournament.status)} · ${teams.length} lag`}
+        back={
           <Link href="/" className="text-sm text-muted hover:underline">
             ← Alle turneringer
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold">{tournament.name}</h1>
-          <p className="text-muted">
-            {typeLabel(tournament.type)} · {statusLabel(tournament.status)} ·{" "}
-            {teams.length} lag
-          </p>
-        </div>
-        <Link
-          href={`/tournaments/${id}/stats`}
-          className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-surface-raised"
-        >
-          Statistikk
-        </Link>
-      </div>
+        }
+        actions={
+          <Link
+            href={`/tournaments/${id}/stats`}
+            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-surface-raised"
+          >
+            Statistikk
+          </Link>
+        }
+      />
 
       {champion ? (
         <div className="rounded-xl border border-accent bg-accent-soft p-5 text-center">
@@ -231,7 +233,7 @@ export default async function TournamentPage({
       ) : null}
 
       {leagueMatches.length > 0 ? (
-        <section className={cardClass}>
+        <section className={`${cardClass} min-w-0`}>
           <h2 className="mb-4 text-lg font-semibold">Tabell</h2>
           <StandingsTable
             rows={standings}

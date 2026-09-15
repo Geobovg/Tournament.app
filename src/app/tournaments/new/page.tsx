@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CreateTournamentForm } from "@/components/create-tournament-form";
-import { cardClass } from "@/components/ui";
 
 export default function NewTournamentPage() {
   return (
@@ -15,9 +14,7 @@ export default function NewTournamentPage() {
         </p>
       </div>
 
-      <div className={cardClass}>
-        <CreateTournamentForm />
-      </div>
+      <CreateTournamentForm />
     </div>
   );
 }

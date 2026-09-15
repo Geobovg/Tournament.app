@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ThemeBackdrop, ThemePanel } from "@/components/tournament-theme";
 import { cardClass } from "@/components/ui";
 import {
   getTournament,
@@ -95,18 +96,21 @@ export default async function StatsPage({
 
   return (
     <div data-theme={tournament.type} className="grid gap-6">
-      <div>
+      <ThemeBackdrop />
+      <ThemePanel type={tournament.type}>
         <Link
           href={`/tournaments/${id}`}
-          className="text-sm text-muted hover:underline"
+          className="text-sm text-white/75 hover:underline"
         >
           ← {tournament.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Statistikk</h1>
-        <p className="text-muted">
+        <h1 className="mt-2 text-2xl font-semibold uppercase tracking-tight">
+          Statistikk
+        </h1>
+        <p className="text-sm text-white/75">
           {typeLabel(tournament.type)} · hele turneringen (liga + sluttspill)
         </p>
-      </div>
+      </ThemePanel>
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className={cardClass}>

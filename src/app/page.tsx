@@ -2,23 +2,28 @@ import Link from "next/link";
 import { buttonClass, cardClass } from "@/components/ui";
 import { listTournaments } from "@/lib/data";
 import { statusLabel, typeLabel } from "@/lib/labels";
+import { tournamentThemes } from "@/lib/theme";
 import type { Tournament } from "@/lib/tournament/types";
 
 export const dynamic = "force-dynamic";
 
 function TournamentCard({ tournament }: { tournament: Tournament }) {
+  const theme = tournamentThemes[tournament.type];
   return (
     <li>
       <Link
         href={`/tournaments/${tournament.id}`}
         data-theme={tournament.type}
-        className="flex items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 transition hover:bg-surface-raised"
+        className="theme-tile flex items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 transition hover:bg-surface-raised"
       >
-        <div>
-          <p className="font-medium">{tournament.name}</p>
-          <p className="text-sm text-muted">{statusLabel(tournament.status)}</p>
+        <div className="relative flex items-center gap-3">
+          <span className="theme-badge">{theme.emoji}</span>
+          <div>
+            <p className="font-medium">{tournament.name}</p>
+            <p className="text-sm text-muted">{statusLabel(tournament.status)}</p>
+          </div>
         </div>
-        <span className="rounded-full bg-accent-soft px-3 py-1 text-sm font-medium text-accent">
+        <span className="relative rounded-full bg-accent-soft px-3 py-1 text-sm font-medium text-accent">
           {typeLabel(tournament.type)}
         </span>
       </Link>

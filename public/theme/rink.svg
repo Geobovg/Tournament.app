@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 85">
+  <defs>
+    <clipPath id="rink-boards">
+      <rect x="0.5" y="0.5" width="199" height="84" rx="28" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#rink-boards)">
+    <rect width="200" height="85" fill="#eaf4ff" fill-opacity="0.12" />
+    <rect x="74.5" width="1" height="85" fill="#2f6fe4" />
+    <rect x="124.5" width="1" height="85" fill="#2f6fe4" />
+    <rect x="99.6" width="0.8" height="85" fill="#e03a4e" />
+    <rect x="10.8" width="0.4" height="85" fill="#e03a4e" />
+    <rect x="188.8" width="0.4" height="85" fill="#e03a4e" />
+    <path d="M11 36.5 A 6 6 0 0 1 11 48.5 Z" fill="#7fb6ff" fill-opacity="0.45" stroke="#e03a4e" stroke-width="0.3" />
+    <path d="M189 36.5 A 6 6 0 0 0 189 48.5 Z" fill="#7fb6ff" fill-opacity="0.45" stroke="#e03a4e" stroke-width="0.3" />
+    <rect x="7" y="39" width="4" height="7" fill="none" stroke="#e03a4e" stroke-width="0.3" />
+    <rect x="189" y="39" width="4" height="7" fill="none" stroke="#e03a4e" stroke-width="0.3" />
+    <circle cx="100" cy="42.5" r="15" fill="none" stroke="#2f6fe4" stroke-width="0.4" />
+    <circle cx="100" cy="42.5" r="0.9" fill="#2f6fe4" />
+    <g fill="none" stroke="#e03a4e" stroke-width="0.4">
+      <circle cx="31" cy="20.5" r="15" />
+      <circle cx="31" cy="64.5" r="15" />
+      <circle cx="169" cy="20.5" r="15" />
+      <circle cx="169" cy="64.5" r="15" />
+    </g>
+    <g fill="#e03a4e">
+      <circle cx="31" cy="20.5" r="0.9" />
+      <circle cx="31" cy="64.5" r="0.9" />
+      <circle cx="169" cy="20.5" r="0.9" />
+      <circle cx="169" cy="64.5" r="0.9" />
+      <circle cx="70" cy="20.5" r="0.9" />
+      <circle cx="70" cy="64.5" r="0.9" />
+      <circle cx="130" cy="20.5" r="0.9" />
+      <circle cx="130" cy="64.5" r="0.9" />
+    </g>
+  </g>
+  <rect x="0.5" y="0.5" width="199" height="84" rx="28" fill="none" stroke="#dbe9ff" stroke-width="1.2" stroke-opacity="0.75" />
+</svg>
