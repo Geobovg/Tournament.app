@@ -14,65 +14,70 @@ export type Pose = {
   ball?: { at: Point; r: number };
   puck?: Point;
   stick?: [Point, Point];
+  handSign?: Point;
+  trophy?: Point;
+  heart?: Point;
+  helmet?: boolean;
   goalieGear?: boolean;
   skates?: boolean;
 };
 
 /** All poses live in a 150 x 250 box with the ground at y = 240. */
 export const poses: Record<PoseName, Pose> = {
-  keeper: {
-    head: [96, 72],
+  threeFingers: {
+    head: [72, 38],
     headRadius: 15,
-    neck: [88, 88],
-    hip: [54, 140],
-    backArm: [[102, 74], [126, 54]],
-    frontArm: [[108, 88], [134, 70]],
-    backLeg: [[32, 168], [12, 192]],
-    frontLeg: [[38, 182], [16, 212]],
-    ball: { at: [136, 46], r: 11 },
+    neck: [72, 58],
+    hip: [72, 134],
+    backArm: [[50, 92], [40, 118]],
+    frontArm: [[96, 84], [104, 46]],
+    backLeg: [[62, 186], [56, 238]],
+    frontLeg: [[86, 186], [94, 238]],
+    handSign: [104, 46],
+    ball: { at: [32, 226], r: 13 },
   },
-  dribble: {
-    head: [86, 44],
-    headRadius: 15,
-    neck: [80, 62],
-    hip: [66, 136],
-    backArm: [[58, 94], [46, 72]],
-    frontArm: [[96, 98], [106, 124]],
-    backLeg: [[50, 182], [34, 214]],
-    frontLeg: [[88, 178], [108, 206]],
-    ball: { at: [124, 228], r: 13 },
-  },
-  shoot: {
-    head: [60, 40],
-    headRadius: 15,
-    neck: [64, 58],
-    hip: [68, 132],
-    backArm: [[40, 90], [24, 72]],
-    frontArm: [[88, 86], [102, 64]],
-    backLeg: [[58, 184], [52, 238]],
-    frontLeg: [[96, 150], [124, 166]],
-    ball: { at: [136, 152], r: 12 },
-  },
-  celebrate: {
+  armsCrossed: {
     head: [75, 38],
     headRadius: 15,
     neck: [75, 58],
     hip: [75, 134],
-    backArm: [[50, 98], [34, 58]],
-    frontArm: [[100, 98], [116, 58]],
-    backLeg: [[60, 186], [50, 238]],
-    frontLeg: [[92, 186], [102, 238]],
+    backArm: [[50, 88], [92, 92]],
+    frontArm: [[100, 92], [58, 108]],
+    backLeg: [[62, 186], [54, 238]],
+    frontLeg: [[88, 186], [96, 238]],
   },
-  stand: {
-    head: [70, 36],
+  heartHands: {
+    head: [75, 38],
     headRadius: 15,
-    neck: [70, 56],
-    hip: [70, 132],
-    backArm: [[50, 90], [44, 120]],
-    frontArm: [[92, 88], [102, 116]],
-    backLeg: [[62, 184], [58, 238]],
-    frontLeg: [[86, 180], [98, 216]],
-    ball: { at: [106, 226], r: 14 },
+    neck: [75, 58],
+    hip: [75, 134],
+    backArm: [[50, 94], [66, 108]],
+    frontArm: [[100, 94], [84, 108]],
+    backLeg: [[63, 186], [57, 238]],
+    frontLeg: [[87, 186], [93, 238]],
+    heart: [75, 98],
+  },
+  trophyKiss: {
+    head: [82, 58],
+    headRadius: 15,
+    neck: [78, 76],
+    hip: [66, 138],
+    backArm: [[80, 106], [98, 102]],
+    frontArm: [[96, 102], [110, 106]],
+    backLeg: [[58, 188], [52, 238]],
+    frontLeg: [[80, 188], [88, 238]],
+    trophy: [108, 76],
+  },
+  vikingStance: {
+    head: [75, 42],
+    headRadius: 15,
+    neck: [75, 62],
+    hip: [75, 136],
+    backArm: [[44, 96], [62, 120]],
+    frontArm: [[106, 96], [88, 120]],
+    backLeg: [[63, 188], [57, 238]],
+    frontLeg: [[87, 188], [93, 238]],
+    helmet: true,
   },
   defend: {
     head: [75, 38],

@@ -18,11 +18,11 @@ export type Crest = {
 };
 
 export type PoseName =
-  | "keeper"
-  | "dribble"
-  | "shoot"
-  | "celebrate"
-  | "stand"
+  | "threeFingers"
+  | "armsCrossed"
+  | "heartHands"
+  | "trophyKiss"
+  | "vikingStance"
   | "defend"
   | "goalie"
   | "skate"
@@ -102,11 +102,11 @@ export const tournamentThemes: Record<TournamentType, TournamentTheme> = {
     emoji: "⚽",
     tagline: "Flomlyset er på og gresset er klippet.",
     lineup: [
-      { pose: "keeper", onMobile: true, kit: { jersey: "#c8ff3d", shorts: "#12271c", socks: "#c8ff3d", number: "1" } },
-      { pose: "dribble", onMobile: false, kit: { jersey: "#6cabdd", shorts: "#f4f4f4", socks: "#6cabdd", number: "17" } },
-      { pose: "shoot", onMobile: true, kit: { jersey: "#f4f4f4", shorts: "#f4f4f4", socks: "#1b2a4a", number: "9" } },
-      { pose: "celebrate", onMobile: true, kit: { jersey: "#a50044", shorts: "#004d98", socks: "#a50044", number: "10" } },
-      { pose: "stand", onMobile: false, kit: { jersey: "#ef0107", shorts: "#f4f4f4", socks: "#ef0107", number: "8" } },
+      { pose: "threeFingers", onMobile: true, kit: { jersey: "#a50044", shorts: "#004d98", socks: "#a50044", number: "11" } },
+      { pose: "armsCrossed", onMobile: false, kit: { jersey: "#f4f4f4", shorts: "#f4f4f4", socks: "#1b2a4a", number: "10" } },
+      { pose: "heartHands", onMobile: false, kit: { jersey: "#ef0107", shorts: "#f4f4f4", socks: "#ef0107", number: "8" } },
+      { pose: "trophyKiss", onMobile: true, kit: { jersey: "#75aadb", shorts: "#f4f4f4", socks: "#f4f4f4", number: "10" } },
+      { pose: "vikingStance", onMobile: true, kit: { jersey: "#f2f2f0", shorts: "#f2f2f0", socks: "#f2f2f0", number: "9" } },
     ],
     defender: {
       pose: "defend",

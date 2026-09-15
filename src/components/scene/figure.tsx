@@ -112,6 +112,71 @@ function Ball({ at, r }: { at: Point; r: number }) {
   );
 }
 
+function ThreeFingers({ at }: { at: Point }) {
+  return (
+    <g stroke={BODY} strokeWidth={6} strokeLinecap="round">
+      <circle cx={at[0]} cy={at[1]} r={6} fill={BODY} stroke="none" />
+      <line x1={at[0] - 3} y1={at[1] - 2} x2={at[0] - 15} y2={at[1] - 20} />
+      <line x1={at[0]} y1={at[1] - 2} x2={at[0] + 1} y2={at[1] - 25} />
+      <line x1={at[0] + 3} y1={at[1] - 2} x2={at[0] + 16} y2={at[1] - 17} />
+    </g>
+  );
+}
+
+function Trophy({ at }: { at: Point }) {
+  const [x, y] = at;
+  return (
+    <g>
+      <path
+        d={`M${x - 16} ${y - 17} H${x + 16} V${y - 8} C${x + 16} ${y + 8} ${x + 8} ${y + 15} ${x} ${y + 15} C${x - 8} ${y + 15} ${x - 16} ${y + 8} ${x - 16} ${y - 8} Z`}
+        fill="#e8c04b"
+      />
+      <path
+        d={`M${x - 16} ${y - 12} C${x - 27} ${y - 12} ${x - 27} ${y + 4} ${x - 17} ${y + 4}`}
+        fill="none"
+        stroke="#e8c04b"
+        strokeWidth={4}
+      />
+      <path
+        d={`M${x + 16} ${y - 12} C${x + 27} ${y - 12} ${x + 27} ${y + 4} ${x + 17} ${y + 4}`}
+        fill="none"
+        stroke="#e8c04b"
+        strokeWidth={4}
+      />
+      <rect x={x - 4} y={y + 14} width={8} height={12} fill="#c99f33" />
+      <rect x={x - 13} y={y + 25} width={26} height={8} rx={2} fill="#c99f33" />
+      <rect x={x - 12} y={y - 17} width={24} height={4} fill="#f4d97d" />
+    </g>
+  );
+}
+
+function Heart({ at }: { at: Point }) {
+  const [x, y] = at;
+  return (
+    <path
+      d={`M${x} ${y - 4} C${x} ${y - 14} ${x - 15} ${y - 14} ${x - 15} ${y - 2} C${x - 15} ${y + 8} ${x} ${y + 16} ${x} ${y + 16} C${x} ${y + 16} ${x + 15} ${y + 8} ${x + 15} ${y - 2} C${x + 15} ${y - 14} ${x} ${y - 14} ${x} ${y - 4} Z`}
+      fill="#f6f7f8"
+      stroke={BODY}
+      strokeWidth={2}
+    />
+  );
+}
+
+function VikingHelmet({ at, radius }: { at: Point; radius: number }) {
+  const [x, y] = at;
+  const r = radius + 3;
+  return (
+    <g>
+      <path d={`M${x - r} ${y - 2} A ${r} ${r} 0 0 1 ${x + r} ${y - 2} Z`} fill="#b9a06a" />
+      <rect x={x - r} y={y - 5} width={r * 2} height={6} rx={2} fill="#8d7746" />
+      <g fill="none" stroke="#efe7d2" strokeWidth={7} strokeLinecap="round">
+        <path d={`M${x - r + 3} ${y - 8} Q${x - r - 14} ${y - 12} ${x - r - 13} ${y - 30}`} />
+        <path d={`M${x + r - 3} ${y - 8} Q${x + r + 14} ${y - 12} ${x + r + 13} ${y - 30}`} />
+      </g>
+    </g>
+  );
+}
+
 function Stick({ grip, blade }: { grip: Point; blade: Point }) {
   const dx = blade[0] - grip[0];
   const dy = blade[1] - grip[1];
@@ -167,6 +232,7 @@ export function Figure({ spec }: { spec: FigureSpec }) {
       </text>
 
       <circle cx={pose.head[0]} cy={pose.head[1]} r={pose.headRadius} fill={BODY} />
+      {pose.helmet ? <VikingHelmet at={pose.head} radius={pose.headRadius} /> : null}
       {pose.goalieGear ? (
         <circle
           cx={pose.head[0]}
@@ -200,6 +266,9 @@ export function Figure({ spec }: { spec: FigureSpec }) {
       {pose.stick && pose.stick[1][1] >= pose.neck[1] ? (
         <Stick grip={pose.stick[0]} blade={pose.stick[1]} />
       ) : null}
+      {pose.handSign ? <ThreeFingers at={pose.handSign} /> : null}
+      {pose.heart ? <Heart at={pose.heart} /> : null}
+      {pose.trophy ? <Trophy at={pose.trophy} /> : null}
       {pose.ball ? <Ball at={pose.ball.at} r={pose.ball.r} /> : null}
       {pose.puck ? (
         <ellipse cx={pose.puck[0]} cy={pose.puck[1]} rx={9} ry={4} fill="#0a0f15" />
