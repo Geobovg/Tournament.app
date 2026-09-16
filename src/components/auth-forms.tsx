@@ -76,9 +76,10 @@ export function PasskeyRegistrationForm() {
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setPending(true);
     setState({});
-    const result = await passkeyRegistrationSessionAction(new FormData(event.currentTarget));
+    const result = await passkeyRegistrationSessionAction(new FormData(form));
     if (!result.ok || !result.access_token || !result.refresh_token) {
       setState(result);
       setPending(false);
@@ -92,7 +93,7 @@ export function PasskeyRegistrationForm() {
       if (registered.error) throw registered.error;
       await auth.auth.signOut({ scope: "local" });
       setState({ ok: true, message: "Face ID er registrert. Du kan bruke Face ID neste gang du logger inn." });
-      event.currentTarget.reset();
+      form.reset();
     } catch (error) {
       setState({ error: error instanceof Error ? error.message : "Kunne ikke registrere Face ID" });
     } finally {
