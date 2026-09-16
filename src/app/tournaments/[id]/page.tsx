@@ -61,6 +61,7 @@ function RoundVoting({
   votes,
   teamNames,
   voterId,
+  defaultOpen,
 }: {
   stage: MatchStage;
   roundNumber: number;
@@ -69,6 +70,7 @@ function RoundVoting({
   votes: Vote[];
   teamNames: Map<string, string>;
   voterId: string | null;
+  defaultOpen: boolean;
 }) {
   const matchIds = new Set(matches.map((match) => match.id));
   const roundClips = clips.filter((clip) => matchIds.has(clip.match_id));
@@ -79,10 +81,25 @@ function RoundVoting({
     roundVotes.find((vote) => vote.voter_id === voterId)?.goal_clip_id ?? null;
 
   return (
-    <details className="mt-4 rounded-lg border border-border p-3">
+    <details
+      open={defaultOpen}
+      className="mt-4 rounded-lg border border-border p-3"
+    >
       <summary className="cursor-pointer text-sm font-medium">
-        Rundens mål ({roundClips.length}{" "}
-        {roundClips.length === 1 ? "klipp" : "klipp"})
+        {roundClips.length === 0 ? (
+          <span className="text-muted">
+            Rundens mål – ingen målvideoer lagt inn ennå
+          </span>
+        ) : myVoteClipId ? (
+          <>
+            Rundens mål ({roundClips.length} klipp) ·{" "}
+            <span className="text-accent">du har stemt ✓</span>
+          </>
+        ) : (
+          <span className="text-accent">
+            Stem på rundens mål ({roundClips.length} klipp)
+          </span>
+        )}
       </summary>
       <div className="mt-4">
         <GoalOfTheRound
@@ -157,6 +174,16 @@ export default async function TournamentPage({
   const knockoutMatches = matches.filter((match) => match.stage === "knockout");
   const standings = computeStandings(teams, leagueMatches, tournament.type);
   const cutoff = knockoutCutoff(teams.length);
+
+  const clipMatchIds = new Set(clips.map((clip) => clip.match_id));
+  const newestRoundWithClips = (stageMatches: Match[]) => {
+    const rounds = stageMatches
+      .filter((match) => clipMatchIds.has(match.id))
+      .map((match) => match.round_number);
+    return rounds.length > 0 ? Math.max(...rounds) : null;
+  };
+  const openLeagueVote = newestRoundWithClips(leagueMatches);
+  const openKnockoutVote = newestRoundWithClips(knockoutMatches);
 
   const knockoutRounds = groupByRound(knockoutMatches);
   const lastRound = [...knockoutRounds.values()].at(-1);
@@ -268,6 +295,7 @@ export default async function TournamentPage({
                   votes={votes}
                   teamNames={teamNames}
                   voterId={voterId}
+                  defaultOpen={roundNumber === openLeagueVote}
                 />
               </div>
             ),
@@ -303,6 +331,7 @@ export default async function TournamentPage({
                   votes={votes}
                   teamNames={teamNames}
                   voterId={voterId}
+                  defaultOpen={roundNumber === openKnockoutVote}
                 />
               </div>
             );
