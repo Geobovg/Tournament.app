@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AudioPlayer } from "@/components/audio-player";
 import { listTracks } from "@/lib/audio";
 import "./globals.css";
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
         <AudioPlayer tracks={tracks} />
+        <SpeedInsights />
       </body>
     </html>
   );
