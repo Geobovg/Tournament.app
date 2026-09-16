@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useSyncExternalStore } from "react";
 import { submitClipAction, type ActionState } from "@/lib/actions";
 import { TeamAuthFields, useTeamSession } from "./team-auth-fields";
@@ -46,6 +47,7 @@ export function ClipForm({
   matchId: string;
   teams: { id: string; name: string }[];
 }) {
+  const router = useRouter();
   const session = useTeamSession(tournamentId);
   const [state, action, pending] = useActionState(submitClipAction, initialState);
   const skipped = useSyncExternalStore(
@@ -53,6 +55,11 @@ export function ClipForm({
     () => readSkip(matchId),
     () => false,
   );
+
+  function skip() {
+    writeSkip(matchId, true);
+    router.push(`/tournaments/${tournamentId}`);
+  }
 
   if (skipped) {
     return (
@@ -103,11 +110,7 @@ export function ClipForm({
         <button type="submit" className={secondaryButtonClass} disabled={pending}>
           {pending ? "Lagrer…" : "Legg inn målvideo"}
         </button>
-        <button
-          type="button"
-          onClick={() => writeSkip(matchId, true)}
-          className={secondaryButtonClass}
-        >
+        <button type="button" onClick={skip} className={secondaryButtonClass}>
           Ingen bangers - Skip
         </button>
       </div>

@@ -540,7 +540,7 @@ export async function submitClipAction(
 
   revalidatePath(`/tournaments/${match.tournament_id}`);
   revalidatePath(`/tournaments/${match.tournament_id}/matches/${matchId}`);
-  return { ok: true };
+  redirect(`/tournaments/${match.tournament_id}`);
 }
 
 export async function voteAction(
