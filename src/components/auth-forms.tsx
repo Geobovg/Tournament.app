@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useState, useTransition, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   changeCodeAction,
   isAccountCodeAvailable,
   loginAction,
   registerAction,
+  passkeyRegistrationSessionAction,
   sendRecoveryAction,
   type AuthActionState,
 } from "@/lib/auth-actions";
-import { buttonClass, cardClass, labelClass } from "./ui";
+import { supabaseBrowser } from "@/lib/supabase/browser";
+import { buttonClass, cardClass, labelClass, secondaryButtonClass } from "./ui";
 
 const initialState: AuthActionState = {};
 
@@ -35,9 +37,70 @@ export function LoginForm() {
       <CodeInput id="login-code" name="code" label="Sekssifret kode" />
       {state.error ? <p className="text-danger">{state.error}</p> : null}
       <button className={buttonClass} disabled={pending}>{pending ? "Logger inn…" : "Logg inn"}</button>
+      <PasskeyLoginButton next={next} />
       <div className="flex justify-between text-sm"><Link href="/forgot-code" className="text-accent underline">Glemt kode?</Link><Link href="/register" className="text-accent underline">Ny bruker</Link></div>
     </form>
   );
+}
+
+function PasskeyLoginButton({ next }: { next: string }) {
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function signIn() {
+    setPending(true);
+    setMessage(null);
+    try {
+      const { data, error } = await supabaseBrowser().auth.signInWithPasskey();
+      if (error || !data.session) throw new Error(error?.message ?? "Face ID kunne ikke logge inn");
+      const response = await fetch("/auth/passkey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: data.session.access_token, next }),
+      });
+      const result = await response.json() as { error?: string; next?: string };
+      if (!response.ok) throw new Error(result.error ?? "Face ID-innlogging mislyktes");
+      window.location.assign(result.next ?? "/");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Face ID-innlogging mislyktes");
+      setPending(false);
+    }
+  }
+
+  return <div className="grid gap-2"><button type="button" className={secondaryButtonClass} onClick={signIn} disabled={pending}>{pending ? "Sjekker Face ID…" : "Logg inn med Face ID / passkey"}</button>{message ? <p className="text-danger">{message}</p> : null}</div>;
+}
+
+export function PasskeyRegistrationForm() {
+  const [state, setState] = useState<AuthActionState>({});
+  const [pending, setPending] = useState(false);
+
+  async function register(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setState({});
+    const result = await passkeyRegistrationSessionAction(new FormData(event.currentTarget));
+    if (!result.ok || !result.access_token || !result.refresh_token) {
+      setState(result);
+      setPending(false);
+      return;
+    }
+    try {
+      const auth = supabaseBrowser();
+      const session = await auth.auth.setSession({ access_token: result.access_token, refresh_token: result.refresh_token });
+      if (session.error) throw session.error;
+      const registered = await auth.auth.registerPasskey();
+      if (registered.error) throw registered.error;
+      await auth.auth.signOut({ scope: "local" });
+      setState({ ok: true, message: "Face ID er registrert. Du kan bruke Face ID neste gang du logger inn." });
+      event.currentTarget.reset();
+    } catch (error) {
+      setState({ error: error instanceof Error ? error.message : "Kunne ikke registrere Face ID" });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return <form onSubmit={register} className="grid gap-3"><CodeInput id="passkey-code" name="code" label="Bekreft med sekssifret kode" />{state.error ? <p className="text-danger">{state.error}</p> : null}{state.message ? <p className="text-success">{state.message}</p> : null}<button className={secondaryButtonClass} disabled={pending}>{pending ? "Registrerer…" : "Aktiver Face ID / passkey"}</button></form>;
 }
 
 export function RegisterForm() {

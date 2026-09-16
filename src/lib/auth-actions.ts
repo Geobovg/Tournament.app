@@ -19,6 +19,7 @@ import {
 import { supabaseAdmin, supabasePublic } from "./supabase/server";
 
 export type AuthActionState = { error?: string; ok?: boolean; message?: string };
+export type PasskeySessionState = AuthActionState & { access_token?: string; refresh_token?: string };
 
 export async function isAccountCodeAvailable(code: string, ignoreUserId?: string) {
   if (!validAccountCode(code)) return false;
@@ -139,6 +140,29 @@ export async function loginAction(
   await setSession(profile.id);
   revalidatePath("/", "layout");
   redirect(next.startsWith("/join/") ? next : "/");
+}
+
+/** Creates a short-lived Supabase Auth session so the browser can register a passkey. */
+export async function passkeyRegistrationSessionAction(
+  formData: FormData,
+): Promise<PasskeySessionState> {
+  const user = await requireUser();
+  const code = formValue(formData, "code");
+  if (!validAccountCode(code)) return { error: "Skriv inn den sekssifrede koden din" };
+
+  const { data: profile } = await supabaseAdmin()
+    .from("profiles")
+    .select("code_hash")
+    .eq("id", user.id)
+    .single();
+  if (!profile || !verifyAccountCode(code, profile.code_hash)) return { error: "Feil sekssifret kode" };
+
+  const { data, error } = await supabasePublic().auth.signInWithPassword({
+    email: user.email,
+    password: code,
+  });
+  if (error || !data.session) return { error: "Kunne ikke klargjøre Face ID. Bekreft e-posten din først." };
+  return { ok: true, access_token: data.session.access_token, refresh_token: data.session.refresh_token };
 }
 
 export async function sendRecoveryAction(
