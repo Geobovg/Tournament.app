@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { CreateTournamentForm } from "@/components/create-tournament-form";
+import { currentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default function NewTournamentPage() {
+export default async function NewTournamentPage() {
+  if (!(await currentUser())) redirect("/login");
   return (
     <div className="mx-auto grid max-w-xl gap-6">
       <div>

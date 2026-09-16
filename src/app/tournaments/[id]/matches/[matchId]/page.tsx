@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ClipForm } from "@/components/clip-form";
 import { MatchActions } from "@/components/match-actions";
+import { LiveTournament } from "@/components/live-tournament";
 import { ThemeBackdrop, ThemePanel } from "@/components/tournament-theme";
 import { cardClass } from "@/components/ui";
 import { tournamentThemes } from "@/lib/theme";
@@ -11,7 +12,9 @@ import {
   listGoalClips,
   listMatches,
   listTeams,
+  listTournamentMembers,
 } from "@/lib/data";
+import { currentUser } from "@/lib/auth";
 import { matchStatusLabel, resultTypeLabel, typeLabel } from "@/lib/labels";
 import { toYouTubeEmbedUrl } from "@/lib/video";
 
@@ -21,6 +24,8 @@ export default async function MatchPage({
   params,
 }: PageProps<"/tournaments/[id]/matches/[matchId]">) {
   const { id, matchId } = await params;
+  const user = await currentUser();
+  if (!user) redirect(`/login?next=/tournaments/${id}/matches/${matchId}`);
 
   const [tournament, match] = await Promise.all([
     getTournament(id),
@@ -28,11 +33,13 @@ export default async function MatchPage({
   ]);
   if (!tournament || !match || match.tournament_id !== id) notFound();
 
-  const [teams, allMatches, clips] = await Promise.all([
+  const [teams, allMatches, clips, members] = await Promise.all([
     listTeams(id),
     listMatches(id),
     listGoalClips([matchId]),
+    listTournamentMembers(id),
   ]);
+  if (tournament.owner_id !== user.id && !members.some((member) => member.user_id === user.id)) redirect("/");
 
   const teamNames = new Map(teams.map((team) => [team.id, team.name]));
   const homeTeam = match.home_team_id
@@ -56,6 +63,7 @@ export default async function MatchPage({
 
   return (
     <div data-theme={tournament.type} className="mx-auto grid max-w-2xl gap-6">
+      <LiveTournament />
       <ThemeBackdrop />
       <div>
         <Link
@@ -165,7 +173,6 @@ export default async function MatchPage({
           <ClipForm
             tournamentId={id}
             matchId={matchId}
-            teams={[homeTeam, awayTeam]}
           />
         </div>
       ) : null}

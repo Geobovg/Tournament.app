@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { CloseTournamentButton } from "@/components/close-tournament-button";
 import { buttonClass, cardClass } from "@/components/ui";
-import { listTournaments } from "@/lib/data";
+import { currentUser } from "@/lib/auth";
+import { listTournamentsForUser } from "@/lib/data";
+import { redirect } from "next/navigation";
 import { statusLabel, typeLabel } from "@/lib/labels";
 import { tournamentThemes } from "@/lib/theme";
+import { JoinByCode } from "@/components/join-by-code";
 import type { Tournament } from "@/lib/tournament/types";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +43,9 @@ function TournamentCard({
 }
 
 export default async function HomePage() {
-  const tournaments = (await listTournaments()).filter((row) => !row.closed);
+  const user = await currentUser();
+  if (!user) redirect("/login");
+  const tournaments = (await listTournamentsForUser(user.id)).filter((row) => !row.closed);
   const active = tournaments.filter((row) => row.status !== "completed");
   const archived = tournaments.filter((row) => row.status === "completed");
 
@@ -51,9 +56,7 @@ export default async function HomePage() {
           <h1 className="text-2xl font-semibold">Turneringer</h1>
           <p className="text-muted">FIFA- og NHL-turneringer med liga og sluttspill.</p>
         </div>
-        <Link href="/tournaments/new" className={buttonClass}>
-          Opprett turnering
-        </Link>
+        <div className="flex flex-wrap gap-3"><JoinByCode /><Link href="/tournaments/new" className={buttonClass}>Opprett turnering</Link></div>
       </div>
 
       {tournaments.length === 0 ? (
@@ -80,11 +83,7 @@ export default async function HomePage() {
           <h2 className="text-lg font-semibold">Arkiv</h2>
           <ul className="grid gap-3">
             {archived.map((tournament) => (
-              <TournamentCard
-                key={tournament.id}
-                tournament={tournament}
-                closable
-              />
+              <TournamentCard key={tournament.id} tournament={tournament} closable={tournament.owner_id === user.id} />
             ))}
           </ul>
         </section>

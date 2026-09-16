@@ -1,12 +1,14 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { GoalOfTheRound } from "@/components/goal-of-the-round";
 import { MatchRow } from "@/components/match-row";
 import {
   LockRegistrationForm,
-  RegisterTeamForm,
+  JoinTournamentForm,
+  TeamPicker,
 } from "@/components/registration-forms";
+import { TournamentSettings } from "@/components/tournament-settings";
+import { LiveTournament } from "@/components/live-tournament";
 import { StandingsTable } from "@/components/standings-table";
 import { ThemeBackdrop, TournamentHero } from "@/components/tournament-theme";
 import { cardClass } from "@/components/ui";
@@ -16,8 +18,10 @@ import {
   listGoalClips,
   listMatches,
   listTeams,
+  listTournamentMembers,
   listVotes,
 } from "@/lib/data";
+import { currentUser } from "@/lib/auth";
 import { knockoutRoundLabel, statusLabel, typeLabel } from "@/lib/labels";
 import { knockoutCutoff } from "@/lib/tournament/bracket";
 import { computeStandings } from "@/lib/tournament/standings";
@@ -159,22 +163,36 @@ export default async function TournamentPage({
   params,
 }: PageProps<"/tournaments/[id]">) {
   const { id } = await params;
+  const user = await currentUser();
+  if (!user) redirect(`/login?next=/tournaments/${id}`);
   const tournament = await getTournament(id);
   if (!tournament) notFound();
 
-  const [teams, matches, votes] = await Promise.all([
+  const [teams, matches, votes, members] = await Promise.all([
     listTeams(id),
     listMatches(id),
     listVotes(id),
+    listTournamentMembers(id),
   ]);
+  const isOwner = tournament.owner_id === user.id;
+  const myMembership = members.find((member) => member.user_id === user.id);
+  if (!isOwner && !myMembership) redirect("/");
   const clips = await listGoalClips(matches.map((match) => match.id));
-  const voterId = (await cookies()).get("futebol_voter")?.value ?? null;
+  const voterId = user.id;
 
-  const teamNames = new Map(teams.map((team) => [team.id, team.name]));
+  const namedTeams = teams.filter((team): team is typeof team & { name: string } => Boolean(team.name));
+  const teamNames = new Map(namedTeams.map((team) => [team.id, team.name]));
   const leagueMatches = matches.filter((match) => match.stage === "league");
   const knockoutMatches = matches.filter((match) => match.stage === "knockout");
-  const standings = computeStandings(teams, leagueMatches, tournament.type);
-  const cutoff = knockoutCutoff(teams.length);
+  const standings = computeStandings(namedTeams, leagueMatches, tournament.type);
+  const cutoff = knockoutCutoff(namedTeams.length);
+  const slots = teams.map((team) => ({
+    ...team,
+    members: members.filter((member) => member.team_id === team.id),
+  }));
+  const registrationReady = slots.every(
+    (slot) => slot.members.length === tournament.team_size && Boolean(slot.name),
+  );
 
   const clipMatchIds = new Set(clips.map((clip) => clip.match_id));
   const newestRoundWithClips = (stageMatches: Match[]) => {
@@ -206,60 +224,53 @@ export default async function TournamentPage({
 
   return (
     <div data-theme={tournament.type} className="grid gap-8">
+      <LiveTournament />
       <ThemeBackdrop />
       <TournamentHero
         type={tournament.type}
         title={tournament.name}
-        meta={`${typeLabel(tournament.type)} · ${statusLabel(tournament.status)} · ${teams.length} lag`}
+        meta={`${typeLabel(tournament.type)} · ${statusLabel(tournament.status)} · ${namedTeams.length}/${tournament.max_teams} lag`}
         back={
           <Link href="/" className="text-sm text-muted hover:underline">
             ← Alle turneringer
           </Link>
         }
         actions={
-          <Link
-            href={`/tournaments/${id}/stats`}
-            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-surface-raised"
-          >
-            Statistikk
-          </Link>
+          <div className="flex items-center gap-2"><Link href={`/tournaments/${id}/stats`} className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-surface-raised">Statistikk</Link>{isOwner ? <TournamentSettings tournamentId={id} tournamentName={tournament.name} inviteToken={tournament.invite_token} inviteCode={tournament.invite_code} members={members.filter((member) => member.user_id !== user.id)} registrationOpen={tournament.status === "registration"} /> : null}</div>
         }
       />
 
       {tournament.status === "registration" ? (
         <div className="grid gap-6 md:grid-cols-2">
           <section className={cardClass}>
-            <h2 className="mb-4 text-lg font-semibold">Meld på laget ditt</h2>
-            <RegisterTeamForm tournamentId={id} />
+            <h2 className="mb-4 text-lg font-semibold">Velg laget ditt</h2>
+            {myMembership ? <TeamPicker tournamentId={id} teamSize={tournament.team_size} slots={slots} myTeamId={myMembership.team_id} joined /> : isOwner ? <JoinTournamentForm tournamentId={id} inviteToken="" /> : null}
           </section>
 
           <section className={cardClass}>
             <h2 className="mb-4 text-lg font-semibold">
-              Påmeldte lag ({teams.length}/{tournament.max_teams})
+              Lag ({slots.filter((slot) => slot.name).length}/{tournament.max_teams})
             </h2>
-            {teams.length === 0 ? (
-              <p className="text-muted">Ingen lag påmeldt ennå.</p>
-            ) : (
               <ul className="mb-5 grid gap-2">
-                {teams.map((team) => (
+                {slots.map((team, index) => (
                   <li
                     key={team.id}
                     className="rounded-lg border border-border px-3 py-2 text-sm"
                   >
-                    {team.name}
+                    <div className="flex justify-between gap-3"><span>{team.name ?? `Lag ${index + 1}`}</span><span className="text-muted">{team.members.length}/{tournament.team_size}</span></div>
+                    {team.members.length > 0 ? <p className="mt-1 text-xs text-muted">{team.members.map((member) => member.username).join(", ")}</p> : null}
                   </li>
                 ))}
               </ul>
-            )}
 
             <p className="mb-4 text-sm text-muted">
-              Med {teams.length} lag går topp {knockoutCutoff(teams.length)} videre
+              Med {tournament.max_teams} lag går topp {knockoutCutoff(tournament.max_teams)} videre
               til sluttspillet. Sluttspillet spilles med{" "}
               {tournament.legs_per_knockout_round === 2 ? "2 kamper" : "1 kamp"} per
               duell (finalen alltid 1 kamp).
             </p>
 
-            <LockRegistrationForm tournamentId={id} teamCount={teams.length} />
+            {isOwner ? <LockRegistrationForm tournamentId={id} ready={registrationReady} /> : <p className="text-sm text-muted">Arrangøren starter turneringen når alle lag er klare.</p>}
           </section>
         </div>
       ) : null}

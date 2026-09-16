@@ -15,6 +15,10 @@ export type Tournament = {
   status: TournamentStatus;
   max_teams: number;
   legs_per_knockout_round: number;
+  owner_id: string | null;
+  team_size: 1 | 2;
+  invite_token: string;
+  invite_code: string;
   closed: boolean;
   created_at: string;
 };
@@ -22,7 +26,7 @@ export type Tournament = {
 export type Team = {
   id: string;
   tournament_id: string;
-  name: string;
+  name: string | null;
   created_at: string;
 };
 
@@ -65,4 +69,11 @@ export type Vote = {
   goal_clip_id: string;
   voter_id: string;
   created_at: string;
+};
+
+export type TournamentMember = {
+  user_id: string;
+  team_id: string | null;
+  username: string;
+  avatar_url: string | null;
 };

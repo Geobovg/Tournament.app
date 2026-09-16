@@ -6,7 +6,6 @@ import {
   submitResultAction,
   type ActionState,
 } from "@/lib/actions";
-import { TeamAuthFields } from "./team-auth-fields";
 import { buttonClass, labelClass, secondaryButtonClass } from "./ui";
 
 const initialState: ActionState = {};
@@ -28,8 +27,6 @@ export function MatchActions({
   homeTeam: TeamRef;
   awayTeam: TeamRef;
 }) {
-  const participants = [homeTeam, awayTeam];
-
   const [submitState, submitAction, submitting] = useActionState(
     submitResultAction,
     initialState,
@@ -47,10 +44,6 @@ export function MatchActions({
           <p className="text-sm text-muted">
             Er resultatet riktig? Motstanderen må bekrefte før det telles.
           </p>
-          <TeamAuthFields
-            idPrefix={`confirm-${matchId}`}
-            teams={participants}
-          />
           {confirmState.error ? (
             <p className="text-danger">{confirmState.error}</p>
           ) : null}
@@ -80,7 +73,9 @@ export function MatchActions({
             <input
               id={`home-${matchId}`}
               name="home_score"
-              type="number"
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
               min={0}
               max={99}
               className="mt-1 w-full"
@@ -94,7 +89,9 @@ export function MatchActions({
             <input
               id={`away-${matchId}`}
               name="away_score"
-              type="number"
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
               min={0}
               max={99}
               className="mt-1 w-full"
@@ -139,7 +136,9 @@ export function MatchActions({
             </div>
             <input
               name="penalty_home"
-              type="number"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
               min={0}
               max={99}
               placeholder={`Straffer ${homeTeam.name}`}
@@ -147,7 +146,9 @@ export function MatchActions({
             />
             <input
               name="penalty_away"
-              type="number"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
               min={0}
               max={99}
               placeholder={`Straffer ${awayTeam.name}`}
@@ -155,8 +156,6 @@ export function MatchActions({
             />
           </div>
         ) : null}
-
-        <TeamAuthFields idPrefix={`submit-${matchId}`} teams={participants} />
 
         {submitState.error ? (
           <p className="text-danger">{submitState.error}</p>

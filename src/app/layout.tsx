@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AudioPlayer } from "@/components/audio-player";
 import { listTracks } from "@/lib/audio";
+import { currentUser } from "@/lib/auth";
+import { logoutAction } from "@/lib/auth-actions";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,12 +19,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Futebol",
+  title: "Tournament.app",
   description: "Turneringsapp for FIFA og NHL",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const tracks = await listTracks();
+  const [tracks, user] = await Promise.all([listTracks(), currentUser()]);
 
   return (
     <html
@@ -33,8 +35,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-border">
           <div className="mx-auto w-full max-w-5xl px-4 py-4">
             <Link href="/" className="text-lg font-semibold tracking-tight">
-              Futebol
+              Tournament.app
             </Link>
+            <div className="flex items-center gap-3 text-sm">
+              {user ? <><Link href="/profile" className="text-muted hover:text-foreground">{user.username}</Link><form action={logoutAction}><button className="text-muted hover:text-foreground">Logg ut</button></form></> : <Link href="/login" className="text-muted hover:text-foreground">Logg inn</Link>}
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>

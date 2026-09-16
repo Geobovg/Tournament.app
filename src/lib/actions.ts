@@ -2,10 +2,9 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMatch, getTournament, listMatches, listTeams } from "./data";
-import { hashPin, isValidPin, verifyPin } from "./pin";
+import { currentUser, requireUser } from "./auth";
 import { supabaseAdmin } from "./supabase/server";
 import {
   generateFirstKnockoutRound,
@@ -20,29 +19,27 @@ import { isHttpUrl } from "./video";
 
 export type ActionState = { error?: string; ok?: boolean };
 
-const VOTER_COOKIE = "futebol_voter";
-
-type AuthResult =
-  | { ok: false; error: string }
-  | { ok: true; team: { id: string; tournament_id: string; name: string } };
-
-async function authenticateTeam(teamId: string, pin: string): Promise<AuthResult> {
-  if (!isValidPin(pin)) return { ok: false, error: "PIN-koden må være 4 siffer" };
-
+async function currentTeam(tournamentId: string) {
+  const user = await currentUser();
+  if (!user) return { error: "Du må logge inn først" } as const;
   const { data, error } = await supabaseAdmin()
-    .from("teams")
-    .select("id, tournament_id, name, pin_hash")
-    .eq("id", teamId)
+    .from("tournament_members")
+    .select("team_id")
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", user.id)
     .maybeSingle();
+  if (error || !data?.team_id) return { error: "Du må være med på et lag for å gjøre dette" } as const;
+  return { user, teamId: data.team_id } as const;
+}
 
-  if (error) return { ok: false, error: error.message };
-  if (!data) return { ok: false, error: "Fant ikke laget" };
-  if (!verifyPin(pin, data.pin_hash)) return { ok: false, error: "Feil PIN-kode" };
-
-  return {
-    ok: true,
-    team: { id: data.id, tournament_id: data.tournament_id, name: data.name },
-  };
+async function isTournamentOwner(tournamentId: string, userId: string) {
+  const { data } = await supabaseAdmin()
+    .from("tournaments")
+    .select("id")
+    .eq("id", tournamentId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  return Boolean(data);
 }
 
 function parseScore(value: FormDataEntryValue | null): number | null {
@@ -119,7 +116,9 @@ async function advanceTournament(tournamentId: string): Promise<void> {
       return;
     }
 
-    const teams = await listTeams(tournamentId);
+    const teams = (await listTeams(tournamentId)).filter(
+      (team): team is typeof team & { name: string } => Boolean(team.name),
+    );
     const standings = computeStandings(teams, leagueMatches, tournament.type);
     const qualified = standings
       .slice(0, knockoutCutoff(teams.length))
@@ -211,10 +210,12 @@ export async function createTournamentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   const type = String(formData.get("type") ?? "");
   const maxTeams = Number(formData.get("max_teams"));
   const legs = Number(formData.get("legs"));
+  const teamSize = Number(formData.get("team_size"));
 
   if (name.length < 2) return { error: "Gi turneringen et navn (minst 2 tegn)" };
   if (type !== "fifa" && type !== "nhl") return { error: "Velg FIFA eller NHL" };
@@ -224,6 +225,7 @@ export async function createTournamentAction(
   if (legs !== 1 && legs !== 2) {
     return { error: "Velg 1 eller 2 kamper per sluttspillrunde" };
   }
+  if (teamSize !== 1 && teamSize !== 2) return { error: "Velg enspiller eller double" };
 
   const { data, error } = await supabaseAdmin()
     .from("tournaments")
@@ -232,11 +234,17 @@ export async function createTournamentAction(
       type,
       max_teams: maxTeams,
       legs_per_knockout_round: legs,
+      owner_id: user.id,
+      team_size: teamSize,
     })
     .select("id")
     .single();
 
-  if (error) return { error: error.message };
+  if (error || !data) return { error: error?.message ?? "Kunne ikke opprette turneringen" };
+
+  const slots = Array.from({ length: maxTeams }, () => ({ tournament_id: data.id }));
+  const { error: slotsError } = await supabaseAdmin().from("teams").insert(slots);
+  if (slotsError) return { error: slotsError.message };
 
   revalidatePath("/");
   redirect(`/tournaments/${data.id}`);
@@ -246,10 +254,12 @@ export async function closeTournamentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const user = await requireUser();
   const tournamentId = String(formData.get("tournament_id") ?? "");
 
   const tournament = await getTournament(tournamentId);
   if (!tournament) return { error: "Fant ikke turneringen" };
+  if (!(await isTournamentOwner(tournamentId, user.id))) return { error: "Bare arrangøren kan lukke turneringen" };
   if (tournament.status !== "completed") {
     return { error: "Bare ferdigspilte turneringer kan lukkes" };
   }
@@ -265,39 +275,150 @@ export async function closeTournamentAction(
   return { ok: true };
 }
 
-export async function registerTeamAction(
+export async function renameTournamentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const tournamentId = String(formData.get("tournament_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const pin = String(formData.get("pin") ?? "");
+  const user = await requireUser();
+  if (name.length < 2 || name.length > 60) return { error: "Turneringsnavnet må være mellom 2 og 60 tegn" };
+  if (!(await isTournamentOwner(tournamentId, user.id))) return { error: "Bare arrangøren kan endre navnet" };
+  const { error } = await supabaseAdmin().from("tournaments").update({ name }).eq("id", tournamentId);
+  if (error) return { error: error.message };
+  revalidatePath(`/tournaments/${tournamentId}`);
+  revalidatePath("/");
+  return { ok: true };
+}
 
-  if (name.length < 2) return { error: "Lagnavnet må ha minst 2 tegn" };
-  if (!isValidPin(pin)) return { error: "PIN-koden må være nøyaktig 4 siffer" };
+export async function renewInviteAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+  const user = await requireUser();
+  if (!(await isTournamentOwner(tournamentId, user.id))) return { error: "Bare arrangøren kan fornye lenken" };
+  const { error } = await supabaseAdmin().from("tournaments").update({ invite_token: randomUUID(), invite_code: randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase() }).eq("id", tournamentId);
+  if (error) return { error: error.message };
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true };
+}
+
+export async function removeParticipantAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+  const memberId = String(formData.get("member_id") ?? "");
+  const user = await requireUser();
+  const tournament = await getTournament(tournamentId);
+  if (!tournament || tournament.status !== "registration") return { error: "Deltakere kan ikke fjernes etter turneringsstart" };
+  if (!(await isTournamentOwner(tournamentId, user.id))) return { error: "Bare arrangøren kan fjerne deltakere" };
+  if (memberId === user.id) return { error: "Arrangøren kan ikke fjerne seg selv" };
+  const { data: member } = await supabaseAdmin().from("tournament_members").select("team_id").eq("tournament_id", tournamentId).eq("user_id", memberId).maybeSingle();
+  if (!member) return { error: "Fant ikke deltakeren" };
+  await supabaseAdmin().from("tournament_members").delete().eq("tournament_id", tournamentId).eq("user_id", memberId);
+  if (member.team_id) await supabaseAdmin().from("teams").update({ name: null }).eq("id", member.team_id);
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true };
+}
+
+export async function joinTournamentAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+  const inviteToken = String(formData.get("invite_token") ?? "");
+  const user = await requireUser();
 
   const tournament = await getTournament(tournamentId);
   if (!tournament) return { error: "Fant ikke turneringen" };
   if (tournament.status !== "registration") {
     return { error: "Påmeldingen er stengt" };
   }
-
-  const teams = await listTeams(tournamentId);
-  if (teams.length >= tournament.max_teams) {
-    return { error: "Turneringen er full" };
-  }
-  if (teams.some((team) => team.name.toLowerCase() === name.toLowerCase())) {
-    return { error: "Lagnavnet er allerede tatt" };
+  if (tournament.owner_id !== user.id && tournament.invite_token !== inviteToken) {
+    return { error: "Denne invitasjonen er ikke gyldig" };
   }
 
-  const { error } = await supabaseAdmin().from("teams").insert({
-    tournament_id: tournamentId,
-    name,
-    pin_hash: hashPin(pin),
-  });
+  const { error } = await supabaseAdmin().from("tournament_members").upsert(
+    { tournament_id: tournamentId, user_id: user.id },
+    { onConflict: "tournament_id,user_id", ignoreDuplicates: true },
+  );
 
   if (error) return { error: error.message };
 
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true };
+}
+
+export async function chooseTeamAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+  const teamId = String(formData.get("team_id") ?? "");
+  const user = await requireUser();
+  const tournament = await getTournament(tournamentId);
+  if (!tournament || tournament.status !== "registration") return { error: "Påmeldingen er stengt" };
+
+  const { data: member } = await supabaseAdmin().from("tournament_members")
+    .select("team_id").eq("tournament_id", tournamentId).eq("user_id", user.id).maybeSingle();
+  if (!member) return { error: "Bli med i turneringen før du velger lag" };
+  if (member.team_id) return { error: "Du er allerede på et lag i denne turneringen" };
+
+  const { data: team } = await supabaseAdmin().from("teams")
+    .select("id, tournament_id").eq("id", teamId).maybeSingle();
+  if (!team || team.tournament_id !== tournamentId) return { error: "Fant ikke lagplassen" };
+  const { count } = await supabaseAdmin().from("tournament_members")
+    .select("user_id", { count: "exact", head: true }).eq("team_id", teamId);
+  if ((count ?? 0) >= tournament.team_size) return { error: "Dette laget er allerede fullt" };
+
+  const { error } = await supabaseAdmin().from("tournament_members")
+    .update({ team_id: teamId }).eq("tournament_id", tournamentId).eq("user_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true };
+}
+
+export async function setTeamNameAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (name.length < 2 || name.length > 32) return { error: "Lagnavnet må være mellom 2 og 32 tegn" };
+  const access = await currentTeam(tournamentId);
+  if ("error" in access) return { error: access.error };
+  const tournament = await getTournament(tournamentId);
+  if (!tournament || tournament.status !== "registration") return { error: "Påmeldingen er stengt" };
+  const { count } = await supabaseAdmin().from("tournament_members")
+    .select("user_id", { count: "exact", head: true }).eq("team_id", access.teamId);
+  if (count !== tournament.team_size) return { error: "Vent til laget er fullt før dere velger lagnavn" };
+  const { error } = await supabaseAdmin().from("teams").update({ name }).eq("id", access.teamId);
+  if (error) return { error: "Lagnavnet er allerede i bruk" };
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true };
+}
+
+export async function leaveTournamentAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+  const user = await requireUser();
+  const tournament = await getTournament(tournamentId);
+  if (!tournament || tournament.status !== "registration") return { error: "Du kan ikke forlate turneringen etter start" };
+  const { data: member } = await supabaseAdmin().from("tournament_members").select("team_id").eq("tournament_id", tournamentId).eq("user_id", user.id).maybeSingle();
+  if (!member) return { error: "Du er ikke med i denne turneringen" };
+  if (tournament.owner_id === user.id) {
+    await supabaseAdmin().from("tournament_members").update({ team_id: null }).eq("tournament_id", tournamentId).eq("user_id", user.id);
+  } else {
+    await supabaseAdmin().from("tournament_members").delete().eq("tournament_id", tournamentId).eq("user_id", user.id);
+  }
+  if (member.team_id) {
+    const { count } = await supabaseAdmin().from("tournament_members").select("user_id", { count: "exact", head: true }).eq("team_id", member.team_id);
+    if ((count ?? 0) < tournament.team_size) await supabaseAdmin().from("teams").update({ name: null }).eq("id", member.team_id);
+  }
   revalidatePath(`/tournaments/${tournamentId}`);
   return { ok: true };
 }
@@ -307,15 +428,17 @@ export async function lockRegistrationAction(
   formData: FormData,
 ): Promise<ActionState> {
   const tournamentId = String(formData.get("tournament_id") ?? "");
+  const user = await requireUser();
 
   const tournament = await getTournament(tournamentId);
   if (!tournament) return { error: "Fant ikke turneringen" };
+  if (!(await isTournamentOwner(tournamentId, user.id))) return { error: "Bare arrangøren kan starte turneringen" };
   if (tournament.status !== "registration") {
     return { error: "Påmeldingen er allerede stengt" };
   }
 
-  const teams = await listTeams(tournamentId);
-  if (teams.length < 2) return { error: "Det må være minst 2 lag for å starte" };
+  const teams = (await listTeams(tournamentId)).filter((team) => team.name);
+  if (teams.length !== tournament.max_teams) return { error: "Alle lagplasser må være fulle og ha lagnavn før start" };
 
   const now = new Date().toISOString();
   const rows = generateRoundRobin(teams.map((team) => team.id)).flatMap(
@@ -353,8 +476,6 @@ export async function submitResultAction(
   formData: FormData,
 ): Promise<ActionState> {
   const matchId = String(formData.get("match_id") ?? "");
-  const teamId = String(formData.get("team_id") ?? "");
-  const pin = String(formData.get("pin") ?? "");
 
   const homeScore = parseScore(formData.get("home_score"));
   const awayScore = parseScore(formData.get("away_score"));
@@ -362,17 +483,14 @@ export async function submitResultAction(
     return { error: "Fyll inn målscore for begge lag (0–99)" };
   }
 
-  const auth = await authenticateTeam(teamId, pin);
-  if (!auth.ok) return { error: auth.error };
-
   const match = await getMatch(matchId);
   if (!match) return { error: "Fant ikke kampen" };
+  const access = await currentTeam(match.tournament_id);
+  if ("error" in access) return { error: access.error };
+  const teamId = access.teamId;
   if (match.is_bye) return { error: "Dette laget har fri denne runden" };
   if (match.status === "confirmed") {
     return { error: "Resultatet er allerede bekreftet" };
-  }
-  if (auth.team.tournament_id !== match.tournament_id) {
-    return { error: "Laget hører ikke til denne turneringen" };
   }
   if (match.home_team_id !== teamId && match.away_team_id !== teamId) {
     return { error: "Bare lagene som spiller kampen kan legge inn resultat" };
@@ -497,14 +615,12 @@ export async function confirmResultAction(
   formData: FormData,
 ): Promise<ActionState> {
   const matchId = String(formData.get("match_id") ?? "");
-  const teamId = String(formData.get("team_id") ?? "");
-  const pin = String(formData.get("pin") ?? "");
-
-  const auth = await authenticateTeam(teamId, pin);
-  if (!auth.ok) return { error: auth.error };
 
   const match = await getMatch(matchId);
   if (!match) return { error: "Fant ikke kampen" };
+  const access = await currentTeam(match.tournament_id);
+  if ("error" in access) return { error: access.error };
+  const teamId = access.teamId;
   if (match.status !== "pending_confirmation") {
     return { error: "Det finnes ingen innsendt resultat å bekrefte" };
   }
@@ -540,19 +656,17 @@ export async function submitClipAction(
   formData: FormData,
 ): Promise<ActionState> {
   const matchId = String(formData.get("match_id") ?? "");
-  const teamId = String(formData.get("team_id") ?? "");
-  const pin = String(formData.get("pin") ?? "");
   const videoUrl = String(formData.get("video_url") ?? "").trim();
 
   if (!isHttpUrl(videoUrl)) {
     return { error: "Lim inn en gyldig lenke (må starte med http:// eller https://)" };
   }
 
-  const auth = await authenticateTeam(teamId, pin);
-  if (!auth.ok) return { error: auth.error };
-
   const match = await getMatch(matchId);
   if (!match) return { error: "Fant ikke kampen" };
+  const access = await currentTeam(match.tournament_id);
+  if ("error" in access) return { error: access.error };
+  const teamId = access.teamId;
   if (match.is_bye) return { error: "Denne kampen ble ikke spilt" };
   if (match.home_team_id !== teamId && match.away_team_id !== teamId) {
     return { error: "Bare lagene som spilte kampen kan legge inn målvideo" };
@@ -577,6 +691,7 @@ export async function voteAction(
   formData: FormData,
 ): Promise<ActionState> {
   const clipId = String(formData.get("clip_id") ?? "");
+  const user = await requireUser();
   const db = supabaseAdmin();
 
   const { data: clip, error: clipError } = await db
@@ -590,18 +705,8 @@ export async function voteAction(
 
   const match = await getMatch(clip.match_id);
   if (!match) return { error: "Fant ikke kampen" };
-
-  const cookieStore = await cookies();
-  let voterId = cookieStore.get(VOTER_COOKIE)?.value;
-  if (!voterId) {
-    voterId = randomUUID();
-    cookieStore.set(VOTER_COOKIE, voterId, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
+  const { data: membership } = await db.from("tournament_members").select("user_id").eq("tournament_id", match.tournament_id).eq("user_id", user.id).maybeSingle();
+  if (!membership) return { error: "Du må være med i turneringen for å stemme" };
 
   const { error } = await db.from("votes").upsert(
     {
@@ -609,7 +714,7 @@ export async function voteAction(
       stage: match.stage,
       round_number: match.round_number,
       goal_clip_id: clipId,
-      voter_id: voterId,
+      voter_id: user.id,
     },
     { onConflict: "tournament_id,stage,round_number,voter_id" },
   );

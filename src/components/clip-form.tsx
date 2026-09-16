@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useSyncExternalStore } from "react";
 import { submitClipAction, type ActionState } from "@/lib/actions";
-import { TeamAuthFields } from "./team-auth-fields";
 import { labelClass, secondaryButtonClass } from "./ui";
 
 const initialState: ActionState = {};
@@ -41,11 +40,9 @@ function writeSkip(matchId: string, skip: boolean) {
 export function ClipForm({
   tournamentId,
   matchId,
-  teams,
 }: {
   tournamentId: string;
   matchId: string;
-  teams: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(submitClipAction, initialState);
@@ -95,8 +92,6 @@ export function ClipForm({
           Maks ett klipp per lag per kamp – en ny lenke erstatter den forrige.
         </p>
       </div>
-
-      <TeamAuthFields idPrefix={`clip-${matchId}`} teams={teams} />
 
       {state.error ? <p className="text-danger">{state.error}</p> : null}
       {state.ok ? <p className="text-success">Målvideoen er lagt inn!</p> : null}

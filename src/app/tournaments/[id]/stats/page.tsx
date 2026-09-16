@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ThemeBackdrop, ThemePanel } from "@/components/tournament-theme";
 import { cardClass } from "@/components/ui";
 import {
@@ -8,7 +8,9 @@ import {
   listMatches,
   listTeams,
   listVotes,
+  listTournamentMembers,
 } from "@/lib/data";
+import { currentUser } from "@/lib/auth";
 import { knockoutRoundLabel, typeLabel } from "@/lib/labels";
 import { computeStandings } from "@/lib/tournament/standings";
 import type { Match } from "@/lib/tournament/types";
@@ -25,19 +27,24 @@ export default async function StatsPage({
   params,
 }: PageProps<"/tournaments/[id]/stats">) {
   const { id } = await params;
+  const user = await currentUser();
+  if (!user) redirect(`/login?next=/tournaments/${id}/stats`);
 
   const tournament = await getTournament(id);
   if (!tournament) notFound();
 
-  const [teams, matches, votes] = await Promise.all([
+  const [teams, matches, votes, members] = await Promise.all([
     listTeams(id),
     listMatches(id),
     listVotes(id),
+    listTournamentMembers(id),
   ]);
+  if (tournament.owner_id !== user.id && !members.some((member) => member.user_id === user.id)) redirect("/");
   const clips = await listGoalClips(matches.map((match) => match.id));
 
-  const teamNames = new Map(teams.map((team) => [team.id, team.name]));
-  const totals = computeStandings(teams, matches, tournament.type);
+  const namedTeams = teams.filter((team): team is typeof team & { name: string } => Boolean(team.name));
+  const teamNames = new Map(namedTeams.map((team) => [team.id, team.name]));
+  const totals = computeStandings(namedTeams, matches, tournament.type);
   const topScorers = [...totals].sort(
     (a, b) => b.goalsFor - a.goalsFor || a.teamName.localeCompare(b.teamName, "nb"),
   );
