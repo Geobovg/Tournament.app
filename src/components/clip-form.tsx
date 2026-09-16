@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useSyncExternalStore } from "react";
 import { submitClipAction, type ActionState } from "@/lib/actions";
-import { TeamAuthFields, useTeamSession } from "./team-auth-fields";
+import { TeamAuthFields } from "./team-auth-fields";
 import { labelClass, secondaryButtonClass } from "./ui";
 
 const initialState: ActionState = {};
@@ -48,7 +48,6 @@ export function ClipForm({
   teams: { id: string; name: string }[];
 }) {
   const router = useRouter();
-  const session = useTeamSession(tournamentId);
   const [state, action, pending] = useActionState(submitClipAction, initialState);
   const skipped = useSyncExternalStore(
     subscribe,
@@ -97,11 +96,7 @@ export function ClipForm({
         </p>
       </div>
 
-      <TeamAuthFields
-        idPrefix={`clip-${matchId}`}
-        teams={teams}
-        session={session}
-      />
+      <TeamAuthFields idPrefix={`clip-${matchId}`} teams={teams} />
 
       {state.error ? <p className="text-danger">{state.error}</p> : null}
       {state.ok ? <p className="text-success">Målvideoen er lagt inn!</p> : null}

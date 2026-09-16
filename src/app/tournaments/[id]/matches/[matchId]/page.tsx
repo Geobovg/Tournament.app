@@ -116,7 +116,6 @@ export default async function MatchPage({
       {!match.is_bye && match.status !== "confirmed" && homeTeam && awayTeam ? (
         <div className={cardClass}>
           <MatchActions
-            tournamentId={id}
             matchId={matchId}
             status={match.status}
             isNhl={tournament.type === "nhl"}

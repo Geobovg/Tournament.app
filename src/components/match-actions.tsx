@@ -6,7 +6,7 @@ import {
   submitResultAction,
   type ActionState,
 } from "@/lib/actions";
-import { TeamAuthFields, useTeamSession } from "./team-auth-fields";
+import { TeamAuthFields } from "./team-auth-fields";
 import { buttonClass, labelClass, secondaryButtonClass } from "./ui";
 
 const initialState: ActionState = {};
@@ -14,7 +14,6 @@ const initialState: ActionState = {};
 type TeamRef = { id: string; name: string };
 
 export function MatchActions({
-  tournamentId,
   matchId,
   status,
   isNhl,
@@ -22,7 +21,6 @@ export function MatchActions({
   homeTeam,
   awayTeam,
 }: {
-  tournamentId: string;
   matchId: string;
   status: "scheduled" | "pending_confirmation";
   isNhl: boolean;
@@ -30,7 +28,6 @@ export function MatchActions({
   homeTeam: TeamRef;
   awayTeam: TeamRef;
 }) {
-  const session = useTeamSession(tournamentId);
   const participants = [homeTeam, awayTeam];
 
   const [submitState, submitAction, submitting] = useActionState(
@@ -53,7 +50,6 @@ export function MatchActions({
           <TeamAuthFields
             idPrefix={`confirm-${matchId}`}
             teams={participants}
-            session={session}
           />
           {confirmState.error ? (
             <p className="text-danger">{confirmState.error}</p>
@@ -160,11 +156,7 @@ export function MatchActions({
           </div>
         ) : null}
 
-        <TeamAuthFields
-          idPrefix={`submit-${matchId}`}
-          teams={participants}
-          session={session}
-        />
+        <TeamAuthFields idPrefix={`submit-${matchId}`} teams={participants} />
 
         {submitState.error ? (
           <p className="text-danger">{submitState.error}</p>
