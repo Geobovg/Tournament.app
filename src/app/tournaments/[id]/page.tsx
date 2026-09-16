@@ -10,6 +10,7 @@ import {
 import { StandingsTable } from "@/components/standings-table";
 import { ThemeBackdrop, TournamentHero } from "@/components/tournament-theme";
 import { cardClass } from "@/components/ui";
+import { WinnerPage } from "@/components/winner-page";
 import {
   getTournament,
   listGoalClips,
@@ -192,6 +193,17 @@ export default async function TournamentPage({
       ? resolveTie(lastRound, tournament.type).winnerTeamId
       : null;
 
+  if (champion) {
+    return (
+      <WinnerPage
+        type={tournament.type}
+        tournamentId={id}
+        tournamentName={tournament.name}
+        winnerName={teamNames.get(champion) ?? "Ukjent lag"}
+      />
+    );
+  }
+
   return (
     <div data-theme={tournament.type} className="grid gap-8">
       <ThemeBackdrop />
@@ -213,13 +225,6 @@ export default async function TournamentPage({
           </Link>
         }
       />
-
-      {champion ? (
-        <div className="rounded-xl border border-accent bg-accent-soft p-5 text-center">
-          <p className="text-sm text-muted">Turneringsvinner</p>
-          <p className="text-2xl font-semibold">{teamNames.get(champion)} 🏆</p>
-        </div>
-      ) : null}
 
       {tournament.status === "registration" ? (
         <div className="grid gap-6 md:grid-cols-2">

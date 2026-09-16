@@ -503,6 +503,12 @@ export async function confirmResultAction(
 
   revalidatePath(`/tournaments/${match.tournament_id}`);
   revalidatePath(`/tournaments/${match.tournament_id}/matches/${matchId}`);
+
+  const after = await getTournament(match.tournament_id);
+  if (after?.status === "completed") {
+    redirect(`/tournaments/${match.tournament_id}`);
+  }
+
   return { ok: true };
 }
 
