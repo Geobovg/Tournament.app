@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CloseTournamentButton } from "@/components/close-tournament-button";
 import { buttonClass, cardClass } from "@/components/ui";
 import { listTournaments } from "@/lib/data";
 import { statusLabel, typeLabel } from "@/lib/labels";
@@ -7,14 +8,20 @@ import type { Tournament } from "@/lib/tournament/types";
 
 export const dynamic = "force-dynamic";
 
-function TournamentCard({ tournament }: { tournament: Tournament }) {
+function TournamentCard({
+  tournament,
+  closable,
+}: {
+  tournament: Tournament;
+  closable?: boolean;
+}) {
   const theme = tournamentThemes[tournament.type];
   return (
-    <li>
+    <li className="flex items-center gap-2">
       <Link
         href={`/tournaments/${tournament.id}`}
         data-theme={tournament.type}
-        className="theme-tile flex items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 transition hover:bg-surface-raised"
+        className="theme-tile flex min-w-0 flex-1 items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 transition hover:bg-surface-raised"
       >
         <div className="relative flex items-center gap-3">
           <span className="theme-badge">{theme.emoji}</span>
@@ -23,16 +30,17 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
             <p className="text-sm text-muted">{statusLabel(tournament.status)}</p>
           </div>
         </div>
-        <span className="relative rounded-full bg-accent-soft px-3 py-1 text-sm font-medium text-accent">
+        <span className="relative shrink-0 rounded-full bg-accent-soft px-3 py-1 text-sm font-medium text-accent">
           {typeLabel(tournament.type)}
         </span>
       </Link>
+      {closable ? <CloseTournamentButton tournamentId={tournament.id} /> : null}
     </li>
   );
 }
 
 export default async function HomePage() {
-  const tournaments = await listTournaments();
+  const tournaments = (await listTournaments()).filter((row) => !row.closed);
   const active = tournaments.filter((row) => row.status !== "completed");
   const archived = tournaments.filter((row) => row.status === "completed");
 
@@ -72,7 +80,11 @@ export default async function HomePage() {
           <h2 className="text-lg font-semibold">Arkiv</h2>
           <ul className="grid gap-3">
             {archived.map((tournament) => (
-              <TournamentCard key={tournament.id} tournament={tournament} />
+              <TournamentCard
+                key={tournament.id}
+                tournament={tournament}
+                closable
+              />
             ))}
           </ul>
         </section>

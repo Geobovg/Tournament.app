@@ -242,6 +242,29 @@ export async function createTournamentAction(
   redirect(`/tournaments/${data.id}`);
 }
 
+export async function closeTournamentAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+
+  const tournament = await getTournament(tournamentId);
+  if (!tournament) return { error: "Fant ikke turneringen" };
+  if (tournament.status !== "completed") {
+    return { error: "Bare ferdigspilte turneringer kan lukkes" };
+  }
+
+  const { error } = await supabaseAdmin()
+    .from("tournaments")
+    .update({ closed: true })
+    .eq("id", tournamentId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function registerTeamAction(
   _prev: ActionState,
   formData: FormData,

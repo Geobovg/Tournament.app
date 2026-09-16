@@ -15,6 +15,7 @@ export type Tournament = {
   status: TournamentStatus;
   max_teams: number;
   legs_per_knockout_round: number;
+  closed: boolean;
   created_at: string;
 };
 
