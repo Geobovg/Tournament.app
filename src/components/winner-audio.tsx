@@ -11,23 +11,43 @@ export function WinnerAudio() {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    let cancelled = false;
     audio.volume = 0.45;
+
     audio.play().catch(() => {
       // Nettleseren krever et klikk når siden ikke ble åpnet rett etter en handling.
-      setNeedsTap(true);
+      if (!cancelled) setNeedsTap(true);
     });
+
+    return () => {
+      // Å fjerne et <audio>-element fra DOM-en stopper den IKKE av seg selv –
+      // uten denne pausen fortsetter låten å spille i bakgrunnen etter man har
+      // navigert bort fra vinnersiden.
+      cancelled = true;
+      audio.pause();
+      audio.currentTime = 0;
+    };
   }, []);
 
   useEffect(() => {
     if (!needsTap) return;
+    let cancelled = false;
+
     const start = () => {
+      if (cancelled) return;
       audioRef.current?.play().then(
-        () => setNeedsTap(false),
+        () => {
+          if (!cancelled) setNeedsTap(false);
+        },
         () => {},
       );
     };
+
     window.addEventListener("pointerdown", start, { once: true });
-    return () => window.removeEventListener("pointerdown", start);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pointerdown", start);
+    };
   }, [needsTap]);
 
   return (
