@@ -460,7 +460,7 @@ export async function lockRegistrationAction(
   }
 
   const teams = (await listTeams(tournamentId)).filter((team) => team.name);
-  if (teams.length !== tournament.max_teams) return { error: "Alle lagplasser må være fulle og ha lagnavn før start" };
+  if (teams.length < 2) return { error: "Det må være minst to lag med lagnavn før turneringen kan starte" };
 
   const now = new Date().toISOString();
   const rows = generateRoundRobin(teams.map((team) => team.id)).flatMap(
