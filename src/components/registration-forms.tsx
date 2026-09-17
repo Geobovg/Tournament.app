@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import {
   chooseTeamAction,
@@ -11,6 +11,7 @@ import {
   type ActionState,
 } from "@/lib/actions";
 import { buttonClass, labelClass, secondaryButtonClass } from "./ui";
+import { ConfirmDialog } from "./confirm-dialog";
 
 const initialState: ActionState = {};
 
@@ -37,5 +38,7 @@ export function TeamPicker({ tournamentId, teamSize, slots, myTeamId, joined }: 
 
 export function LockRegistrationForm({ tournamentId, ready }: { tournamentId: string; ready: boolean }) {
   const [state, action, pending] = useActionState(lockRegistrationAction, initialState);
-  return <form action={action} onSubmit={(event) => { if (!window.confirm("Starte turneringen og låse påmeldingen? Dette kan ikke angres.")) event.preventDefault(); }} className="grid gap-3"><input type="hidden" name="tournament_id" value={tournamentId} />{state.error ? <p className="text-danger">{state.error}</p> : null}<button className={secondaryButtonClass} disabled={pending || !ready}>{pending ? "Starter…" : "Start turnering"}</button>{!ready ? <p className="text-sm text-muted">Alle lag må være fulle og ha navn før start.</p> : null}</form>;
+  const [confirming, setConfirming] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  return <>{<form ref={formRef} action={action} className="grid gap-3"><input type="hidden" name="tournament_id" value={tournamentId} />{state.error ? <p className="text-danger">{state.error}</p> : null}<button type="button" onClick={() => setConfirming(true)} className={secondaryButtonClass} disabled={pending || !ready}>{pending ? "Starter…" : "Start turnering"}</button>{!ready ? <p className="text-sm text-muted">Alle lag må være fulle og ha navn før start.</p> : null}</form>}{confirming ? <ConfirmDialog message="Vil du starte turneringen og låse påmeldingen? Dette kan ikke angres." onCancel={() => setConfirming(false)} onConfirm={() => { setConfirming(false); formRef.current?.requestSubmit(); }} /> : null}</>;
 }
