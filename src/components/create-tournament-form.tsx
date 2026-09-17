@@ -95,7 +95,7 @@ export function CreateTournamentForm() {
           <div className="mt-2 flex gap-3">
             <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-border p-3">
               <input type="radio" name="team_size" value="1" defaultChecked className="w-auto" />
-              <span>Enspiller</span>
+              <span>Solo</span>
             </label>
             <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-border p-3">
               <input type="radio" name="team_size" value="2" className="w-auto" />
