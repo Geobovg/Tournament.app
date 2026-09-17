@@ -291,6 +291,28 @@ export async function renameTournamentAction(
   return { ok: true };
 }
 
+export async function deleteTournamentAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const tournamentId = String(formData.get("tournament_id") ?? "");
+  const tournament = await getTournament(tournamentId);
+  if (!tournament) return { error: "Fant ikke turneringen" };
+  if (!(await isTournamentOwner(tournamentId, user.id))) {
+    return { error: "Bare arrangøren kan slette turneringen" };
+  }
+
+  const { error } = await supabaseAdmin()
+    .from("tournaments")
+    .delete()
+    .eq("id", tournamentId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  redirect("/");
+}
+
 export async function renewInviteAction(
   _prev: ActionState,
   formData: FormData,
