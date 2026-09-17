@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tournament.app",
+  title: "Turnerings App",
   description: "Turneringsapp for FIFA og NHL",
 };
 
@@ -35,7 +35,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-border">
           <div className="mx-auto w-full max-w-5xl px-4 py-4">
             <Link href="/" className="text-lg font-semibold tracking-tight">
-              Tournament.app
+              Turnerings App
             </Link>
             <div className="flex items-center gap-3 text-sm">
               {user ? <><Link href="/profile" className="text-muted hover:text-foreground">{user.username}</Link><form action={logoutAction}><button className="text-muted hover:text-foreground">Logg ut</button></form></> : <Link href="/login" className="text-muted hover:text-foreground">Logg inn</Link>}
