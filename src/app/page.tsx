@@ -51,6 +51,9 @@ export default async function HomePage() {
 
   return (
     <div className="grid gap-8">
+      <div className="flex justify-center">
+        <span className="text-9xl">🤡</span>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Turneringer</h1>
