@@ -348,7 +348,7 @@ export async function joinTournamentAction(
   if (error) return { error: error.message };
 
   revalidatePath(`/tournaments/${tournamentId}`);
-  return { ok: true };
+  redirect(`/tournaments/${tournamentId}`);
 }
 
 export async function chooseTeamAction(

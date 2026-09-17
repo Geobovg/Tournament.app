@@ -190,6 +190,7 @@ export default async function TournamentPage({
     ...team,
     members: members.filter((member) => member.team_id === team.id),
   }));
+  const hasSelectedTeam = Boolean(myMembership?.team_id);
   const registrationReady = slots.every(
     (slot) => slot.members.length === tournament.team_size && Boolean(slot.name),
   );
@@ -251,7 +252,7 @@ export default async function TournamentPage({
             <h2 className="mb-4 text-lg font-semibold">
               Lag ({slots.filter((slot) => slot.name).length}/{tournament.max_teams})
             </h2>
-              <ul className="mb-5 grid gap-2">
+              {hasSelectedTeam ? <ul className="mb-5 grid gap-2">
                 {slots.map((team, index) => (
                   <li
                     key={team.id}
@@ -261,7 +262,7 @@ export default async function TournamentPage({
                     {team.members.length > 0 ? <p className="mt-1 text-xs text-muted">{team.members.map((member) => member.username).join(", ")}</p> : null}
                   </li>
                 ))}
-              </ul>
+              </ul> : <p className="mb-5 text-sm text-muted">Velg et ledig lag i panelet til venstre for å bli med på et lag.</p>}
 
             <p className="mb-4 text-sm text-muted">
               Med {tournament.max_teams} lag går topp {knockoutCutoff(tournament.max_teams)} videre
