@@ -47,7 +47,9 @@ export async function listTeams(tournamentId: string): Promise<Team[]> {
     .from("teams")
     .select("id, tournament_id, name, created_at")
     .eq("tournament_id", tournamentId)
-    .order("created_at", { ascending: true });
+    // Bulk-created slots share a timestamp, so use the id as a stable tie-breaker.
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as Team[];
 }
