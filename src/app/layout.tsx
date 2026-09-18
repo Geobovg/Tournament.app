@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-border">
-          <div className="mx-auto w-full max-w-5xl px-4 py-4">
+          <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4">
             <Link href="/" className="text-lg font-semibold tracking-tight">
               Turnerings App
             </Link>
