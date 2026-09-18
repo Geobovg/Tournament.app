@@ -43,3 +43,6 @@ next-env.d.ts
 
 # lokale agent-verktøy (f.eks. Codex sin egen kopi av skills)
 /.agents/
+
+# private local docs
+Git-PR-arbeidsflyt-Tournament-app.docx

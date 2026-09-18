@@ -99,6 +99,22 @@ på brukerens vegne) kan se den med en gang.
 ## Steg 6: Spør om godkjenning
 
 Når brukeren har fått sett/testet funksjonen, spør (AskUserQuestion) om han
-godkjenner eller avviser PR-en. Uansett svar: minn ham om å signalisere
-resultatet i Teams Planner (kanban-tavlen), siden det ikke kan gjøres
-automatisk herfra.
+godkjenner eller avviser PR-en.
+
+**Godkjenner han:** legg igjen en faktisk godkjenning på PR-en på GitHub, slik
+at forfatteren (f.eks. Georg) får et GitHub-varsel med en gang - ikke bare si
+det i chatten:
+```
+gh pr review <nummer> --approve --body "<kort, konkret oppsummering av hva som ble testet og at det fungerte>"
+```
+(bruk full filsti til `gh.exe` hvis den ikke er i PATH ennå, se steg 2)
+
+**Avviser han / ber om endringer:** spør kort hva som var galt, og legg igjen
+det som en `--request-changes`-review i stedet:
+```
+gh pr review <nummer> --request-changes --body "<kort, konkret beskrivelse av hva som må fikses>"
+```
+
+Uansett utfall: minn brukeren om å signalisere resultatet i Teams Planner
+(kanban-tavlen) også, siden det ikke er koblet til GitHub-reviewen
+automatisk.
