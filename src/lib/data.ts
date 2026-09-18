@@ -66,6 +66,22 @@ export async function listTournamentMembers(tournamentId: string): Promise<Tourn
   }) as TournamentMember[];
 }
 
+export async function listTournamentMembersFor(tournamentIds: string[]): Promise<Record<string, TournamentMember[]>> {
+  if (tournamentIds.length === 0) return {};
+  const { data, error } = await supabaseAdmin()
+    .from("tournament_members")
+    .select("tournament_id, user_id, team_id, profiles(username, avatar_url)")
+    .in("tournament_id", tournamentIds);
+  if (error) throw new Error(error.message);
+  const byTournament: Record<string, TournamentMember[]> = {};
+  for (const row of data ?? []) {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    const member: TournamentMember = { user_id: row.user_id, team_id: row.team_id, username: profile?.username ?? "Ukjent", avatar_url: profile?.avatar_url ?? null };
+    (byTournament[row.tournament_id] ??= []).push(member);
+  }
+  return byTournament;
+}
+
 export async function getTournamentByInvite(token: string): Promise<Tournament | null> {
   const { data, error } = await supabaseAdmin().from("tournaments").select("*").eq("invite_token", token).maybeSingle();
   if (error) throw new Error(error.message);

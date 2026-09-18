@@ -1,24 +1,30 @@
 import Link from "next/link";
 import { CloseTournamentButton } from "@/components/close-tournament-button";
+import { TournamentSettings } from "@/components/tournament-settings";
 import { buttonClass, cardClass } from "@/components/ui";
 import { currentUser } from "@/lib/auth";
-import { listTournamentsForUser } from "@/lib/data";
+import { listTournamentMembersFor, listTournamentsForUser } from "@/lib/data";
 import { redirect } from "next/navigation";
 import { statusLabel, typeLabel } from "@/lib/labels";
 import { tournamentThemes } from "@/lib/theme";
 import { JoinByCode } from "@/components/join-by-code";
-import type { Tournament } from "@/lib/tournament/types";
+import type { Tournament, TournamentMember } from "@/lib/tournament/types";
 
 export const dynamic = "force-dynamic";
 
 function TournamentCard({
   tournament,
+  currentUserId,
+  members,
   closable,
 }: {
   tournament: Tournament;
+  currentUserId: string;
+  members: TournamentMember[];
   closable?: boolean;
 }) {
   const theme = tournamentThemes[tournament.type];
+  const isOwner = tournament.owner_id === currentUserId;
   return (
     <li className="flex items-center gap-2">
       <Link
@@ -38,6 +44,16 @@ function TournamentCard({
         </span>
       </Link>
       {closable ? <CloseTournamentButton tournamentId={tournament.id} /> : null}
+      {isOwner ? (
+        <TournamentSettings
+          tournamentId={tournament.id}
+          tournamentName={tournament.name}
+          inviteToken={tournament.invite_token}
+          inviteCode={tournament.invite_code}
+          members={members.filter((member) => member.user_id !== currentUserId)}
+          registrationOpen={tournament.status === "registration"}
+        />
+      ) : null}
     </li>
   );
 }
@@ -48,6 +64,8 @@ export default async function HomePage() {
   const tournaments = (await listTournamentsForUser(user.id)).filter((row) => !row.closed);
   const active = tournaments.filter((row) => row.status !== "completed");
   const archived = tournaments.filter((row) => row.status === "completed");
+  const ownedIds = tournaments.filter((row) => row.owner_id === user.id).map((row) => row.id);
+  const membersByTournament = await listTournamentMembersFor(ownedIds);
 
   return (
     <div className="grid gap-8">
@@ -72,7 +90,12 @@ export default async function HomePage() {
           <h2 className="text-lg font-semibold">Aktive</h2>
           <ul className="grid gap-3">
             {active.map((tournament) => (
-              <TournamentCard key={tournament.id} tournament={tournament} />
+              <TournamentCard
+                key={tournament.id}
+                tournament={tournament}
+                currentUserId={user.id}
+                members={membersByTournament[tournament.id] ?? []}
+              />
             ))}
           </ul>
         </section>
@@ -83,7 +106,13 @@ export default async function HomePage() {
           <h2 className="text-lg font-semibold">Arkiv</h2>
           <ul className="grid gap-3">
             {archived.map((tournament) => (
-              <TournamentCard key={tournament.id} tournament={tournament} closable={tournament.owner_id === user.id} />
+              <TournamentCard
+                key={tournament.id}
+                tournament={tournament}
+                currentUserId={user.id}
+                members={membersByTournament[tournament.id] ?? []}
+                closable={tournament.owner_id === user.id}
+              />
             ))}
           </ul>
         </section>
