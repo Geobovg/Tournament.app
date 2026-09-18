@@ -38,7 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               Send it!
             </Link>
             <div className="flex items-center gap-3 text-sm">
-              {user ? <><Link href="/profile" className="text-muted hover:text-foreground">{user.username}</Link><form action={logoutAction}><button className="text-muted hover:text-foreground">Logg ut</button></form></> : <Link href="/login" className="text-muted hover:text-foreground">Logg inn</Link>}
+              {user ? <><Link href="/venner" className="text-muted hover:text-foreground">Venner</Link><Link href="/profile" className="text-muted hover:text-foreground">{user.username}</Link><form action={logoutAction}><button className="text-muted hover:text-foreground">Logg ut</button></form></> : <Link href="/login" className="text-muted hover:text-foreground">Logg inn</Link>}
             </div>
           </div>
         </header>
