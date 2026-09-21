@@ -32,7 +32,7 @@ async function currentTeam(tournamentId: string) {
   return { user, teamId: data.team_id } as const;
 }
 
-async function isTournamentOwner(tournamentId: string, userId: string) {
+export async function isTournamentOwner(tournamentId: string, userId: string) {
   const { data } = await supabaseAdmin()
     .from("tournaments")
     .select("id")

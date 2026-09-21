@@ -22,6 +22,7 @@ import {
   listVotes,
 } from "@/lib/data";
 import { currentUser } from "@/lib/auth";
+import { listFriends } from "@/lib/friends";
 import { knockoutRoundLabel, statusLabel, typeLabel } from "@/lib/labels";
 import { knockoutCutoff } from "@/lib/tournament/bracket";
 import { computeStandings } from "@/lib/tournament/standings";
@@ -177,6 +178,8 @@ export default async function TournamentPage({
   const isOwner = tournament.owner_id === user.id;
   const myMembership = members.find((member) => member.user_id === user.id);
   if (!isOwner && !myMembership) redirect("/");
+  const friends = isOwner ? await listFriends(user.id) : [];
+  const availableFriends = friends.filter((friend) => !members.some((member) => member.user_id === friend.id));
   const clips = await listGoalClips(matches.map((match) => match.id));
   const voterId = user.id;
 
@@ -237,7 +240,7 @@ export default async function TournamentPage({
           </Link>
         }
         actions={
-          <div className="flex items-center gap-2"><Link href={`/tournaments/${id}/stats`} className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-surface-raised">Statistikk</Link>{isOwner ? <TournamentSettings tournamentId={id} tournamentName={tournament.name} inviteToken={tournament.invite_token} inviteCode={tournament.invite_code} members={members.filter((member) => member.user_id !== user.id)} registrationOpen={tournament.status === "registration"} /> : null}</div>
+          <div className="flex items-center gap-2"><Link href={`/tournaments/${id}/stats`} className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-surface-raised">Statistikk</Link>{isOwner ? <TournamentSettings tournamentId={id} tournamentName={tournament.name} inviteToken={tournament.invite_token} inviteCode={tournament.invite_code} members={members.filter((member) => member.user_id !== user.id)} friends={availableFriends} registrationOpen={tournament.status === "registration"} /> : null}</div>
         }
       />
 

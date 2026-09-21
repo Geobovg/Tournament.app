@@ -4,6 +4,7 @@ import { TournamentSettings } from "@/components/tournament-settings";
 import { buttonClass, cardClass } from "@/components/ui";
 import { currentUser } from "@/lib/auth";
 import { listTournamentMembersFor, listTournamentsForUser } from "@/lib/data";
+import { listFriends } from "@/lib/friends";
 import { redirect } from "next/navigation";
 import { statusLabel, typeLabel } from "@/lib/labels";
 import { tournamentThemes } from "@/lib/theme";
@@ -16,11 +17,13 @@ function TournamentCard({
   tournament,
   currentUserId,
   members,
+  friends,
   closable,
 }: {
   tournament: Tournament;
   currentUserId: string;
   members: TournamentMember[];
+  friends: { id: string; username: string }[];
   closable?: boolean;
 }) {
   const theme = tournamentThemes[tournament.type];
@@ -51,6 +54,7 @@ function TournamentCard({
           inviteToken={tournament.invite_token}
           inviteCode={tournament.invite_code}
           members={members.filter((member) => member.user_id !== currentUserId)}
+          friends={friends.filter((friend) => !members.some((member) => member.user_id === friend.id))}
           registrationOpen={tournament.status === "registration"}
         />
       ) : null}
@@ -65,7 +69,10 @@ export default async function HomePage() {
   const active = tournaments.filter((row) => row.status !== "completed");
   const archived = tournaments.filter((row) => row.status === "completed");
   const ownedIds = tournaments.filter((row) => row.owner_id === user.id).map((row) => row.id);
-  const membersByTournament = await listTournamentMembersFor(ownedIds);
+  const [membersByTournament, friends] = await Promise.all([
+    listTournamentMembersFor(ownedIds),
+    ownedIds.length > 0 ? listFriends(user.id) : Promise.resolve([]),
+  ]);
 
   return (
     <div className="grid gap-8">
@@ -95,6 +102,7 @@ export default async function HomePage() {
                 tournament={tournament}
                 currentUserId={user.id}
                 members={membersByTournament[tournament.id] ?? []}
+                friends={friends}
               />
             ))}
           </ul>
@@ -111,6 +119,7 @@ export default async function HomePage() {
                 tournament={tournament}
                 currentUserId={user.id}
                 members={membersByTournament[tournament.id] ?? []}
+                friends={friends}
                 closable={tournament.owner_id === user.id}
               />
             ))}
