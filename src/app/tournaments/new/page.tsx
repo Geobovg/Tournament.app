@@ -8,7 +8,7 @@ export default async function NewTournamentPage() {
   return (
     <div className="mx-auto grid max-w-xl gap-6">
       <div>
-        <Link href="/" className="text-sm text-muted hover:underline">
+        <Link href="/turneringer" className="text-sm text-muted hover:underline">
           ← Tilbake
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">Ny turnering</h1>

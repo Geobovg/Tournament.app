@@ -177,7 +177,7 @@ export default async function TournamentPage({
   ]);
   const isOwner = tournament.owner_id === user.id;
   const myMembership = members.find((member) => member.user_id === user.id);
-  if (!isOwner && !myMembership) redirect("/");
+  if (!isOwner && !myMembership) redirect("/turneringer");
   const friends = isOwner ? await listFriends(user.id) : [];
   const availableFriends = friends.filter((friend) => !members.some((member) => member.user_id === friend.id));
   const clips = await listGoalClips(matches.map((match) => match.id));
@@ -235,7 +235,7 @@ export default async function TournamentPage({
         title={tournament.name}
         meta={`${typeLabel(tournament.type)} · ${statusLabel(tournament.status)} · ${namedTeams.length}/${tournament.max_teams} lag`}
         back={
-          <Link href="/" className="text-sm text-muted hover:underline">
+          <Link href="/turneringer" className="text-sm text-muted hover:underline">
             ← Alle turneringer
           </Link>
         }

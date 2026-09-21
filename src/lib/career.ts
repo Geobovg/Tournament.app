@@ -1,0 +1,88 @@
+import "server-only";
+
+import { supabaseAdmin } from "./supabase/server";
+import type { CareerProfile } from "./career-stats";
+export type { CareerProfile } from "./career-stats";
+
+export async function getCareerProfile(userId: string): Promise<CareerProfile> {
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("player_profiles").select("*").eq("user_id", userId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (data) return data as CareerProfile;
+  const { data: created, error: createError } = await db.from("player_profiles").insert({ user_id: userId }).select("*").single();
+  if (createError) throw new Error(createError.message);
+  return created as CareerProfile;
+}
+
+export async function listCareerRewards(userId: string) {
+  const { data, error } = await supabaseAdmin().from("career_reward_events").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(8);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function listCareerChallenges(userId: string) {
+  const { data, error } = await supabaseAdmin().from("career_challenges").select("*").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`).in("status", ["pending", "accepted", "in_progress"]).order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export type CareerChallenge = { id: string; challenger_id: string; opponent_id: string; mode: "player" | "manager"; status: string; expires_at: string; match_id: string | null; opponent_name: string };
+export async function getCareerChallenges(userId: string): Promise<CareerChallenge[]> {
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("career_challenges").select("id, challenger_id, opponent_id, mode, status, expires_at, career_matches(id)").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`).in("status", ["pending", "accepted", "in_progress"]).order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows = data ?? [];
+  const ids = [...new Set(rows.map((row) => row.challenger_id === userId ? row.opponent_id : row.challenger_id))];
+  const { data: profiles } = ids.length ? await db.from("profiles").select("id, username").in("id", ids) : { data: [] as { id: string; username: string }[] };
+  const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
+  return rows.map((row) => { const game = Array.isArray(row.career_matches) ? row.career_matches[0] : row.career_matches; const otherId = row.challenger_id === userId ? row.opponent_id : row.challenger_id; return { id: row.id, challenger_id: row.challenger_id, opponent_id: row.opponent_id, mode: row.mode, status: row.status, expires_at: row.expires_at, match_id: game?.id ?? null, opponent_name: names.get(otherId) ?? "Venn" }; }) as CareerChallenge[];
+}
+
+export async function getCareerMatch(matchId: string, userId: string) {
+  const { data, error } = await supabaseAdmin().from("career_matches").select("*").eq("id", matchId).or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number };
+export type CatalogCard = { id: string; name: string; position: string; overall: number; price: number; accent: string; attributes: Record<string, number> };
+export type ManagerLineup = { formation: string; starters: string[]; bench: string[] };
+
+export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null }> {
+  const db = supabaseAdmin();
+  const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }] = await Promise.all([
+    db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price").eq("owner_id", userId).order("overall", { ascending: false }),
+    db.from("player_catalog").select("id, name, position, overall, price, accent, attributes").eq("active", true).order("overall", { ascending: false }),
+    db.from("manager_lineups").select("formation, starters, bench").eq("user_id", userId).maybeSingle(),
+  ]);
+  if (cardsError || catalogError || lineupError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message);
+  return { cards: (cards ?? []) as ManagerCard[], catalog: (catalog ?? []) as CatalogCard[], lineup: lineup as ManagerLineup | null };
+}
+
+export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number }; seller_name: string; highest_bid: number | null };
+export async function listFriendMarket(userId: string): Promise<MarketListing[]> {
+  const { listFriends } = await import("./friends");
+  const friendIds = (await listFriends(userId)).map((friend) => friend.id);
+  if (friendIds.length === 0) return [];
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("market_listings").select("id, seller_id, card_id, starting_price, buy_now_price, ends_at, manager_cards(name, position, overall), profiles!market_listings_seller_id_fkey(username), market_bids(amount)").eq("status", "active").gt("ends_at", new Date().toISOString()).in("seller_id", friendIds).order("ends_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => {
+    const card = Array.isArray(row.manager_cards) ? row.manager_cards[0] : row.manager_cards;
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    const bids = (row.market_bids ?? []) as { amount: number }[];
+    return { id: row.id, seller_id: row.seller_id, card_id: row.card_id, starting_price: row.starting_price, buy_now_price: row.buy_now_price, ends_at: row.ends_at, card: { name: card?.name ?? "Ukjent", position: card?.position ?? "", overall: card?.overall ?? 0 }, seller_name: profile?.username ?? "Venn", highest_bid: bids.length ? Math.max(...bids.map((bid) => bid.amount)) : null };
+  }) as MarketListing[];
+}
+
+export type DirectTransferOffer = { id: string; seller_id: string; buyer_id: string; proposed_by: string; status: "pending"; price: number; expires_at: string; card: { name: string; position: string; overall: number }; seller_name: string; buyer_name: string };
+export async function listDirectTransferOffers(userId: string): Promise<DirectTransferOffer[]> {
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("direct_transfer_offers").select("id, seller_id, buyer_id, proposed_by, status, price, expires_at, manager_cards(name, position, overall)").or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).eq("status", "pending").gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows = data ?? []; const userIds = [...new Set(rows.flatMap((row) => [row.seller_id, row.buyer_id]))];
+  const { data: profiles, error: profileError } = userIds.length ? await db.from("profiles").select("id, username").in("id", userIds) : { data: [], error: null };
+  if (profileError) throw new Error(profileError.message);
+  const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
+  return rows.map((row) => { const card = Array.isArray(row.manager_cards) ? row.manager_cards[0] : row.manager_cards; return { id: row.id, seller_id: row.seller_id, buyer_id: row.buyer_id, proposed_by: row.proposed_by, status: "pending", price: row.price, expires_at: row.expires_at, card: { name: card?.name ?? "Ukjent", position: card?.position ?? "", overall: card?.overall ?? 0 }, seller_name: names.get(row.seller_id) ?? "Venn", buyer_name: names.get(row.buyer_id) ?? "Venn" }; }) as DirectTransferOffer[];
+}
