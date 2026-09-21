@@ -71,6 +71,22 @@ function pattern(crest: Crest) {
 
 export function CrestArt({ crest, uid }: { crest: Crest; uid: string }) {
   const clipId = `crest-${uid}`;
+  if (crest.logoUrl) {
+    return (
+      <>
+        <defs>
+          <clipPath id={clipId}>{shapePath(crest)}</clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          <rect width={100} height={112} fill="#ffffff" />
+          <image href={crest.logoUrl} x={4} y={10} width={92} height={92} preserveAspectRatio="xMidYMid meet" />
+        </g>
+        <g fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={3}>
+          {shapePath(crest)}
+        </g>
+      </>
+    );
+  }
   return (
     <>
       <defs>
