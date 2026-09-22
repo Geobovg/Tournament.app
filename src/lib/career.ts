@@ -39,9 +39,27 @@ export async function getCareerChallenges(userId: string): Promise<CareerChallen
 }
 
 export async function getCareerMatch(matchId: string, userId: string) {
-  const { data, error } = await supabaseAdmin().from("career_matches").select("*").eq("id", matchId).or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).maybeSingle();
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("career_matches").select("*").eq("id", matchId).or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).maybeSingle();
   if (error) throw new Error(error.message);
-  return data;
+  if (!data) return null;
+  // Kampbildet viser managernavn og klubbnavn i stedet for «Hjemme» og «Borte».
+  const [{ data: profiles }, { data: careers }, { data: shots }] = await Promise.all([
+    db.from("profiles").select("id, username").in("id", [data.home_user_id, data.away_user_id]),
+    db.from("player_profiles").select("user_id, club_name").in("user_id", [data.home_user_id, data.away_user_id]),
+    db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome").eq("match_id", matchId).order("minute", { ascending: true }),
+  ]);
+  const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
+  const clubs = new Map((careers ?? []).map((career) => [career.user_id, career.club_name]));
+  const sideFor = (id: string) => ({ userId: id, username: names.get(id) ?? "Ukjent", clubName: clubs.get(id) ?? "" });
+  return {
+    ...data,
+    home: sideFor(data.home_user_id),
+    away: sideFor(data.away_user_id),
+    // Klokka forankres i serverens tid, så en nettleser som går feil ikke flytter kampminuttet.
+    serverNow: Date.now(),
+    shots: (shots ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome })),
+  };
 }
 
 export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number };
