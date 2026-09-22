@@ -180,7 +180,7 @@ export async function WinnerPage({
           <Link href={`/tournaments/${tournamentId}/stats`} className="winner-link">
             Se statistikk
           </Link>
-          <Link href="/" className="winner-link">
+          <Link href="/turneringer" className="winner-link">
             Alle turneringer
           </Link>
         </div>

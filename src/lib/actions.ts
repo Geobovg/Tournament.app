@@ -16,6 +16,7 @@ import { computeStandings } from "./tournament/standings";
 import { resolveTie } from "./tournament/tie";
 import type { Match, Tournament } from "./tournament/types";
 import { isHttpUrl } from "./video";
+import { awardTournamentMatch, awardTournamentPodium } from "./career-rewards";
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -198,6 +199,8 @@ async function advanceTournament(tournamentId: string): Promise<void> {
 
   if (winners.length <= 1) {
     await db.from("tournaments").update({ status: "completed" }).eq("id", tournamentId);
+    const final = roundMatches.sort((a, b) => b.leg_number - a.leg_number)[0];
+    await awardTournamentPodium(tournamentId, winners[0] ?? final?.winner_team_id ?? null, final?.home_team_id === (winners[0] ?? final?.winner_team_id) ? final?.away_team_id : final?.home_team_id ?? null);
     return;
   }
 
@@ -246,7 +249,7 @@ export async function createTournamentAction(
   const { error: slotsError } = await supabaseAdmin().from("teams").insert(slots);
   if (slotsError) return { error: slotsError.message };
 
-  revalidatePath("/");
+  revalidatePath("/turneringer");
   redirect(`/tournaments/${data.id}`);
 }
 
@@ -271,7 +274,7 @@ export async function closeTournamentAction(
 
   if (error) return { error: error.message };
 
-  revalidatePath("/");
+  revalidatePath("/turneringer");
   return { ok: true };
 }
 
@@ -287,7 +290,7 @@ export async function renameTournamentAction(
   const { error } = await supabaseAdmin().from("tournaments").update({ name }).eq("id", tournamentId);
   if (error) return { error: error.message };
   revalidatePath(`/tournaments/${tournamentId}`);
-  revalidatePath("/");
+  revalidatePath("/turneringer");
   return { ok: true };
 }
 
@@ -309,8 +312,8 @@ export async function deleteTournamentAction(
     .eq("id", tournamentId);
   if (error) return { error: error.message };
 
-  revalidatePath("/");
-  redirect("/");
+  revalidatePath("/turneringer");
+  redirect("/turneringer");
 }
 
 export async function renewInviteAction(
@@ -659,6 +662,8 @@ export async function confirmResultAction(
     .eq("id", matchId);
 
   if (error) return { error: error.message };
+
+  await awardTournamentMatch(match);
 
   await advanceTournament(match.tournament_id);
 

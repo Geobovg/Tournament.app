@@ -39,7 +39,7 @@ export default async function StatsPage({
     listVotes(id),
     listTournamentMembers(id),
   ]);
-  if (tournament.owner_id !== user.id && !members.some((member) => member.user_id === user.id)) redirect("/");
+  if (tournament.owner_id !== user.id && !members.some((member) => member.user_id === user.id)) redirect("/turneringer");
   const clips = await listGoalClips(matches.map((match) => match.id));
 
   const namedTeams = teams.filter((team): team is typeof team & { name: string } => Boolean(team.name));

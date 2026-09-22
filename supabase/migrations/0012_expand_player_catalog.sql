@@ -1,0 +1,71 @@
+-- A broad, original-card catalog. Existing catalog cards and all owned cards remain unchanged.
+with new_catalog (slug, name, position, overall, price, accent) as (
+  values
+    ('alisson','Alisson','GK',89,220,'#d9252a'), ('courtois','Thibaut Courtois','GK',88,205,'#7a5cff'),
+    ('donnarumma','Gianluigi Donnarumma','GK',89,225,'#2f72ff'), ('oblak','Jan Oblak','GK',87,170,'#d9252a'),
+    ('ter-stegen','Marc-André ter Stegen','GK',87,170,'#f2c94c'), ('maignan','Mike Maignan','GK',87,165,'#131f6b'),
+    ('ederson','Ederson','GK',86,145,'#7bb8ff'), ('kobel','Gregor Kobel','GK',86,140,'#f2c94c'),
+    ('diogo-costa','Diogo Costa','GK',84,95,'#ef3e42'), ('raya','David Raya','GK',85,110,'#d73a49'),
+    ('pope','Nick Pope','GK',83,65,'#111111'), ('sommer','Yann Sommer','GK',85,105,'#d9252a'),
+    ('frimpong','Jeremie Frimpong','RB',84,100,'#e62b3f'), ('trent','Trent Alexander-Arnold','RB',85,120,'#d9252a'),
+    ('carvajal','Dani Carvajal','RB',84,90,'#f2c94c'), ('kounde','Jules Koundé','RB',85,115,'#2f72ff'),
+    ('reece-james','Reece James','RB',84,90,'#1355a0'), ('pedro-porro','Pedro Porro','RB',83,72,'#ffffff'),
+    ('nuno-mendes','Nuno Mendes','LB',85,115,'#203f91'), ('theo-hernandez','Theo Hernández','LB',87,170,'#131f6b'),
+    ('grimaldo','Álex Grimaldo','LB',84,88,'#e62b3f'), ('davies','Alphonso Davies','LB',84,85,'#d9252a'),
+    ('dimarco','Federico Dimarco','LB',85,105,'#131f6b'), ('gvardiol','Joško Gvardiol','CB',85,115,'#7bb8ff'),
+    ('saliba','William Saliba','CB',87,175,'#d73a49'), ('ruben-dias','Rúben Dias','CB',88,195,'#7bb8ff'),
+    ('pacho','Willian Pacho','CB',85,105,'#203f91'), ('marquinhos','Marquinhos','CB',87,165,'#203f91'),
+    ('bastoni','Alessandro Bastoni','CB',86,140,'#131f6b'), ('araujo','Ronald Araújo','CB',86,140,'#f2c94c'),
+    ('konate','Ibrahima Konaté','CB',85,110,'#d9252a'), ('de-ligt','Matthijs de Ligt','CB',84,85,'#d9252a'),
+    ('cubarsi','Pau Cubarsí','CB',82,58,'#f2c94c'), ('hincapie','Piero Hincapié','CB',83,70,'#e62b3f'),
+    ('ajer','Kristoffer Ajer','CB',76,30,'#35d06a'), ('ryerson','Julian Ryerson','RB',76,28,'#f2c94c'),
+    ('de-bruyne','Kevin De Bruyne','CAM',88,205,'#7bb8ff'), ('kimmich','Joshua Kimmich','CDM',88,195,'#d9252a'),
+    ('pedri','Pedri','CM',88,190,'#f2c94c'), ('vitinha','Vitinha','CM',87,170,'#203f91'),
+    ('declan-rice','Declan Rice','CDM',87,165,'#d73a49'), ('valverde','Federico Valverde','CM',88,190,'#f2c94c'),
+    ('musiala','Jamal Musiala','CAM',88,195,'#d9252a'), ('foden','Phil Foden','CAM',87,170,'#7bb8ff'),
+    ('bruno-fernandes','Bruno Fernandes','CAM',87,165,'#d9252a'), ('bernardo-silva','Bernardo Silva','CM',86,140,'#7bb8ff'),
+    ('barella','Nicolò Barella','CM',86,140,'#131f6b'), ('zubimendi','Martín Zubimendi','CDM',84,90,'#d73a49'),
+    ('mac-allister','Alexis Mac Allister','CM',85,110,'#d9252a'), ('enzo-fernandez','Enzo Fernández','CM',84,88,'#1355a0'),
+    ('tonali','Sandro Tonali','CM',85,105,'#111111'), ('caicedo','Moisés Caicedo','CDM',84,82,'#1355a0'),
+    ('tchouameni','Aurélien Tchouaméni','CDM',85,105,'#f2c94c'), ('camavinga','Eduardo Camavinga','CM',85,110,'#f2c94c'),
+    ('gavi','Gavi','CM',83,70,'#f2c94c'), ('eze','Eberechi Eze','CAM',84,88,'#d73a49'),
+    ('xavi-simons','Xavi Simons','CAM',84,90,'#e62b3f'), ('de-jong','Frenkie de Jong','CM',86,145,'#f2c94c'),
+    ('sander-berge','Sander Berge','CM',77,34,'#35d06a'), ('aursnes','Fredrik Aursnes','CM',78,40,'#ef3e42'),
+    ('patrick-berg','Patrick Berg','CDM',74,18,'#f2c94c'), ('thorsby','Morten Thorsby','CM',75,22,'#111111'),
+    ('nypan','Sverre Nypan','CAM',72,12,'#35d06a'), ('messi','Lionel Messi','CAM',89,230,'#ff8f00'),
+    ('lamine-yamal','Lamine Yamal','RW',89,235,'#f2c94c'), ('saka','Bukayo Saka','RW',87,170,'#d73a49'),
+    ('dembele','Ousmane Dembélé','RW',88,195,'#203f91'), ('raphinha','Raphinha','RW',86,140,'#f2c94c'),
+    ('son','Heung-Min Son','LW',85,115,'#ffffff'), ('leao','Rafael Leão','LW',86,145,'#131f6b'),
+    ('nico-williams','Nico Williams','LW',84,90,'#ef3e42'), ('kvaratskhelia','Khvicha Kvaratskhelia','LW',86,145,'#203f91'),
+    ('rodrygo','Rodrygo','RW',86,140,'#f2c94c'), ('savinho','Sávio','RW',82,60,'#7bb8ff'),
+    ('olise','Michael Olise','RW',85,115,'#d9252a'), ('coman','Kingsley Coman','LW',84,85,'#d9252a'),
+    ('luis-diaz','Luis Díaz','LW',84,88,'#d9252a'), ('gordon','Anthony Gordon','LW',82,58,'#111111'),
+    ('garnacho','Alejandro Garnacho','LW',80,45,'#d9252a'), ('nusa','Antonio Nusa','LW',75,20,'#e62b3f'),
+    ('oscar-bobb','Oscar Bobb','RW',75,20,'#7bb8ff'), ('kane','Harry Kane','ST',90,250,'#d9252a'),
+    ('lewandowski','Robert Lewandowski','ST',88,195,'#f2c94c'), ('lautaro','Lautaro Martínez','ST',88,190,'#131f6b'),
+    ('gyokeres','Viktor Gyökeres','ST',86,145,'#d73a49'), ('osimhen','Victor Osimhen','ST',86,140,'#203f91'),
+    ('julian-alvarez','Julián Álvarez','ST',85,115,'#d73a49'), ('vlahovic','Dušan Vlahović','ST',84,88,'#111111'),
+    ('watkins','Ollie Watkins','ST',84,85,'#7a5cff'), ('retegui','Mateo Retegui','ST',84,85,'#131f6b'),
+    ('dovbyk','Artem Dovbyk','ST',83,70,'#7a1f2b'), ('thuram','Marcus Thuram','ST',84,90,'#131f6b'),
+    ('sesko','Benjamin Šeško','ST',82,62,'#e62b3f'), ('ekitike','Hugo Ekitiké','ST',81,52,'#d9252a'),
+    ('strand-larsen','Jørgen Strand Larsen','ST',78,38,'#ff8f00'), ('jonathan-david','Jonathan David','ST',82,60,'#7a5cff'),
+    ('lookman','Ademola Lookman','LW',84,85,'#131f6b'), ('openda','Loïs Openda','ST',83,72,'#e62b3f'),
+    ('mateta','Jean-Philippe Mateta','ST',80,45,'#d9252a'), ('darwin-nunez','Darwin Núñez','ST',82,62,'#d9252a'),
+    ('solanke','Dominic Solanke','ST',81,52,'#ffffff'), ('marmoush','Omar Marmoush','ST',84,88,'#7bb8ff'),
+    ('boniface','Victor Boniface','ST',81,50,'#e62b3f'), ('hojlund','Rasmus Højlund','ST',80,45,'#d9252a'),
+    ('gabriel-jesus','Gabriel Jesus','ST',82,60,'#d73a49'), ('enesyri','Youssef En-Nesyri','ST',80,42,'#ef3e42')
+), calculated as (
+  select slug, name, position, overall, price, accent,
+    jsonb_build_object(
+      'pace', least(99, greatest(20, overall + case when position = 'GK' then -12 when position in ('RW','LW') then 7 when position = 'ST' then 4 when position in ('RB','LB') then 3 else -1 end)),
+      'shooting', least(99, greatest(20, overall + case when position = 'GK' then -22 when position = 'ST' then 6 when position in ('RW','LW','CAM') then 3 when position in ('CB','RB','LB') then -18 when position = 'CDM' then -9 else -2 end)),
+      'passing', least(99, greatest(20, overall + case when position = 'GK' then -5 when position in ('CM','CAM','CDM') then 4 when position in ('CB','RB','LB') then -6 when position = 'ST' then -9 else 0 end)),
+      'dribbling', least(99, greatest(20, overall + case when position = 'GK' then -6 when position in ('RW','LW','CAM') then 5 when position = 'ST' then 1 when position in ('CB','RB','LB') then -8 else 0 end)),
+      'defending', least(99, greatest(20, overall + case when position = 'GK' then -3 when position = 'CB' then 6 when position in ('RB','LB') then 3 when position = 'CDM' then 4 when position in ('RW','LW','ST') then -25 when position = 'CAM' then -17 else -8 end)),
+      'physical', least(99, greatest(20, overall + case when position = 'GK' then 0 when position in ('CB','ST') then 3 when position = 'CDM' then 2 when position in ('RW','LW') then -5 else -1 end))
+    ) as attributes
+  from new_catalog
+)
+insert into player_catalog (slug, name, position, overall, price, attributes, accent)
+select slug, name, position, overall, price, attributes, accent from calculated
+on conflict (slug) do nothing;

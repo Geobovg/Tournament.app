@@ -19,7 +19,7 @@ type Slot = { id: string; name: string | null; members: { username: string }[] }
 
 export function JoinTournamentForm({ tournamentId, inviteToken }: { tournamentId: string; inviteToken: string }) {
   const [state, action, pending] = useActionState(joinTournamentAction, initialState);
-  return <form action={action} className="grid gap-3"><input type="hidden" name="tournament_id" value={tournamentId} /><input type="hidden" name="invite_token" value={inviteToken} /><p className="text-muted">Vil du bli med i denne turneringen?</p>{state.error ? <p className="text-danger">{state.error}</p> : null}<div className="flex flex-wrap gap-3"><button className={buttonClass} disabled={pending}>{pending ? "Blir med…" : "Ja, bli med i turneringen"}</button><Link href="/" className={secondaryButtonClass}>Nei, ikke bli med</Link></div></form>;
+  return <form action={action} className="grid gap-3"><input type="hidden" name="tournament_id" value={tournamentId} /><input type="hidden" name="invite_token" value={inviteToken} /><p className="text-muted">Vil du bli med i denne turneringen?</p>{state.error ? <p className="text-danger">{state.error}</p> : null}<div className="flex flex-wrap gap-3"><button className={buttonClass} disabled={pending}>{pending ? "Blir med…" : "Ja, bli med i turneringen"}</button><Link href="/turneringer" className={secondaryButtonClass}>Nei, ikke bli med</Link></div></form>;
 }
 
 export function TeamPicker({ tournamentId, teamSize, slots, myTeamId, joined }: { tournamentId: string; teamSize: number; slots: Slot[]; myTeamId: string | null; joined: boolean }) {

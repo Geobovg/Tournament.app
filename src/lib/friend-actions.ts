@@ -94,6 +94,6 @@ export async function addFriendToTournamentAction(_prev: ActionState, formData: 
   if (error) return { error: error.message };
 
   revalidatePath(`/tournaments/${tournamentId}`);
-  revalidatePath("/");
+  revalidatePath("/turneringer");
   return { ok: true };
 }

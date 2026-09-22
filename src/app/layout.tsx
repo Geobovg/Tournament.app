@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AudioPlayer } from "@/components/audio-player";
@@ -34,11 +33,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-border">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4">
-            <Link href="/" className="text-4xl font-bold tracking-tight">
-              Send it!
-            </Link>
+            <span className="text-4xl font-bold tracking-tight">Send it!</span>
             <div className="flex items-center gap-3 text-sm">
-              {user ? <><Link href="/venner" className="text-muted hover:text-foreground">Venner</Link><Link href="/profile" className="text-muted hover:text-foreground">{user.username}</Link><form action={logoutAction}><button className="text-muted hover:text-foreground">Logg ut</button></form></> : <Link href="/login" className="text-muted hover:text-foreground">Logg inn</Link>}
+              {user ? <form action={logoutAction}><button className="text-muted hover:text-foreground">Logg ut</button></form> : <a href="/login" className="text-muted hover:text-foreground">Logg inn</a>}
             </div>
           </div>
         </header>

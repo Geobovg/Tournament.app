@@ -39,7 +39,7 @@ export default async function MatchPage({
     listGoalClips([matchId]),
     listTournamentMembers(id),
   ]);
-  if (tournament.owner_id !== user.id && !members.some((member) => member.user_id === user.id)) redirect("/");
+  if (tournament.owner_id !== user.id && !members.some((member) => member.user_id === user.id)) redirect("/turneringer");
 
   const teamNames = new Map(teams.map((team) => [team.id, team.name]));
   const homeTeam = match.home_team_id

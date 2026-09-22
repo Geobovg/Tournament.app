@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { FriendsPage } from "@/components/friends-page";
+import { ModePageHeading } from "@/components/mode-menu";
 import { currentUser } from "@/lib/auth";
 import { listFriends, listIncomingRequests, listOutgoingRequests } from "@/lib/friends";
 
@@ -17,10 +18,7 @@ export default async function VennerPage() {
 
   return (
     <div className="grid gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Venner</h1>
-        <p className="text-muted">Legg til venner for å enklere invitere dem til turneringer.</p>
-      </div>
+      <ModePageHeading title="Venner" description="Legg til venner for å enklere invitere dem til turneringer." />
       <FriendsPage friends={friends} incoming={incoming} outgoing={outgoing} />
     </div>
   );
