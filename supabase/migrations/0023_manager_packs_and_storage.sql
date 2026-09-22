@@ -9,8 +9,8 @@ alter table manager_cards add constraint manager_cards_location_check check (loc
 create index if not exists manager_cards_owner_location_idx on manager_cards (owner_id, location);
 
 -- Kapasitetene bor i én funksjon hver, slik at alle overganger teller likt.
-create or replace function public.manager_squad_capacity() returns integer language sql immutable set search_path = public, pg_temp as $$ select 23 $$;
-create or replace function public.manager_storage_capacity() returns integer language sql immutable set search_path = public, pg_temp as $$ select 80 $$;
+create or replace function public.manager_squad_capacity() returns integer language sql immutable set search_path = public, pg_temp as $fn$ select 23 $fn$;
+create or replace function public.manager_storage_capacity() returns integer language sql immutable set search_path = public, pg_temp as $fn$ select 80 $fn$;
 
 -- Hvor et innkommende kort havner: i troppen hvis det er plass, ellers på lageret.
 -- Null betyr at spilleren er helt full og ikke kan ta imot flere kort.
@@ -18,23 +18,23 @@ create or replace function public.next_card_location(target_user uuid)
 returns text
 language sql
 set search_path = public, pg_temp
-as $$
+as $fn$
   select case
     when (select count(*) from manager_cards where owner_id = target_user and location = 'squad') < public.manager_squad_capacity() then 'squad'
     when (select count(*) from manager_cards where owner_id = target_user and location = 'storage') < public.manager_storage_capacity() then 'storage'
   end;
-$$;
+$fn$;
 
 -- Et kort som forlater troppen må også ut av den lagrede elleveren.
 create or replace function public.drop_card_from_lineup(target_user uuid, target_card uuid)
 returns void
 language sql
 set search_path = public, pg_temp
-as $$
+as $fn$
   update manager_lineups
   set starters = array_remove(starters, target_card), bench = array_remove(bench, target_card), updated_at = now()
   where user_id = target_user and (target_card = any(starters) or target_card = any(bench));
-$$;
+$fn$;
 
 -- Et duplikat regnes som uavklart så lenge begge kortene ligger i klubben uten å
 -- være lagt ut for salg. Da er pakkeåpning stengt til spilleren har valgt side.
@@ -42,7 +42,7 @@ create or replace function public.has_unresolved_duplicates(target_user uuid)
 returns boolean
 language sql
 set search_path = public, pg_temp
-as $$
+as $fn$
   select exists (
     select 1 from manager_cards card
     where card.owner_id = target_user and card.catalog_id is not null
@@ -50,7 +50,7 @@ as $$
     group by card.catalog_id
     having count(*) > 1
   );
-$$;
+$fn$;
 
 create table if not exists manager_packs (
   key text primary key,
@@ -98,7 +98,7 @@ create or replace function public.open_manager_pack(target_user uuid, target_pac
 returns jsonb
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   profile_row player_profiles%rowtype;
   pack_row manager_packs%rowtype;
@@ -184,13 +184,13 @@ begin
   insert into pack_openings (user_id, pack_key, price, pulls) values (target_user, pack_row.key, pack_row.price, pulls);
   return pulls;
 end;
-$$;
+$fn$;
 
 create or replace function public.move_manager_card(target_user uuid, target_card uuid, next_location text)
 returns void
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   card_row manager_cards%rowtype;
 begin
@@ -207,13 +207,13 @@ begin
   if next_location = 'storage' then perform public.drop_card_from_lineup(target_user, target_card); end if;
   update manager_cards set location = next_location where id = target_card;
 end;
-$$;
+$fn$;
 
 create or replace function public.swap_manager_cards(target_user uuid, squad_card uuid, storage_card uuid)
 returns void
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   outgoing manager_cards%rowtype;
   incoming manager_cards%rowtype;
@@ -229,15 +229,15 @@ begin
   update manager_cards set location = 'storage' where id = squad_card;
   update manager_cards set location = 'squad' where id = storage_card;
 end;
-$$;
+$fn$;
 
--- Quick sell gir ingen managerpoeng. Den finnes for å bli kvitt duplikater raskt;
--- vil du ha betalt, legger du kortet ut på overgangsmarkedet i stedet.
+-- Quick sell gir ingen managerpoeng. Den finnes for å bli kvitt duplikater
+-- raskt. Vil du ha betalt, legger du kortet ut på overgangsmarkedet i stedet.
 create or replace function public.quick_sell_manager_card(target_user uuid, target_card uuid)
 returns void
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   card_row manager_cards%rowtype;
 begin
@@ -249,14 +249,14 @@ begin
   perform public.drop_card_from_lineup(target_user, target_card);
   delete from manager_cards where id = target_card;
 end;
-$$;
+$fn$;
 
 -- Alle overganger må nå plassere kortet i tropp eller lager, og telle mot riktig tak.
 create or replace function public.buy_catalog_card(target_user uuid, target_catalog uuid)
 returns uuid
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   profile_row player_profiles%rowtype;
   catalog_row player_catalog%rowtype;
@@ -278,13 +278,13 @@ begin
   returning id into new_card_id;
   return new_card_id;
 end;
-$$;
+$fn$;
 
 create or replace function public.buy_now_market_listing(target_buyer uuid, target_listing uuid)
 returns uuid
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   listing_row market_listings%rowtype;
   card_row manager_cards%rowtype;
@@ -310,13 +310,13 @@ begin
   update market_listings set status = 'sold', buyer_id = target_buyer, sold_price = buy_now_price where id = target_listing;
   return listing_row.card_id;
 end;
-$$;
+$fn$;
 
 create or replace function public.settle_expired_market_listings()
 returns integer
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   listing_row market_listings%rowtype;
   winning_bid record;
@@ -359,13 +359,13 @@ begin
   end loop;
   return settled;
 end;
-$$;
+$fn$;
 
 create or replace function public.respond_direct_transfer_offer(target_actor uuid, target_offer uuid, response text)
 returns uuid
 language plpgsql
 set search_path = public, pg_temp
-as $$
+as $fn$
 declare
   offer_row direct_transfer_offers%rowtype;
   card_row manager_cards%rowtype;
@@ -397,4 +397,4 @@ begin
   update market_listings set status = 'cancelled' where card_id = offer_row.card_id and status = 'active';
   return offer_row.card_id;
 end;
-$$;
+$fn$;
