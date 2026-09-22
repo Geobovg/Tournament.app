@@ -1,35 +1,24 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState, useMemo, useState } from "react";
 import type { ActionState } from "@/lib/actions";
-import { clubCrest } from "@/lib/club-crests";
-import { playerPhoto } from "@/lib/player-photos";
-import { buyCatalogCardAction, saveManagerLineupAction } from "@/lib/manager-actions";
+import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard } from "@/lib/career";
+import { squadCapacity, storageCapacity } from "@/lib/manager-limits";
+import { buyCatalogCardAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
+import { PackStore } from "./pack-store";
+import { PlayerCardFace } from "./player-card-face";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 
 const initial: ActionState = {};
 const positionOrder = ["GK", "RB", "CB", "LB", "CDM", "CM", "CAM", "RW", "LW", "ST"];
-const statLabels: [string, string][] = [["pace", "FAR"], ["shooting", "SKD"], ["passing", "PAS"], ["dribbling", "DRI"], ["defending", "FOR"], ["physical", "FYS"]];
-type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number };
-type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
-type ManagerLineup = { formation: string; starters: string[]; bench: string[] };
 
 function PlayerCard({ player, owned, budget, action, pending }: { player: CatalogCard; owned: boolean; budget: number; action: (formData: FormData) => void; pending: boolean }) {
   const canBuy = !owned && budget >= player.price;
-  const crest = clubCrest(player.club);
-  const photo = playerPhoto(player.slug);
-  return <form action={action} className="group relative flex min-h-[27rem] flex-col overflow-hidden rounded-2xl border border-white/15 p-4 text-white shadow-xl transition hover:-translate-y-1 hover:border-white/40" style={{ background: `radial-gradient(circle at 90% 8%, ${player.accent}bb 0, transparent 31%), linear-gradient(145deg, #08150e 0%, #102b1a 55%, #06110a 100%)` }}>
-    <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,.09)_45%,transparent_58%)] opacity-70" />
-    <p className="relative text-xs font-bold tracking-[.28em] text-white/65">MANAGER CARD</p>
-    <div className="relative mt-2 h-44">
-      {photo ? <Image src={photo} alt="" width={256} height={256} className="absolute bottom-0 left-1/2 h-44 w-44 -translate-x-1/2 object-contain object-bottom drop-shadow-[0_10px_18px_rgba(0,0,0,.55)]" /> : <div className="absolute bottom-0 left-1/2 grid h-28 w-28 -translate-x-1/2 place-items-center rounded-full border-2 border-white/35 bg-black/20 text-4xl">⚽</div>}
-      <div className="absolute left-0 top-1 grid w-14 justify-items-center gap-1"><b className="text-5xl font-black leading-none tracking-tighter">{player.overall}</b><p className="text-sm font-black tracking-wide">{player.position}</p>{crest ? <span className="mt-1 grid h-8 w-8 place-items-center overflow-hidden rounded-full border border-white/35 bg-white/95"><Image src={crest} alt="" width={24} height={24} className="h-6 w-6 object-contain" /></span> : null}</div>
-    </div>
-    <div className="relative border-t border-white/25 pt-2 text-center"><h3 className="truncate text-xl font-black uppercase tracking-wide">{player.name}</h3><p className="mt-1 truncate text-xs font-semibold uppercase tracking-[.2em] text-white/65">{player.club}</p></div>
-    <div className="relative mt-3 grid grid-cols-3 gap-x-3 gap-y-2 border-y border-white/15 py-3 text-xs">{statLabels.map(([key, label]) => <div key={key} className="flex justify-between"><span className="text-white/60">{label}</span><b>{player.attributes[key] ?? player.overall}</b></div>)}</div>
-    <input type="hidden" name="catalog_id" value={player.id} />
-    <div className="relative mt-auto flex items-center justify-between gap-3 pt-4"><span className="rounded-full bg-black/20 px-3 py-1 text-sm font-bold">{player.price} MB</span><button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending}>{owned ? "Eies" : budget < player.price ? "For dyr" : "Kjøp kort"}</button></div>
+  return <form action={action}>
+    <PlayerCardFace player={player} className="group transition hover:-translate-y-1 hover:border-white/40" footer={<>
+      <input type="hidden" name="catalog_id" value={player.id} />
+      <div className="flex items-center justify-between gap-3"><span className="rounded-full bg-black/20 px-3 py-1 text-sm font-bold">{player.price} MB</span><button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending}>{owned ? "Eies" : budget < player.price ? "For dyr" : "Kjøp kort"}</button></div>
+    </>} />
   </form>;
 }
 
@@ -61,7 +50,7 @@ function Catalog({ catalog, owned, budget }: { catalog: CatalogCard[]; owned: Se
     </div> : null}
     <p className="text-sm text-muted">Viser {cards.length} av {catalog.length} kort.</p>
     {cards.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{cards.map((player) => <PlayerCard key={player.id} player={player} owned={owned.has(player.id)} budget={budget} action={action} pending={pending} />)}</div> : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">Ingen spillere passer filtrene.</p>}
-    {state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">Spilleren er lagt til i troppen.</p> : null}
+    {state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">Spilleren er lagt til.</p> : null}
   </section>;
 }
 
@@ -69,9 +58,63 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   const [state, action, pending] = useActionState(saveManagerLineupAction, initial);
   const starters = new Set(lineup?.starters ?? cards.slice(0, 11).map((card) => card.id));
   const bench = new Set(lineup?.bench ?? []);
-  return <section className={`${cardClass} grid gap-4`}><div><h2 className="text-lg font-semibold">Min ellever</h2><p className="text-sm text-muted">Velg nøyaktig 11 startspillere og opptil 7 på benken.</p></div><form action={action} className="grid gap-2"><label className="max-w-xs text-sm text-muted">Formasjon<select name="formation" defaultValue={lineup?.formation ?? "4-3-3"} className="ml-2"><option>4-3-3</option><option>4-2-3-1</option><option>4-4-2</option><option>3-5-2</option><option>4-3-1-2</option></select></label><div className="grid gap-2 sm:grid-cols-2">{cards.map((card) => <div key={card.id} className="flex items-center gap-3 rounded-lg border border-border p-3"><div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold">{card.overall}</div><div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position}{card.is_starter ? " · Academy" : ""}</span></div><label className="text-xs"><input name="starter_ids" type="checkbox" value={card.id} defaultChecked={starters.has(card.id)} /> XI</label><label className="text-xs"><input name="bench_ids" type="checkbox" value={card.id} defaultChecked={bench.has(card.id)} /> Benk</label></div>)}</div><div><button className={buttonClass} disabled={pending}>{pending ? "Lagrer…" : "Lagre ellever"}</button>{state.error ? <p className="mt-2 text-sm text-danger">{state.error}</p> : state.ok ? <p className="mt-2 text-sm text-success">Elleveren er lagret.</p> : null}</div></form></section>;
+  return <section className={`${cardClass} grid gap-4`}><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold">Troppen min</h2><p className="text-sm text-muted">Velg nøyaktig 11 startspillere og opptil 7 på benken. Resten er reserver.</p></div><span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{cards.length} / {squadCapacity}</span></div><form action={action} className="grid gap-2"><label className="max-w-xs text-sm text-muted">Formasjon<select name="formation" defaultValue={lineup?.formation ?? "4-3-3"} className="ml-2"><option>4-3-3</option><option>4-2-3-1</option><option>4-4-2</option><option>3-5-2</option><option>4-3-1-2</option></select></label><div className="grid gap-2 sm:grid-cols-2">{cards.map((card) => <div key={card.id} className="flex items-center gap-3 rounded-lg border border-border p-3"><div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold">{card.overall}</div><div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position}{card.is_starter ? " · Academy" : ""}</span></div><label className="text-xs"><input name="starter_ids" type="checkbox" value={card.id} defaultChecked={starters.has(card.id)} /> XI</label><label className="text-xs"><input name="bench_ids" type="checkbox" value={card.id} defaultChecked={bench.has(card.id)} /> Benk</label></div>)}</div><div><button className={buttonClass} disabled={pending}>{pending ? "Lagrer…" : "Lagre ellever"}</button>{state.error ? <p className="mt-2 text-sm text-danger">{state.error}</p> : state.ok ? <p className="mt-2 text-sm text-success">Elleveren er lagret.</p> : null}</div></form></section>;
 }
 
-export function ManagerCareer({ cards, catalog, lineup, budget }: { cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; budget: number }) {
-  return <div className="grid gap-6"><Squad cards={cards} lineup={lineup}/><Catalog catalog={catalog} owned={new Set(cards.map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget}/></div>;
+function Storage({ storage, squad }: { storage: ManagerCard[]; squad: ManagerCard[] }) {
+  const [moveState, moveAction, movePending] = useActionState(moveManagerCardAction, initial);
+  const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
+  const roomInSquad = squad.length < squadCapacity;
+  const message = moveState.error ?? swapState.error;
+  return <section className={`${cardClass} grid gap-4`}>
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div><h2 className="text-lg font-semibold">Klubblageret</h2><p className="text-sm text-muted">{roomInSquad ? "Det er ledig plass i troppen, så du kan sette inn spillere direkte." : "Troppen er full. Velg hvem som må ut for å få en spiller inn."}</p></div>
+      <span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{storage.length} / {storageCapacity}</span>
+    </div>
+    {storage.length ? <div className="grid gap-2">{storage.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
+      <div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold">{card.overall}</div>
+      <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position} · {card.club}</span></div>
+      {roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>Sett i troppen</button></form>
+        : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={`Bytt ${card.name} med`} defaultValue="">{<option value="" disabled>Bytt med…</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>Bytt</button></form>}
+    </div>)}</div> : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">Lageret er tomt. Kort du ikke får plass til i troppen havner her.</p>}
+    {message ? <p className="text-sm text-danger">{message}</p> : null}
+  </section>;
+}
+
+function Duplicates({ groups }: { groups: ManagerCard[][] }) {
+  const [state, action, pending] = useActionState(quickSellManagerCardAction, initial);
+  if (groups.length === 0) return null;
+  return <section className={`${cardClass} grid gap-4 border-danger/40`}>
+    <div><h2 className="text-lg font-semibold">Duplikater må avklares</h2><p className="text-sm text-muted">Du eier samme spiller flere ganger. Legg ett av kortene ut på overgangsmarkedet, eller kast det her. Pakker er stengt til det er gjort.</p></div>
+    {groups.map((group) => <div key={group[0].catalog_id} className="grid gap-2 rounded-lg border border-border p-3">
+      <b className="text-sm">{group[0].name} · {group.length} eksemplarer</b>
+      {group.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 text-sm">
+        <span className="flex-1 text-muted">{card.overall} {card.position} · {card.location === "squad" ? "i troppen" : "på lageret"} · kjøpt for {card.acquired_price} MB</span>
+        <form action={action}><input type="hidden" name="card_id" value={card.id} /><button className={secondaryButtonClass} disabled={pending}>Kast (0 MB)</button></form>
+      </div>)}
+    </div>)}
+    {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+  </section>;
+}
+
+export function ManagerCareer({ cards, catalog, lineup, packs, listedCardIds, budget }: { cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; budget: number }) {
+  const squad = cards.filter((card) => card.location === "squad");
+  const storage = cards.filter((card) => card.location === "storage");
+  // Et kort som ligger ute for salg teller ikke som duplikat: da er valget allerede tatt.
+  const duplicateGroups = useMemo(() => {
+    const listed = new Set(listedCardIds);
+    const byCatalog = new Map<string, ManagerCard[]>();
+    for (const card of cards) {
+      if (!card.catalog_id || listed.has(card.id)) continue;
+      byCatalog.set(card.catalog_id, [...(byCatalog.get(card.catalog_id) ?? []), card]);
+    }
+    return [...byCatalog.values()].filter((group) => group.length > 1);
+  }, [cards, listedCardIds]);
+  return <div className="grid gap-6">
+    <Duplicates groups={duplicateGroups} />
+    <PackStore packs={packs} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} />
+    <Squad cards={squad} lineup={lineup} />
+    <Storage storage={storage} squad={squad} />
+    <Catalog catalog={catalog} owned={new Set(cards.map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />
+  </div>;
 }

@@ -62,19 +62,27 @@ export async function getCareerMatch(matchId: string, userId: string) {
   };
 }
 
-export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number };
+export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number> };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[] };
+export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; odds: { min: number; max: number; weight: number }[]; accent: string };
 
-export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null }> {
+export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[] }> {
   const db = supabaseAdmin();
-  const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }] = await Promise.all([
-    db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price").eq("owner_id", userId).order("overall", { ascending: false }),
+  const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }] = await Promise.all([
+    db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club)").eq("owner_id", userId).order("overall", { ascending: false }),
     db.from("player_catalog").select("id, slug, name, position, overall, price, accent, club, attributes").eq("active", true).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench").eq("user_id", userId).maybeSingle(),
+    db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
+    db.from("market_listings").select("card_id").eq("seller_id", userId).eq("status", "active"),
   ]);
-  if (cardsError || catalogError || lineupError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message);
-  return { cards: (cards ?? []) as ManagerCard[], catalog: (catalog ?? []) as CatalogCard[], lineup: lineup as ManagerLineup | null };
+  if (cardsError || catalogError || lineupError || packsError || listingsError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message);
+  // Academy-kort er laget for hånd og mangler katalograd, så kortbildet faller tilbake på nøytrale verdier.
+  const owned = (cards ?? []).map((row) => {
+    const source = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
+    return { ...row, player_catalog: undefined, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Akademiet" };
+  });
+  return { cards: owned as unknown as ManagerCard[], catalog: (catalog ?? []) as CatalogCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id) };
 }
 
 export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number }; seller_name: string; highest_bid: number | null };
