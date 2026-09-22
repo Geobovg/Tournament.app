@@ -45,14 +45,14 @@ export async function getCareerMatch(matchId: string, userId: string) {
 }
 
 export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number };
-export type CatalogCard = { id: string; name: string; position: string; overall: number; price: number; accent: string; attributes: Record<string, number> };
+export type CatalogCard = { id: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[] };
 
 export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null }> {
   const db = supabaseAdmin();
   const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }] = await Promise.all([
     db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price").eq("owner_id", userId).order("overall", { ascending: false }),
-    db.from("player_catalog").select("id, name, position, overall, price, accent, attributes").eq("active", true).order("overall", { ascending: false }),
+    db.from("player_catalog").select("id, name, position, overall, price, accent, club, attributes").eq("active", true).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench").eq("user_id", userId).maybeSingle(),
   ]);
   if (cardsError || catalogError || lineupError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message);
@@ -85,4 +85,23 @@ export async function listDirectTransferOffers(userId: string): Promise<DirectTr
   if (profileError) throw new Error(profileError.message);
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
   return rows.map((row) => { const card = Array.isArray(row.manager_cards) ? row.manager_cards[0] : row.manager_cards; return { id: row.id, seller_id: row.seller_id, buyer_id: row.buyer_id, proposed_by: row.proposed_by, status: "pending", price: row.price, expires_at: row.expires_at, card: { name: card?.name ?? "Ukjent", position: card?.position ?? "", overall: card?.overall ?? 0 }, seller_name: names.get(row.seller_id) ?? "Venn", buyer_name: names.get(row.buyer_id) ?? "Venn" }; }) as DirectTransferOffer[];
+}
+
+export type ManagerMatchHistory = { id: string; opponentName: string; result: "win" | "draw" | "loss"; myScore: number; opponentScore: number; managerBudget: number; completedAt: string | null };
+export async function listManagerMatchHistory(userId: string): Promise<ManagerMatchHistory[]> {
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("career_matches").select("id, home_user_id, away_user_id, home_score, away_score, completed_at").eq("mode", "manager").eq("status", "completed").or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).order("completed_at", { ascending: false }).limit(8);
+  if (error) throw new Error(error.message);
+  const matches = data ?? [];
+  const opponentIds = [...new Set(matches.map((match) => match.home_user_id === userId ? match.away_user_id : match.home_user_id))];
+  const { data: profiles, error: profilesError } = opponentIds.length ? await db.from("profiles").select("id, username").in("id", opponentIds) : { data: [], error: null };
+  if (profilesError) throw new Error(profilesError.message);
+  const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
+  return matches.map((match) => {
+    const home = match.home_user_id === userId;
+    const myScore = home ? match.home_score : match.away_score;
+    const opponentScore = home ? match.away_score : match.home_score;
+    const result = myScore === opponentScore ? "draw" : myScore > opponentScore ? "win" : "loss";
+    return { id: match.id, opponentName: names.get(home ? match.away_user_id : match.home_user_id) ?? "Venn", result, myScore, opponentScore, managerBudget: result === "win" ? 5 : result === "draw" ? 2 : 0, completedAt: match.completed_at };
+  });
 }

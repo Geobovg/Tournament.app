@@ -7,7 +7,7 @@ import { STAT_GROUPS } from "./career-stats";
 import { friendshipId } from "./friends";
 import type { ActionState } from "./actions";
 import { incrementCareerRecord, type CareerRecordColumn } from "./career-rewards";
-import { getManagerKickoff, getManagerSubstitutions, scoreAtMinute, simulateManagerTimeline, teamAfterSubstitutions, type ManagerKickoffEvent, type ManagerPlayerSnapshot } from "./manager-match";
+import { getManagerKickoff, getManagerSubstitutions, replanManagerTimeline, teamAfterSubstitutions, type ManagerKickoffEvent, type ManagerPlayerSnapshot, type ManagerTactics } from "./manager-match";
 import { supabaseAdmin } from "./supabase/server";
 
 function profilePaths() { revalidatePath("/profile"); revalidatePath("/spillerkarriere"); revalidatePath("/managerkarriere"); }
@@ -99,7 +99,8 @@ export async function startCareerMatchAction(_prev: ActionState, formData: FormD
   const startedAt = new Date().toISOString();
   const kickoff = match.mode === "manager" ? await createManagerKickoff(db, match.home_user_id, match.away_user_id) : null;
   if (kickoff && "error" in kickoff) return { error: kickoff.error };
-  const { error } = await db.from("career_matches").update({ status: "live", started_at: startedAt, ...(match.mode === "player" ? { events: [{ leader: match.home_user_id, startedAt }] } : { events: [kickoff] }) }).eq("id", matchId).eq("status", "lobby");
+  const managerEvents = kickoff ? replanManagerTimeline(match.id, [kickoff], {}, 1) : null;
+  const { error } = await db.from("career_matches").update({ status: "live", started_at: startedAt, ...(match.mode === "player" ? { events: [{ leader: match.home_user_id, startedAt }] } : { events: managerEvents }) }).eq("id", matchId).eq("status", "lobby");
   if (error) return { error: error.message }; profilePaths(); return { ok: true };
 }
 
@@ -120,21 +121,9 @@ export async function completeManagerMatchAction(_prev: ActionState, formData: F
   if (!match || match.mode !== "manager" || (match.home_user_id !== user.id && match.away_user_id !== user.id)) return { error: "Fant ikke managerkampen" };
   if (match.status === "completed") return { ok: true };
   if (match.status !== "live" || !match.started_at || Date.now() - new Date(match.started_at).getTime() < 150_000) return { error: "Kampen er ikke ferdig ennå" };
-  const storedEvents = Array.isArray(match.events) ? match.events : [];
-  const legacyKickoff = getManagerKickoff(storedEvents) ? null : await createManagerKickoff(db, match.home_user_id, match.away_user_id);
-  if (legacyKickoff && "error" in legacyKickoff) return { error: legacyKickoff.error };
-  const events = legacyKickoff ? [...storedEvents, legacyKickoff] : storedEvents;
-  const goals = simulateManagerTimeline(match.id, events, match.tactics);
-  const { home: homeScore, away: awayScore } = scoreAtMinute(goals, 90);
-  const winnerId = homeScore === awayScore ? null : homeScore > awayScore ? match.home_user_id : match.away_user_id;
-  const { error } = await db.from("career_matches").update({ status: "completed", home_score: homeScore, away_score: awayScore, winner_id: winnerId, completed_at: new Date().toISOString(), events: [...events, { minute: 90, type: "full_time", homeScore, awayScore }] }).eq("id", matchId).eq("status", "live");
+  const { error } = await db.rpc("settle_finished_manager_matches", { target_match: matchId });
   if (error) return { error: error.message };
-  if (match.challenge_id) await db.from("career_challenges").update({ status: "completed" }).eq("id", match.challenge_id);
-  if (winnerId) {
-    const loserId = winnerId === match.home_user_id ? match.away_user_id : match.home_user_id;
-    await Promise.all([rewardCareerWinner(winnerId, matchId, 0, 5, "manager_win", "manager_career_wins"), rewardCareerWinner(loserId, matchId, 0, 0, "manager_loss", "manager_career_losses")]);
-  } else await Promise.all([rewardCareerWinner(match.home_user_id, matchId, 0, 2, "manager_draw", "manager_career_draws"), rewardCareerWinner(match.away_user_id, matchId, 0, 2, "manager_draw", "manager_career_draws")]);
-  profilePaths(); return { ok: true };
+  revalidatePath(`/karriere/kamp/${matchId}`); profilePaths(); return { ok: true };
 }
 
 export async function makeManagerSubstitutionAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -150,7 +139,8 @@ export async function makeManagerSubstitutionAction(_prev: ActionState, formData
   if (getManagerSubstitutions(events).filter((event) => event.side === side).length >= 3) return { error: "Du har allerede brukt tre bytter" };
   const team = teamAfterSubstitutions(events, side);
   if (!team?.starters.some((player) => player.id === outId) || !team.bench.some((player) => player.id === inId)) return { error: "Velg en spiller fra elleveren og en fra benken" };
-  const { error } = await db.from("career_matches").update({ events: [...events, { type: "substitution", side, outId, inId, minute: 45 }] }).eq("id", matchId).eq("status", "live");
+  const nextEvents = replanManagerTimeline(matchId, [...events, { type: "substitution", side, outId, inId, minute: 45 }], match.tactics, 46);
+  const { error } = await db.from("career_matches").update({ events: nextEvents }).eq("id", matchId).eq("status", "live");
   if (error) return { error: error.message };
   revalidatePath(`/karriere/kamp/${matchId}`); return { ok: true };
 }
@@ -164,10 +154,11 @@ export async function saveManagerTacticAction(_prev: ActionState, formData: Form
   const [opensAt, closesAt] = windows[moment];
   if (elapsed < opensAt) return { error: "Dette taktiske øyeblikket har ikke startet ennå" };
   if (elapsed >= closesAt) return { error: "Dette taktiske øyeblikket er passert" };
-  const tactics = (match.tactics ?? {}) as Record<string, Record<string, unknown>>; if (tactics[user.id]?.[moment]) return { error: "Du har allerede gjort et valg her" };
+  const tactics = (match.tactics ?? {}) as ManagerTactics; if (tactics[user.id]?.[moment]) return { error: "Du har allerede gjort et valg her" };
   const next = { ...tactics, [user.id]: { ...(tactics[user.id] ?? {}), [moment]: { mentality, press, focus } } };
-  const { error } = await db.from("career_matches").update({ tactics: next }).eq("id", matchId).eq("status", "live");
-  if (error) return { error: error.message }; profilePaths(); return { ok: true };
+  const nextEvents = replanManagerTimeline(matchId, Array.isArray(match.events) ? match.events : [], next, Number(moment) + 1);
+  const { error } = await db.from("career_matches").update({ tactics: next, events: nextEvents }).eq("id", matchId).eq("status", "live");
+  if (error) return { error: error.message }; revalidatePath(`/karriere/kamp/${matchId}`); profilePaths(); return { ok: true };
 }
 
 type PlayerRound = { leader: string; category?: string; startedAt: string; homeStat?: StatKey; awayStat?: StatKey; homeValue?: number; awayValue?: number; winnerId?: string | null };
