@@ -466,6 +466,25 @@ body:has(.winner-page) .audio-fab {
   }
 }
 
+/* Kampbildet i managerkarriere: en høy rute der hendelsene ruller nedover. */
+/* Ingen scroll-behavior: smooth her. Kampbildet setter posisjonen på nytt flere ganger i
+   sekundet, og en myk rulling rekker aldri fram før den blir startet på nytt. */
+.match-feed {
+  height: min(58vh, 30rem);
+  overflow-y: auto;
+}
+
+.event-pop {
+  animation: event-pop 0.45s ease-out both;
+}
+
+@keyframes event-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+
 /* Musikkspiller. */
 .audio-fab {
   position: fixed;
@@ -494,6 +513,10 @@ body:has(.winner-page) .audio-fab {
 
 @media (prefers-reduced-motion: reduce) {
   .theme-fade {
+    animation: none;
+  }
+
+  .event-pop {
     animation: none;
   }
 
