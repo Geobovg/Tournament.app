@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState, useMemo, useState } from "react";
 import type { ActionState } from "@/lib/actions";
+import { clubCrest } from "@/lib/club-crests";
 import { buyCatalogCardAction, saveManagerLineupAction } from "@/lib/manager-actions";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 
@@ -14,10 +16,11 @@ type ManagerLineup = { formation: string; starters: string[]; bench: string[] };
 
 function PlayerCard({ player, owned, budget, action, pending }: { player: CatalogCard; owned: boolean; budget: number; action: (formData: FormData) => void; pending: boolean }) {
   const canBuy = !owned && budget >= player.price;
+  const crest = clubCrest(player.club);
   return <form action={action} className="group relative min-h-80 overflow-hidden rounded-2xl border border-white/15 p-4 text-white shadow-xl transition hover:-translate-y-1 hover:border-white/40" style={{ background: `radial-gradient(circle at 90% 8%, ${player.accent}bb 0, transparent 31%), linear-gradient(145deg, #08150e 0%, #102b1a 55%, #06110a 100%)` }}>
     <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,.09)_45%,transparent_58%)] opacity-70" />
     <div className="relative flex items-start justify-between"><div><p className="text-xs font-bold tracking-[.28em] text-white/65">MANAGER CARD</p><p className="mt-2 text-sm font-black">{player.position}</p></div><b className="text-5xl font-black tracking-tighter">{player.overall}</b></div>
-    <div className="relative mt-10"><div className="grid h-14 w-14 place-items-center rounded-full border-2 border-white/35 bg-black/20 text-2xl">⚽</div><h3 className="mt-4 truncate text-xl font-black uppercase tracking-wide">{player.name}</h3><p className="mt-1 truncate text-xs font-semibold uppercase tracking-[.2em] text-white/65">{player.club}</p></div>
+    <div className="relative mt-10"><div className={`grid h-14 w-14 place-items-center overflow-hidden rounded-full border-2 border-white/35 ${crest ? "bg-white/95" : "bg-black/20 text-2xl"}`}>{crest ? <Image src={crest} alt="" width={44} height={44} className="h-11 w-11 object-contain" /> : "⚽"}</div><h3 className="mt-4 truncate text-xl font-black uppercase tracking-wide">{player.name}</h3><p className="mt-1 truncate text-xs font-semibold uppercase tracking-[.2em] text-white/65">{player.club}</p></div>
     <div className="relative mt-5 grid grid-cols-3 gap-x-3 gap-y-2 border-y border-white/15 py-3 text-xs">{statLabels.map(([key, label]) => <div key={key} className="flex justify-between"><span className="text-white/60">{label}</span><b>{player.attributes[key] ?? player.overall}</b></div>)}</div>
     <input type="hidden" name="catalog_id" value={player.id} />
     <div className="relative mt-4 flex items-center justify-between gap-3"><span className="rounded-full bg-black/20 px-3 py-1 text-sm font-bold">{player.price} MB</span><button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending}>{owned ? "Eies" : budget < player.price ? "For dyr" : "Kjøp kort"}</button></div>
