@@ -511,6 +511,221 @@ body:has(.winner-page) .audio-fab {
   white-space: nowrap;
 }
 
+/* Pakkeåpning i managerkarriere. Alt er håndskrevne keyframes: appen har ikke noe
+   animasjonsbibliotek, og en pakkeåpning skal uansett kunne stå stille for de som
+   har slått av bevegelse. */
+.pack-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(24, 48, 32, 0.9) 0, rgba(3, 7, 5, 0.97) 60%),
+    rgba(2, 5, 3, 0.98);
+}
+
+/* Lysstrålene bak kortet. Fargen settes per kort med --pack-glow. */
+.pack-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(190vmin, 190vmax);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--pack-glow, #f2c94c) 0deg 4deg,
+    transparent 4deg 14deg
+  );
+  mask-image: radial-gradient(circle, transparent 12%, #000 34%, transparent 68%);
+  animation: pack-rays-spin 9s linear infinite, pack-rays-in 0.6s ease-out both;
+}
+
+@keyframes pack-rays-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes pack-rays-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.32;
+  }
+}
+
+/* Lysdøra som spilleren «går ut av» på de store trekkene. */
+.pack-door {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 70vmin;
+  translate: -50% -50%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--pack-glow, #f2c94c), transparent);
+  box-shadow: 0 0 6rem 2rem var(--pack-glow, #f2c94c);
+  animation: pack-door-open 1.5s ease-out both;
+}
+
+@keyframes pack-door-open {
+  0% {
+    width: 1px;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  70% {
+    width: min(34rem, 82vw);
+    opacity: 0.85;
+  }
+  100% {
+    width: min(42rem, 92vw);
+    opacity: 0;
+  }
+}
+
+.pack-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #fff;
+  animation: pack-flash 0.5s ease-out both;
+}
+
+@keyframes pack-flash {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Vanlig kort: snurrer inn og lander. */
+.pack-card-enter {
+  animation: pack-card-enter 0.6s cubic-bezier(0.16, 0.9, 0.3, 1) both;
+}
+
+@keyframes pack-card-enter {
+  from {
+    opacity: 0;
+    transform: perspective(1200px) rotateY(85deg) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1200px) rotateY(0deg) scale(1);
+  }
+}
+
+/* Walkout: kortet stiger sakte opp av lyset før det slår seg på plass. */
+.pack-card-walkout {
+  animation: pack-card-walkout 1.6s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+@keyframes pack-card-walkout {
+  0% {
+    opacity: 0;
+    transform: translateY(24vh) scale(0.55);
+    filter: brightness(3.5);
+  }
+  45% {
+    opacity: 1;
+    filter: brightness(1.8);
+  }
+  78% {
+    transform: translateY(-1.5vh) scale(1.06);
+    filter: brightness(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
+}
+
+.pack-shake {
+  animation: pack-shake 0.7s ease-out both;
+}
+
+@keyframes pack-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-0.5%, 0.4%, 0);
+  }
+  40% {
+    transform: translate3d(0.55%, -0.3%, 0);
+  }
+  60% {
+    transform: translate3d(-0.35%, -0.45%, 0);
+  }
+  80% {
+    transform: translate3d(0.3%, 0.25%, 0);
+  }
+}
+
+/* Selve pakka før den åpnes. */
+.pack-idle {
+  animation: pack-idle 2.4s ease-in-out infinite;
+}
+
+@keyframes pack-idle {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-0.6rem) scale(1.02);
+  }
+}
+
+.pack-tear {
+  animation: pack-tear 0.9s ease-in both;
+}
+
+@keyframes pack-tear {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  35% {
+    transform: scale(1.09) rotate(-2deg);
+  }
+  70% {
+    transform: scale(0.96) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.pack-label-rise {
+  animation: pack-label-rise 0.7s ease-out both;
+}
+
+@keyframes pack-label-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .theme-fade {
     animation: none;
@@ -522,6 +737,26 @@ body:has(.winner-page) .audio-fab {
 
   .confetti {
     display: none;
+  }
+
+  /* Pakkeåpningen beholder lysbakgrunnen, men uten bevegelse: kortene vises direkte. */
+  .pack-rays {
+    animation: none;
+    opacity: 0.28;
+  }
+
+  .pack-door,
+  .pack-flash {
+    display: none;
+  }
+
+  .pack-card-enter,
+  .pack-card-walkout,
+  .pack-shake,
+  .pack-idle,
+  .pack-tear,
+  .pack-label-rise {
+    animation: none;
   }
 }
 
