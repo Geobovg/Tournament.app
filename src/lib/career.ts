@@ -45,14 +45,14 @@ export async function getCareerMatch(matchId: string, userId: string) {
 }
 
 export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number };
-export type CatalogCard = { id: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
+export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[] };
 
 export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null }> {
   const db = supabaseAdmin();
   const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }] = await Promise.all([
     db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price").eq("owner_id", userId).order("overall", { ascending: false }),
-    db.from("player_catalog").select("id, name, position, overall, price, accent, club, attributes").eq("active", true).order("overall", { ascending: false }),
+    db.from("player_catalog").select("id, slug, name, position, overall, price, accent, club, attributes").eq("active", true).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench").eq("user_id", userId).maybeSingle(),
   ]);
   if (cardsError || catalogError || lineupError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message);
