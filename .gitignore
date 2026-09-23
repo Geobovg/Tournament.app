@@ -46,3 +46,6 @@ next-env.d.ts
 
 # private local docs
 Git-PR-arbeidsflyt-Tournament-app.docx
+
+# supabase cli
+supabase/.temp/
