@@ -36,7 +36,7 @@ export default async function ManagerCareerSectionPage({ params, searchParams }:
     content = <ManagerMatchHistory matches={history} />;
   } else if (active === "kamplobby") {
     const [friends, challenges] = await Promise.all([listFriends(user.id), getCareerChallenges(user.id)]);
-    content = <div className="grid gap-6"><ChallengeLobby challenges={challenges} userId={user.id} mode="manager" /><CareerChallengePanel friends={friends} mode="manager" /></div>;
+    content = <div className="grid gap-6"><ChallengeLobby challenges={challenges} userId={user.id} /><CareerChallengePanel friends={friends} /></div>;
   } else {
     const [friends, listings, offers] = await Promise.all([listFriends(user.id), listFriendMarket(user.id), listDirectTransferOffers(user.id)]);
     const friendTab = tab === "venner";

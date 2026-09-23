@@ -1,8 +1,8 @@
 import "server-only";
 
 import { supabaseAdmin } from "./supabase/server";
-import type { CareerProfile } from "./career-stats";
-export type { CareerProfile } from "./career-stats";
+
+export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number };
 
 export async function getCareerProfile(userId: string): Promise<CareerProfile> {
   const db = supabaseAdmin();
@@ -21,15 +21,15 @@ export async function listCareerRewards(userId: string) {
 }
 
 export async function listCareerChallenges(userId: string) {
-  const { data, error } = await supabaseAdmin().from("career_challenges").select("*").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`).in("status", ["pending", "accepted", "in_progress"]).order("created_at", { ascending: false });
+  const { data, error } = await supabaseAdmin().from("career_challenges").select("*").eq("mode", "manager").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`).in("status", ["pending", "accepted", "in_progress"]).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
 }
 
-export type CareerChallenge = { id: string; challenger_id: string; opponent_id: string; mode: "player" | "manager"; status: string; expires_at: string; match_id: string | null; opponent_name: string };
+export type CareerChallenge = { id: string; challenger_id: string; opponent_id: string; mode: "manager"; status: string; expires_at: string; match_id: string | null; opponent_name: string };
 export async function getCareerChallenges(userId: string): Promise<CareerChallenge[]> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("career_challenges").select("id, challenger_id, opponent_id, mode, status, expires_at, career_matches(id)").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`).in("status", ["pending", "accepted", "in_progress"]).order("created_at", { ascending: false });
+  const { data, error } = await db.from("career_challenges").select("id, challenger_id, opponent_id, mode, status, expires_at, career_matches(id)").eq("mode", "manager").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`).in("status", ["pending", "accepted", "in_progress"]).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   const rows = data ?? [];
   const ids = [...new Set(rows.map((row) => row.challenger_id === userId ? row.opponent_id : row.challenger_id))];
@@ -40,7 +40,7 @@ export async function getCareerChallenges(userId: string): Promise<CareerChallen
 
 export async function getCareerMatch(matchId: string, userId: string) {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("career_matches").select("*").eq("id", matchId).or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).maybeSingle();
+  const { data, error } = await db.from("career_matches").select("*").eq("id", matchId).eq("mode", "manager").or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
   // Kampbildet viser managernavn og klubbnavn i stedet for «Hjemme» og «Borte».
