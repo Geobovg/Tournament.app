@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { ActionState } from "./actions";
 import { requireUser } from "./auth";
+import { canPlayPosition, formationNames, formations, type Formation } from "./lineup";
 import { supabaseAdmin } from "./supabase/server";
 
 export async function buyCatalogCardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -63,10 +64,20 @@ export async function quickSellManagerCardAction(_prev: ActionState, formData: F
 
 export async function saveManagerLineupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
-  const formation = String(formData.get("formation") ?? "4-3-3");
+  const formation = String(formData.get("formation") ?? "4-3-3") as Formation;
   const starters = formData.getAll("starter_ids").map(String).filter(Boolean);
   const bench = formData.getAll("bench_ids").map(String).filter(Boolean);
-  const { error } = await supabaseAdmin().rpc("save_manager_lineup", { target_user: user.id, next_formation: formation, next_starters: starters, next_bench: bench });
+  if (!formationNames.includes(formation)) return { error: "Ugyldig formasjon" };
+  if (starters.length !== 11 || bench.length !== 7) return { error: "Du må velge nøyaktig 11 startspillere og 7 på benken" };
+  const ids = [...starters, ...bench];
+  if (new Set(ids).size !== ids.length) return { error: "En spiller kan bare velges én gang" };
+  const db = supabaseAdmin();
+  const { data: ownedCards, error: cardsError } = await db.from("manager_cards").select("id, position, location").eq("owner_id", user.id).in("id", ids);
+  if (cardsError) return { error: cardsError.message };
+  if (ownedCards?.length !== ids.length || ownedCards.some((card) => card.location !== "squad")) return { error: "Troppen inneholder et kort du ikke kan bruke" };
+  const positions = new Map((ownedCards ?? []).map((card) => [card.id, card.position]));
+  if (starters.some((id, index) => !canPlayPosition(positions.get(id) ?? "", formations[formation][index].position))) return { error: "En spiller står i en posisjon han ikke kan spille" };
+  const { error } = await db.rpc("save_manager_lineup", { target_user: user.id, next_formation: formation, next_starters: starters, next_bench: bench });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
   revalidatePath("/managerkarriere");
   return { ok: true };

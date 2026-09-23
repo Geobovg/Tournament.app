@@ -32,14 +32,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-border">
-          <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4">
+          <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-4">
             <span className="text-4xl font-bold tracking-tight">Send it!</span>
             <div className="flex items-center gap-3 text-sm">
               {user ? <form action={logoutAction}><button className="text-muted hover:text-foreground">Logg ut</button></form> : <a href="/login" className="text-muted hover:text-foreground">Logg inn</a>}
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-8">{children}</main>
         <AudioPlayer tracks={tracks} />
         <SpeedInsights />
       </body>
