@@ -1720,12 +1720,12 @@ select slug, name, position, overall, price, attributes, accent, club from calcu
 on conflict (slug) do nothing;
 
 -- Norske spillere skal ligge over FC-ratingen sin. De nye kortene over har allerede fått
--- +3; her får de eksisterende norske kortene samme løft. Nusa er utelatt fordi han
+-- +3; her får de eksisterende norske kortene samme løft. Haaland og Ødegaard ble justert ned i 0030. Nusa er utelatt fordi han
 -- allerede ble løftet til 83 i 0016. Målverdiene er faste, så migrasjonen kan kjøres på nytt.
 with boost (slug, overall, price) as (
   values
-    ('haaland', 94, 320),
-    ('odegaard', 91, 260),
+    ('haaland', 92, 280),
+    ('odegaard', 90, 240),
     ('ajer', 79, 42),
     ('ryerson', 79, 42),
     ('sander-berge', 80, 48),
