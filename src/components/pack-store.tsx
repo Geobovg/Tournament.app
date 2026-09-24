@@ -133,7 +133,7 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { pa
           <div>
             <h3 className="text-lg font-bold">{pack.name}</h3>
             <p className="text-sm text-muted">{pack.description}</p>
-            <p className="mt-2 text-sm">{pack.card_count} kort · garanti: {pack.guarantee_count}× {pack.guarantee_min}+</p>
+            <p className="mt-2 text-sm">{pack.card_count} kort · garanti: {pack.guarantees.map((guarantee) => `${guarantee.count}× ${guarantee.min}+`).join(", ")}</p>
           </div>
           <button type="button" className="justify-self-start text-xs underline" onClick={() => setOpenOdds((current) => current === pack.key ? null : pack.key)} aria-expanded={openOdds === pack.key}>
             {openOdds === pack.key ? "Skjul sannsynligheter" : "Vis sannsynligheter"}

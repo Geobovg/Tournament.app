@@ -67,7 +67,7 @@ export async function getCareerMatch(matchId: string, userId: string) {
 export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number> };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
-export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; odds: { min: number; max: number; weight: number }[]; accent: string };
+export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string };
 
 export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks: Record<string, number> }> {
   const db = supabaseAdmin();
@@ -75,7 +75,7 @@ export async function getManagerCareer(userId: string): Promise<{ cards: Manager
     db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club)").eq("owner_id", userId).order("overall", { ascending: false }),
     db.from("player_catalog").select("id, slug, name, position, overall, price, accent, club, attributes").eq("active", true).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench, updated_at").eq("user_id", userId).maybeSingle(),
-    db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
+    db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
     db.from("market_listings").select("card_id").eq("seller_id", userId).eq("status", "active"),
     db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
   ]);
