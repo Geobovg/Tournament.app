@@ -103,7 +103,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
   </div>;
 }
 
-export function PackStore({ packs, budget, blockedByDuplicate }: { packs: ManagerPack[]; budget: number; blockedByDuplicate: boolean }) {
+export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; blockedByDuplicate: boolean }) {
   const [state, action, pending] = useActionState(openManagerPackAction, initial);
   const [openOdds, setOpenOdds] = useState<string | null>(null);
   const [shownAt, setShownAt] = useState<number | null>(null);
@@ -121,11 +121,14 @@ export function PackStore({ packs, budget, blockedByDuplicate }: { packs: Manage
       <b className="rounded-xl bg-accent-soft px-4 py-3 text-xl text-accent">{budget} MB</b>
     </div>
 
+    {Object.values(freePacks).some(Boolean) ? <p className="rounded-lg border border-accent/40 bg-accent-soft p-3 text-sm font-semibold text-accent">Du har gratis pakker fra klubbnivå: {packs.filter((pack) => freePacks[pack.key]).map((pack) => `${freePacks[pack.key]}× ${pack.name}`).join(", ")}.</p> : null}
+
     {blockedByDuplicate ? <p className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">Du har duplikater som må selges eller kastes før du kan åpne flere pakker.</p> : null}
 
     <div className="grid gap-3 sm:grid-cols-2">
       {packs.map((pack) => {
         const affordable = budget >= pack.price;
+        const free = freePacks[pack.key] ?? 0;
         return <div key={pack.key} className="grid gap-3 rounded-xl border border-border bg-surface-raised p-4" style={{ borderTopColor: pack.accent, borderTopWidth: 3 }}>
           <div>
             <h3 className="text-lg font-bold">{pack.name}</h3>
@@ -139,13 +142,21 @@ export function PackStore({ packs, budget, blockedByDuplicate }: { packs: Manage
             <PackOdds pack={pack} />
             <p className="text-xs text-muted">Sjansen gjelder per kort i pakka. Garantien sjekkes etterpå og bytter ut det svakeste kortet hvis den ikke er oppfylt.</p>
           </div> : null}
-          <form action={action} className="mt-auto flex items-center justify-between gap-3">
-            <input type="hidden" name="pack_key" value={pack.key} />
-            <span className="rounded-full bg-black/10 px-3 py-1 text-sm font-bold">{pack.price} MB</span>
-            <button className={affordable ? buttonClass : secondaryButtonClass} disabled={!affordable || pending || blockedByDuplicate}>
-              {pending ? "Åpner…" : affordable ? "Åpne pakke" : "For dyr"}
-            </button>
-          </form>
+          <div className="mt-auto grid gap-2">
+            {free ? <form action={action} className="flex items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2">
+              <input type="hidden" name="pack_key" value={pack.key} />
+              <input type="hidden" name="free" value="1" />
+              <span className="text-sm font-bold text-accent">{free} gratis</span>
+              <button className={buttonClass} disabled={pending || blockedByDuplicate}>{pending ? "Åpner…" : "Åpne gratis"}</button>
+            </form> : null}
+            <form action={action} className="flex items-center justify-between gap-3">
+              <input type="hidden" name="pack_key" value={pack.key} />
+              <span className="rounded-full bg-black/10 px-3 py-1 text-sm font-bold">{pack.price} MB</span>
+              <button className={affordable ? buttonClass : secondaryButtonClass} disabled={!affordable || pending || blockedByDuplicate}>
+                {pending ? "Åpner…" : affordable ? "Åpne pakke" : "For dyr"}
+              </button>
+            </form>
+          </div>
         </div>;
       })}
     </div>
