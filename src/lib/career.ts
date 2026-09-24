@@ -2,7 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "./supabase/server";
 
-export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number };
+export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number; club_xp: number };
 
 export async function getCareerProfile(userId: string): Promise<CareerProfile> {
   const db = supabaseAdmin();
@@ -69,22 +69,23 @@ export type CatalogCard = { id: string; slug: string; name: string; position: st
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
 export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; odds: { min: number; max: number; weight: number }[]; accent: string };
 
-export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[] }> {
+export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks: Record<string, number> }> {
   const db = supabaseAdmin();
-  const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }] = await Promise.all([
+  const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }, { data: inventory, error: inventoryError }] = await Promise.all([
     db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club)").eq("owner_id", userId).order("overall", { ascending: false }),
     db.from("player_catalog").select("id, slug, name, position, overall, price, accent, club, attributes").eq("active", true).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench, updated_at").eq("user_id", userId).maybeSingle(),
     db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
     db.from("market_listings").select("card_id").eq("seller_id", userId).eq("status", "active"),
+    db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
   ]);
-  if (cardsError || catalogError || lineupError || packsError || listingsError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message);
+  if (cardsError || catalogError || lineupError || packsError || listingsError || inventoryError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message ?? inventoryError?.message);
   // Academy-kort er laget for hånd og mangler katalograd, så kortbildet faller tilbake på nøytrale verdier.
   const owned = (cards ?? []).map((row) => {
     const source = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
     return { ...row, player_catalog: undefined, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Akademiet" };
   });
-  return { cards: owned as unknown as ManagerCard[], catalog: (catalog ?? []) as CatalogCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id) };
+  return { cards: owned as unknown as ManagerCard[], catalog: (catalog ?? []) as CatalogCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
 }
 
 export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number }; seller_name: string; highest_bid: number | null };

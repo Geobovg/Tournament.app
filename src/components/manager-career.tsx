@@ -164,7 +164,7 @@ function Duplicates({ groups }: { groups: ManagerCard[][] }) {
 
 export type ManagerCareerSection = "squad" | "storage" | "packs" | "catalog";
 
-export function ManagerCareer({ cards, catalog, lineup, packs, listedCardIds, budget, section }: { cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; budget: number; section: ManagerCareerSection }) {
+export function ManagerCareer({ cards, catalog, lineup, packs, listedCardIds, freePacks = {}, budget, section }: { cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks?: Record<string, number>; budget: number; section: ManagerCareerSection }) {
   const squad = cards.filter((card) => card.location === "squad");
   const storage = cards.filter((card) => card.location === "storage");
   // Et kort som ligger ute for salg teller ikke som duplikat: da er valget allerede tatt.
@@ -179,6 +179,6 @@ export function ManagerCareer({ cards, catalog, lineup, packs, listedCardIds, bu
   }, [cards, listedCardIds]);
   if (section === "squad") return <Squad key={lineup?.updated_at ?? "new-lineup"} cards={squad} lineup={lineup} />;
   if (section === "storage") return <Storage storage={storage} squad={squad} />;
-  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} /></div>;
+  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} /></div>;
   return <Catalog catalog={catalog} owned={new Set(cards.map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />;
 }
