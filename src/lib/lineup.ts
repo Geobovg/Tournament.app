@@ -4,24 +4,24 @@ export type FormationSlot = { position: string; x: number; y: number };
 
 export const formations: Record<Formation, FormationSlot[]> = {
   "4-3-3": [
-    { position: "GK", x: 50, y: 90 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
-    { position: "CM", x: 26, y: 55 }, { position: "CM", x: 50, y: 60 }, { position: "CM", x: 74, y: 55 }, { position: "LW", x: 18, y: 30 }, { position: "ST", x: 50, y: 20 }, { position: "RW", x: 82, y: 30 },
+    { position: "GK", x: 50, y: 93 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
+    { position: "CM", x: 26, y: 55 }, { position: "CM", x: 50, y: 59 }, { position: "CM", x: 74, y: 55 }, { position: "LW", x: 18, y: 30 }, { position: "ST", x: 50, y: 20 }, { position: "RW", x: 82, y: 30 },
   ],
   "4-2-3-1": [
-    { position: "GK", x: 50, y: 90 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
-    { position: "CDM", x: 35, y: 59 }, { position: "CDM", x: 65, y: 59 }, { position: "LW", x: 18, y: 40 }, { position: "CAM", x: 50, y: 42 }, { position: "RW", x: 82, y: 40 }, { position: "ST", x: 50, y: 20 },
+    { position: "GK", x: 50, y: 93 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
+    { position: "CDM", x: 35, y: 59 }, { position: "CDM", x: 65, y: 59 }, { position: "LW", x: 18, y: 40 }, { position: "CAM", x: 50, y: 42 }, { position: "RW", x: 82, y: 40 }, { position: "ST", x: 50, y: 17 },
   ],
   "4-4-2": [
-    { position: "GK", x: 50, y: 90 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
+    { position: "GK", x: 50, y: 93 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
     { position: "LM", x: 15, y: 50 }, { position: "CM", x: 38, y: 56 }, { position: "CM", x: 62, y: 56 }, { position: "RM", x: 85, y: 50 }, { position: "ST", x: 36, y: 25 }, { position: "ST", x: 64, y: 25 },
   ],
   "3-5-2": [
-    { position: "GK", x: 50, y: 90 }, { position: "CB", x: 28, y: 77 }, { position: "CB", x: 50, y: 80 }, { position: "CB", x: 72, y: 77 },
-    { position: "LM", x: 12, y: 54 }, { position: "CM", x: 32, y: 56 }, { position: "CDM", x: 50, y: 62 }, { position: "CM", x: 68, y: 56 }, { position: "RM", x: 88, y: 54 }, { position: "ST", x: 36, y: 25 }, { position: "ST", x: 64, y: 25 },
+    { position: "GK", x: 50, y: 93 }, { position: "CB", x: 28, y: 77 }, { position: "CB", x: 50, y: 76 }, { position: "CB", x: 72, y: 77 },
+    { position: "LM", x: 12, y: 54 }, { position: "CM", x: 32, y: 56 }, { position: "CDM", x: 50, y: 57 }, { position: "CM", x: 68, y: 56 }, { position: "RM", x: 88, y: 54 }, { position: "ST", x: 36, y: 25 }, { position: "ST", x: 64, y: 25 },
   ],
   "4-3-1-2": [
-    { position: "GK", x: 50, y: 90 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
-    { position: "CM", x: 26, y: 57 }, { position: "CM", x: 50, y: 61 }, { position: "CM", x: 74, y: 57 }, { position: "CAM", x: 50, y: 42 }, { position: "ST", x: 36, y: 23 }, { position: "ST", x: 64, y: 23 },
+    { position: "GK", x: 50, y: 93 }, { position: "LB", x: 15, y: 74 }, { position: "CB", x: 38, y: 78 }, { position: "CB", x: 62, y: 78 }, { position: "RB", x: 85, y: 74 },
+    { position: "CM", x: 26, y: 57 }, { position: "CM", x: 50, y: 63 }, { position: "CM", x: 74, y: 57 }, { position: "CAM", x: 50, y: 41 }, { position: "ST", x: 34, y: 23 }, { position: "ST", x: 66, y: 23 },
   ],
 };
 
