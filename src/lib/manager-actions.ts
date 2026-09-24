@@ -23,7 +23,9 @@ export async function openManagerPackAction(_prev: PackActionState, formData: Fo
   const user = await requireUser();
   const packKey = String(formData.get("pack_key") ?? "");
   if (!packKey) return { error: "Velg en pakke" };
-  const { data, error } = await supabaseAdmin().rpc("open_manager_pack", { target_user: user.id, target_pack: packKey });
+  // Gratispakker fra klubbnivå åpnes med samme regler, men trekker ikke managerbudsjett.
+  const free = formData.get("free") === "1";
+  const { data, error } = await supabaseAdmin().rpc(free ? "open_free_manager_pack" : "open_manager_pack", { target_user: user.id, target_pack: packKey });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
   revalidatePath("/managerkarriere");
   // openedAt skiller to like trekk fra hverandre, slik at animasjonen starter på nytt.
