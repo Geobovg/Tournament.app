@@ -31,7 +31,9 @@ export async function getCareerChallenges(userId: string): Promise<CareerChallen
   const db = supabaseAdmin();
   const { data, error } = await db.from("career_challenges").select("id, challenger_id, opponent_id, mode, status, expires_at, career_matches(id)").eq("mode", "manager").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`).in("status", ["pending", "accepted", "in_progress"]).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  const rows = data ?? [];
+  // Utløpte utfordringer blir stående som «pending» i databasen, så de filtreres bort her for å unngå spøkelsesutfordringer.
+  const now = Date.now();
+  const rows = (data ?? []).filter((row) => row.status !== "pending" || new Date(row.expires_at).getTime() > now);
   const ids = [...new Set(rows.map((row) => row.challenger_id === userId ? row.opponent_id : row.challenger_id))];
   const { data: profiles } = ids.length ? await db.from("profiles").select("id, username").in("id", ids) : { data: [] as { id: string; username: string }[] };
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
