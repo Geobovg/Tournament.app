@@ -10,12 +10,12 @@ export type FriendSeasonMember = { userId: string; username: string; status: "in
 export type FriendSeason = { id: string; name: string; status: "open" | "active" | "completed"; isOwner: boolean; myStatus: "invited" | "joined"; members: FriendSeasonMember[]; table: SeasonTableRow[]; fixtures: SeasonFixture[]; nextFixture: SeasonFixture | null };
 
 type FixtureRow = { id: string; round: number; home_user_id: string | null; away_user_id: string | null; home_ai_key: string | null; away_ai_key: string | null; status: SeasonFixture["status"]; home_score: number | null; away_score: number | null; match_id: string | null };
-type StandingRow = { participant: string; played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; points: number; position: number };
+type StandingRow = { participant: string; played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; points: number; table_position: number };
 
 export const divisionName = (division: number) => `Divisjon ${division}`;
 
 function toTable(rows: StandingRow[], names: Map<string, string>, userId: string): SeasonTableRow[] {
-  return rows.map((row) => ({ participant: row.participant, name: names.get(row.participant) ?? "Ukjent", isMe: row.participant === userId, played: row.played, wins: row.wins, draws: row.draws, losses: row.losses, goalsFor: row.goals_for, goalsAgainst: row.goals_against, points: row.points, position: row.position })).sort((a, b) => a.position - b.position);
+  return rows.map((row) => ({ participant: row.participant, name: names.get(row.participant) ?? "Ukjent", isMe: row.participant === userId, played: row.played, wins: row.wins, draws: row.draws, losses: row.losses, goalsFor: row.goals_for, goalsAgainst: row.goals_against, points: row.points, position: row.table_position })).sort((a, b) => a.position - b.position);
 }
 
 function toFixture(row: FixtureRow, names: Map<string, string>, userId: string): SeasonFixture {

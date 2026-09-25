@@ -95,7 +95,7 @@ as $fn$ select 58 + (10 - target_division) * 3 $fn$;
 
 -- Tabellen for en sesong. Deltaker er bruker-id som tekst eller AI-nøkkelen.
 create or replace function public.season_standings(target_ai_season uuid, target_friend_season uuid)
-returns table (participant text, played integer, wins integer, draws integer, losses integer, goals_for integer, goals_against integer, points integer, position integer)
+returns table (participant text, played integer, wins integer, draws integer, losses integer, goals_for integer, goals_against integer, points integer, table_position integer)
 language sql stable set search_path = public, pg_temp
 as $fn$
   with fixtures as (
@@ -125,7 +125,7 @@ as $fn$
     group by p.participant
   )
   select participant, played, wins, draws, losses, goals_for, goals_against, wins * 3 + draws as points,
-    (row_number() over (order by wins * 3 + draws desc, goals_for - goals_against desc, goals_for desc, participant))::integer as position
+    (row_number() over (order by wins * 3 + draws desc, goals_for - goals_against desc, goals_for desc, participant))::integer as table_position
   from totals
 $fn$;
 
@@ -236,7 +236,7 @@ begin
   if not found or season_row.status <> 'active' then return; end if;
   if exists (select 1 from career_season_matches where ai_season_id = target_season and status <> 'completed') then return; end if;
 
-  select position into user_position from public.season_standings(target_season, null) where participant = season_row.user_id::text;
+  select table_position into user_position from public.season_standings(target_season, null) where participant = season_row.user_id::text;
   next_outcome := case
     when user_position <= 3 and season_row.division > 1 then 'promoted'
     when user_position = 6 and season_row.division < 10 then 'relegated'
@@ -291,15 +291,15 @@ begin
   if exists (select 1 from career_season_matches where friend_season_id = target_season and status <> 'completed') then return; end if;
   update career_friend_seasons set status = 'completed', completed_at = now() where id = target_season;
   for standing in select * from public.season_standings(null, target_season) loop
-    update career_friend_season_members set final_position = standing.position where season_id = target_season and user_id = standing.participant::uuid;
-    reward_budget := case standing.position when 1 then 100 when 2 then 50 when 3 then 25 else 0 end;
+    update career_friend_season_members set final_position = standing.table_position where season_id = target_season and user_id = standing.participant::uuid;
+    reward_budget := case standing.table_position when 1 then 100 when 2 then 50 when 3 then 25 else 0 end;
     if reward_budget > 0 then
       insert into career_reward_events (user_id, source_type, source_id, reward_key, manager_budget)
-      values (standing.participant::uuid, 'friend_season', target_season, 'position_' || standing.position, reward_budget)
+      values (standing.participant::uuid, 'friend_season', target_season, 'position_' || standing.table_position, reward_budget)
       on conflict (user_id, source_type, source_id, reward_key) do nothing;
       if found then
         update player_profiles set manager_budget = manager_budget + reward_budget, manager_budget_earned = manager_budget_earned + reward_budget, updated_at = now() where user_id = standing.participant::uuid;
-        if standing.position = 1 then
+        if standing.table_position = 1 then
           insert into manager_pack_inventory (user_id, pack_key, quantity) values (standing.participant::uuid, 'gull', 1)
           on conflict (user_id, pack_key) do update set quantity = manager_pack_inventory.quantity + 1, updated_at = now();
         end if;
