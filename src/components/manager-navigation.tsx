@@ -6,7 +6,7 @@ export const managerSections = [
   { key: "lagtropp", href: "/managerkarriere/lagtropp", title: "Lagtropp", label: "SQUAD", description: "Sett opp elleveren og velg formasjon.", icon: "◈" },
   { key: "klubblager", href: "/managerkarriere/klubblager", title: "Klubblager", label: "KLUBB", description: "Bytt inn og organiser spillerkortene dine.", icon: "▣" },
   { key: "pakker", href: "/managerkarriere/pakker", title: "Pakker", label: "PAKKER", description: "Åpne pakker og bygg et sterkere lag.", icon: "✦" },
-  { key: "spillermarked", href: "/managerkarriere/spillermarked", title: "Spillermarked", label: "MARKED", description: "Kjøp spillere og handle med venner.", icon: "↗" },
+  { key: "spillermarked", href: "/managerkarriere/spillermarked", title: "Spillermarked", label: "MARKED", description: "Kjøp spillere og handle på overgangsmarkedet.", icon: "↗" },
   { key: "karrierehistorikk", href: "/managerkarriere/karrierehistorikk", title: "Karrierehistorikk", label: "HISTORIKK", description: "Se resultater og managerbelønninger.", icon: "▤" },
 ] as const;
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import type { CareerChallenge, DirectTransferOffer, ManagerMatchHistory, ManagerPack } from "@/lib/career";
+import type { CareerChallenge, ManagerMatchHistory, ManagerPack } from "@/lib/career";
 
-type Props = { userId: string; challenges: CareerChallenge[]; offers: DirectTransferOffer[]; matches: ManagerMatchHistory[]; packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; record: { wins: number; draws: number; losses: number } };
+type Props = { userId: string; challenges: CareerChallenge[]; matches: ManagerMatchHistory[]; packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; record: { wins: number; draws: number; losses: number } };
 
 const resultLabels = { win: "Seier", draw: "Uavgjort", loss: "Tap" };
 const resultLetters = { win: "S", draw: "U", loss: "T" };
@@ -11,11 +11,10 @@ const tileClass = "flex min-h-52 flex-col rounded-xl border border-white/10 bg-s
 
 type Task = { key: string; title: string; detail: string; href: string; cta: string };
 
-export function ManagerOverview({ userId, challenges, offers, matches, packs, freePacks, budget, record }: Props) {
+export function ManagerOverview({ userId, challenges, matches, packs, freePacks, budget, record }: Props) {
   const tasks: Task[] = [
     ...challenges.filter((challenge) => challenge.match_id).map((challenge) => ({ key: `match-${challenge.id}`, title: `Kamp mot ${challenge.opponent_name}`, detail: challenge.status === "in_progress" ? "Kampen er i gang" : "Lobbyen er klar", href: `/karriere/kamp/${challenge.match_id}`, cta: "Åpne lobby" })),
     ...challenges.filter((challenge) => !challenge.match_id && challenge.status === "pending" && challenge.opponent_id === userId).map((challenge) => ({ key: `challenge-${challenge.id}`, title: `${challenge.opponent_name} utfordrer deg`, detail: "Venter på svaret ditt", href: "/managerkarriere/kamplobby", cta: "Svar" })),
-    ...offers.filter((offer) => offer.proposed_by !== userId).map((offer) => ({ key: `offer-${offer.id}`, title: `Bud på ${offer.card.name}`, detail: `${offer.seller_id === userId ? offer.buyer_name : offer.seller_name} · ${offer.price} MB`, href: "/managerkarriere/spillermarked?tab=venner", cta: "Se bud" })),
   ];
   const waitingOnOthers = challenges.filter((challenge) => !challenge.match_id && challenge.status === "pending" && challenge.challenger_id === userId).length;
   const last = matches[0];
