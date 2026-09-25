@@ -1,5 +1,6 @@
 import "server-only";
 
+import { formationNames, pickBestLineup, type Formation } from "./lineup";
 import { supabaseAdmin } from "./supabase/server";
 
 export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number; club_xp: number };
@@ -71,6 +72,41 @@ export type ManagerCard = { id: string; catalog_id: string | null; name: string;
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
 export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string };
+
+/**
+ * Bare det toppfeltet trenger for å vise lagrating: elleveren og hvilke kort som står i den.
+ * Brukes på alle managersider, siden den fulle spillerkatalogen (1300+ kort) bare trengs på
+ * sidene som faktisk viser kort, ellers gjør den navigasjon mellom seksjoner unødig treg.
+ */
+type RatingSquadCard = { id: string; position: string; overall: number };
+export async function getManagerRating(userId: string): Promise<{ formation: string | null; starters: string[]; squad: RatingSquadCard[] }> {
+  const db = supabaseAdmin();
+  const [{ data: lineup, error: lineupError }, { data: squad, error: squadError }] = await Promise.all([
+    db.from("manager_lineups").select("formation, starters").eq("user_id", userId).maybeSingle(),
+    db.from("manager_cards").select("id, position, overall").eq("owner_id", userId).eq("location", "squad"),
+  ]);
+  if (lineupError || squadError) throw new Error(lineupError?.message ?? squadError?.message);
+  return { formation: lineup?.formation ?? null, starters: lineup?.starters ?? [], squad: squad ?? [] };
+}
+
+export function ratingFromSquad({ formation, starters, squad }: Awaited<ReturnType<typeof getManagerRating>>): { formation: string; rating: number | null; squadCount: number } {
+  const validFormation = formationNames.includes(formation as Formation) ? (formation as Formation) : "4-3-3";
+  const starterIds = starters.length === 11 ? starters : pickBestLineup(squad, validFormation).starters;
+  const selected = starterIds.map((id) => squad.find((card) => card.id === id)).filter((card): card is RatingSquadCard => Boolean(card));
+  return { formation: validFormation, rating: selected.length === 11 ? Math.round(selected.reduce((sum, card) => sum + card.overall, 0) / 11) : null, squadCount: squad.length };
+}
+
+/** Forsiden trenger elleveren, pakkene og gratispakkene, men ikke den fulle spillerkatalogen. */
+export async function getManagerHome(userId: string): Promise<{ formation: string; rating: number | null; squadCount: number; packs: ManagerPack[]; freePacks: Record<string, number> }> {
+  const db = supabaseAdmin();
+  const [ratingInfo, { data: packs, error: packsError }, { data: inventory, error: inventoryError }] = await Promise.all([
+    getManagerRating(userId),
+    db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
+    db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
+  ]);
+  if (packsError || inventoryError) throw new Error(packsError?.message ?? inventoryError?.message);
+  return { ...ratingFromSquad(ratingInfo), packs: (packs ?? []) as ManagerPack[], freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
+}
 
 export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks: Record<string, number> }> {
   const db = supabaseAdmin();

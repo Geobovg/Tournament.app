@@ -354,7 +354,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
 
   useEffect(() => {
     if (!complete || !returnAfterComplete) return;
-    const timer = setTimeout(() => router.replace("/managerkarriere"), 12_000);
+    const timer = setTimeout(() => router.replace("/managerkarriere"), 3_000);
     return () => clearTimeout(timer);
   }, [complete, returnAfterComplete, router]);
 
