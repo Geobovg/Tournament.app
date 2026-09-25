@@ -37,8 +37,8 @@ export type ManagerMatchReport = {
 // Kampklokke
 // ---------------------------------------------------------------------------
 
-/** 90 kampminutter spilles på to ganger 60 sekunder. */
-export const HALF_MS = 60_000;
+/** 90 kampminutter spilles på to ganger 25 sekunder. */
+export const HALF_MS = 25_000;
 export const HALF_MINUTES = 45;
 export const MS_PER_MINUTE = HALF_MS / HALF_MINUTES;
 /** Kort pause med statistikk fra første omgang. */
