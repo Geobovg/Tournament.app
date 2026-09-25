@@ -5,7 +5,7 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ActionState } from "@/lib/actions";
 import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard } from "@/lib/career";
-import { squadCapacity, storageCapacity } from "@/lib/manager-limits";
+import { catalogBuyMaxOverall, quickSellValue, squadCapacity, storageCapacity } from "@/lib/manager-limits";
 import { buyCatalogCardAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
 import { PackStore } from "./pack-store";
 import { PlayerCardFace } from "./player-card-face";
@@ -47,10 +47,10 @@ function Catalog({ catalog, owned, budget }: { catalog: CatalogCard[]; owned: Se
   }, [catalog, clubs, minimum, position, priceLimit, search, sort]);
   const toggleClub = (club: string) => setClubs((current) => current.includes(club) ? current.filter((item) => item !== club) : [...current, club]);
   const resetFilters = () => { setPosition("all"); setMinimum("0"); setMaximumPrice(""); setClubs([]); setClubSearch(""); };
-  return <section className={`${cardClass} grid gap-4`}><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm font-semibold text-muted">SPILLERMARKED</p><h2 className="mt-1 text-2xl font-bold">Bygg drømmelaget</h2><p className="mt-1 text-sm text-muted">Originale kort med realistisk nivå og pris, komplett med spillerbilde og klubbmerke.</p></div><b className="rounded-xl bg-accent-soft px-4 py-3 text-xl text-accent">{budget} MB</b></div>
+  return <section className={`${cardClass} grid gap-4`}><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm font-semibold text-muted">SPILLERMARKED</p><h2 className="mt-1 text-2xl font-bold">Bygg drømmelaget</h2><p className="mt-1 text-sm text-muted">Katalogen selger spillere opp til {catalogBuyMaxOverall} i rating. Stjerner på {catalogBuyMaxOverall + 1}+ finnes bare i pakker og på overgangsmarkedet.</p></div><b className="rounded-xl bg-accent-soft px-4 py-3 text-xl text-accent">{budget} MB</b></div>
     <div className="grid gap-2 rounded-xl border border-border bg-surface-raised p-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end"><label className="text-xs text-muted">Søk<input className="mt-1 w-full" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Spiller…" /></label><label className="text-xs text-muted">Sorter<select className="mt-1 w-full" value={sort} onChange={(event) => setSort(event.target.value)}><option value="overall">Rating (høy–lav)</option><option value="price-asc">Pris (lav–høy)</option><option value="price-desc">Pris (høy–lav)</option></select></label><button type="button" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen} className={secondaryButtonClass}>{filtersOpen ? "Skjul filter" : "Filter"}{activeFilters ? ` (${activeFilters})` : ""}</button></div>
     {filtersOpen ? <div className="grid gap-3 rounded-xl border border-border bg-surface-raised p-3">
-      <div className="grid gap-2 sm:grid-cols-3"><label className="text-xs text-muted">Posisjon<select className="mt-1 w-full" value={position} onChange={(event) => setPosition(event.target.value)}><option value="all">Alle</option>{positionOrder.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs text-muted">Min. rating<select className="mt-1 w-full" value={minimum} onChange={(event) => setMinimum(event.target.value)}>{[0, 70, 75, 80, 85, 90].map((value) => <option key={value} value={value}>{value === 0 ? "Alle" : `${value}+`}</option>)}</select></label><label className="text-xs text-muted">Maks pris (MB)<input className="mt-1 w-full" type="number" min="0" step="5" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} placeholder="Ingen grense" /></label></div>
+      <div className="grid gap-2 sm:grid-cols-3"><label className="text-xs text-muted">Posisjon<select className="mt-1 w-full" value={position} onChange={(event) => setPosition(event.target.value)}><option value="all">Alle</option>{positionOrder.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs text-muted">Min. rating<select className="mt-1 w-full" value={minimum} onChange={(event) => setMinimum(event.target.value)}>{[0, 70, 75, 80].map((value) => <option key={value} value={value}>{value === 0 ? "Alle" : `${value}+`}</option>)}</select></label><label className="text-xs text-muted">Maks pris (MB)<input className="mt-1 w-full" type="number" min="0" step="5" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} placeholder="Ingen grense" /></label></div>
       <div className="grid gap-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-muted">Klubber{clubs.length ? ` · ${clubs.length} valgt` : " · alle"}</p><div className="flex gap-3 text-xs">{clubs.length ? <button type="button" className="underline" onClick={() => setClubs([])}>Fjern klubbvalg</button> : null}{activeFilters ? <button type="button" className="underline" onClick={resetFilters}>Nullstill alle filtre</button> : null}</div></div>
         {clubs.length ? <div className="flex flex-wrap gap-1">{clubs.map((club) => <button key={club} type="button" onClick={() => toggleClub(club)} className="rounded-full bg-accent-soft px-3 py-1 text-xs text-accent" aria-label={`Fjern ${club}`}>{club} ×</button>)}</div> : null}
         <input className="w-full" value={clubSearch} onChange={(event) => setClubSearch(event.target.value)} placeholder="Søk etter klubb…" aria-label="Søk etter klubb" />
@@ -169,7 +169,14 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   </section>;
 }
 
-function Storage({ storage, squad }: { storage: ManagerCard[]; squad: ManagerCard[] }) {
+// Hurtigsalg kan ikke angres, så spilleren må bekrefte før kortet forsvinner.
+function QuickSellButton({ card, value }: { card: ManagerCard; value: number }) {
+  const [state, action, pending] = useActionState(quickSellManagerCardAction, initial);
+  const payout = quickSellValue(value);
+  return <form action={action} className="flex flex-wrap items-center gap-2"><input type="hidden" name="card_id" value={card.id} /><button className={secondaryButtonClass} disabled={pending} onClick={(event) => { if (!window.confirm(`Hurtigselge ${card.name} for ${payout} MB? Dette kan ikke angres.`)) event.preventDefault(); }}>Hurtigsalg ({payout} MB)</button>{state.error ? <span className="text-sm text-danger">{state.error}</span> : null}</form>;
+}
+
+function Storage({ storage, squad, values, listedCardIds }: { storage: ManagerCard[]; squad: ManagerCard[]; values: Map<string, number>; listedCardIds: Set<string> }) {
   const [moveState, moveAction, movePending] = useActionState(moveManagerCardAction, initial);
   const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
   const roomInSquad = squad.length < squadCapacity;
@@ -184,24 +191,23 @@ function Storage({ storage, squad }: { storage: ManagerCard[]; squad: ManagerCar
       <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position} · {card.club}</span></div>
       {roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>Sett i troppen</button></form>
         : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={`Bytt ${card.name} med`} defaultValue="">{<option value="" disabled>Bytt med…</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>Bytt</button></form>}
+      {card.tradable && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">Ligger ute på markedet</span> : <QuickSellButton card={card} value={values.get(card.catalog_id) ?? 0} /> : null}
     </div>)}</div> : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">Lageret er tomt. Kort du ikke får plass til i troppen havner her.</p>}
     {message ? <p className="text-sm text-danger">{message}</p> : null}
   </section>;
 }
 
-function Duplicates({ groups }: { groups: ManagerCard[][] }) {
-  const [state, action, pending] = useActionState(quickSellManagerCardAction, initial);
+function Duplicates({ groups, values }: { groups: ManagerCard[][]; values: Map<string, number> }) {
   if (groups.length === 0) return null;
   return <section className={`${cardClass} grid gap-4 border-danger/40`}>
-    <div><h2 className="text-lg font-semibold">Duplikater må avklares</h2><p className="text-sm text-muted">Du eier samme spiller flere ganger. Legg ett av kortene ut på overgangsmarkedet, eller kast det her. Pakker er stengt til det er gjort.</p></div>
+    <div><h2 className="text-lg font-semibold">Duplikater må avklares</h2><p className="text-sm text-muted">Du eier samme spiller flere ganger. Legg ett av kortene ut på overgangsmarkedet, eller hurtigselg det her for 25 % av verdien. Pakker er stengt til det er gjort.</p></div>
     {groups.map((group) => <div key={group[0].catalog_id} className="grid gap-2 rounded-lg border border-border p-3">
       <b className="text-sm">{group[0].name} · {group.length} eksemplarer</b>
       {group.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 text-sm">
         <span className="flex-1 text-muted">{card.overall} {card.position} · {card.location === "squad" ? "i troppen" : "på lageret"} · kjøpt for {card.acquired_price} MB</span>
-        <form action={action}><input type="hidden" name="card_id" value={card.id} /><button className={secondaryButtonClass} disabled={pending}>Kast (0 MB)</button></form>
+        <QuickSellButton card={card} value={values.get(card.catalog_id ?? "") ?? 0} />
       </div>)}
     </div>)}
-    {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
   </section>;
 }
 
@@ -220,8 +226,10 @@ export function ManagerCareer({ cards, catalog, lineup, packs, listedCardIds, fr
     }
     return [...byCatalog.values()].filter((group) => group.length > 1);
   }, [cards, listedCardIds]);
+  // Katalogprisen er kortets verdi, også for stjerner som ikke kan kjøpes fra katalogen.
+  const values = useMemo(() => new Map(catalog.map((player) => [player.id, player.price])), [catalog]);
   if (section === "squad") return <Squad key={lineup?.updated_at ?? "new-lineup"} cards={squad} lineup={lineup} />;
-  if (section === "storage") return <Storage storage={storage} squad={squad} />;
-  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} /></div>;
-  return <Catalog catalog={catalog} owned={new Set(cards.map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />;
+  if (section === "storage") return <Storage storage={storage} squad={squad} values={values} listedCardIds={new Set(listedCardIds)} />;
+  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} values={values} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} /></div>;
+  return <Catalog catalog={catalog.filter((player) => player.overall <= catalogBuyMaxOverall)} owned={new Set(cards.map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />;
 }

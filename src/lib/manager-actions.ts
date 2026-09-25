@@ -54,14 +54,17 @@ export async function swapManagerCardsAction(_prev: ActionState, formData: FormD
   return { ok: true };
 }
 
-export async function quickSellManagerCardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export type QuickSellState = ActionState & { payout?: number };
+
+// Hurtigsalg gir 25 % av katalogverdien. Beløpet regnes ut i databasen og vises tilbake til spilleren.
+export async function quickSellManagerCardAction(_prev: QuickSellState, formData: FormData): Promise<QuickSellState> {
   const user = await requireUser();
   const cardId = String(formData.get("card_id") ?? "");
   if (!cardId) return { error: "Mangler kort" };
-  const { error } = await supabaseAdmin().rpc("quick_sell_manager_card", { target_user: user.id, target_card: cardId });
+  const { data, error } = await supabaseAdmin().rpc("quick_sell_manager_card", { target_user: user.id, target_card: cardId });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
   revalidatePath("/managerkarriere");
-  return { ok: true };
+  return { ok: true, payout: Number(data ?? 0) };
 }
 
 export async function saveManagerLineupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

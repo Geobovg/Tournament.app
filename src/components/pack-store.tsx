@@ -21,12 +21,17 @@ function tierLabel(tier: { min: number; max: number }) {
   return tier.max >= 99 ? `${tier.min}+` : `${tier.min}–${tier.max}`;
 }
 
+// Stjernesjansene er små, så de vises med flere desimaler i stedet for å rundes til 0,0 %.
+function oddsLabel(percent: number) {
+  return percent.toLocaleString("nb-NO", { maximumFractionDigits: percent < 1 ? 2 : 1 });
+}
+
 function PackOdds({ pack }: { pack: ManagerPack }) {
   const total = pack.odds.reduce((sum, tier) => sum + tier.weight, 0);
   return <dl className="grid gap-1 text-xs">
     {[...pack.odds].reverse().map((tier) => <div key={tier.min} className="flex items-center justify-between gap-3">
       <dt className="text-muted">Rating {tierLabel(tier)}</dt>
-      <dd className="font-semibold tabular-nums">{(100 * tier.weight / total).toFixed(1)} %</dd>
+      <dd className="font-semibold tabular-nums">{oddsLabel(100 * tier.weight / total)} %</dd>
     </div>)}
   </dl>;
 }
@@ -133,7 +138,7 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { pa
           <div>
             <h3 className="text-lg font-bold">{pack.name}</h3>
             <p className="text-sm text-muted">{pack.description}</p>
-            <p className="mt-2 text-sm">{pack.card_count} kort · garanti: {pack.guarantees.map((guarantee) => `${guarantee.count}× ${guarantee.min}+`).join(", ")}</p>
+            <p className="mt-2 text-sm">{pack.card_count} kort · {pack.guarantees.length ? `garanti: ${pack.guarantees.map((guarantee) => `${guarantee.count}× ${guarantee.min}+`).join(", ")}` : "ingen garanti"}</p>
           </div>
           <button type="button" className="justify-self-start text-xs underline" onClick={() => setOpenOdds((current) => current === pack.key ? null : pack.key)} aria-expanded={openOdds === pack.key}>
             {openOdds === pack.key ? "Skjul sannsynligheter" : "Vis sannsynligheter"}

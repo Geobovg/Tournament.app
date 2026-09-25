@@ -88,32 +88,19 @@ export async function getManagerCareer(userId: string): Promise<{ cards: Manager
   return { cards: owned as unknown as ManagerCard[], catalog: (catalog ?? []) as CatalogCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
 }
 
-export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number }; seller_name: string; highest_bid: number | null };
-export async function listFriendMarket(userId: string): Promise<MarketListing[]> {
-  const { listFriends } = await import("./friends");
-  const friendIds = (await listFriends(userId)).map((friend) => friend.id);
-  if (friendIds.length === 0) return [];
+export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number; club: string }; seller_name: string; highest_bid: number | null };
+// Overgangsmarkedet er åpent for alle brukere, også egne annonser vises (de kan ikke kjøpes av selgeren).
+export async function listTransferMarket(): Promise<MarketListing[]> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("market_listings").select("id, seller_id, card_id, starting_price, buy_now_price, ends_at, manager_cards(name, position, overall), profiles!market_listings_seller_id_fkey(username), market_bids(amount)").eq("status", "active").gt("ends_at", new Date().toISOString()).in("seller_id", friendIds).order("ends_at", { ascending: true });
+  const { data, error } = await db.from("market_listings").select("id, seller_id, card_id, starting_price, buy_now_price, ends_at, manager_cards(name, position, overall, player_catalog(club)), profiles!market_listings_seller_id_fkey(username), market_bids(amount)").eq("status", "active").gt("ends_at", new Date().toISOString()).order("ends_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => {
     const card = Array.isArray(row.manager_cards) ? row.manager_cards[0] : row.manager_cards;
+    const catalog = card ? (Array.isArray(card.player_catalog) ? card.player_catalog[0] : card.player_catalog) : null;
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     const bids = (row.market_bids ?? []) as { amount: number }[];
-    return { id: row.id, seller_id: row.seller_id, card_id: row.card_id, starting_price: row.starting_price, buy_now_price: row.buy_now_price, ends_at: row.ends_at, card: { name: card?.name ?? "Ukjent", position: card?.position ?? "", overall: card?.overall ?? 0 }, seller_name: profile?.username ?? "Venn", highest_bid: bids.length ? Math.max(...bids.map((bid) => bid.amount)) : null };
+    return { id: row.id, seller_id: row.seller_id, card_id: row.card_id, starting_price: row.starting_price, buy_now_price: row.buy_now_price, ends_at: row.ends_at, card: { name: card?.name ?? "Ukjent", position: card?.position ?? "", overall: card?.overall ?? 0, club: catalog?.club ?? "" }, seller_name: profile?.username ?? "Manager", highest_bid: bids.length ? Math.max(...bids.map((bid) => bid.amount)) : null };
   }) as MarketListing[];
-}
-
-export type DirectTransferOffer = { id: string; seller_id: string; buyer_id: string; proposed_by: string; status: "pending"; price: number; expires_at: string; card: { name: string; position: string; overall: number }; seller_name: string; buyer_name: string };
-export async function listDirectTransferOffers(userId: string): Promise<DirectTransferOffer[]> {
-  const db = supabaseAdmin();
-  const { data, error } = await db.from("direct_transfer_offers").select("id, seller_id, buyer_id, proposed_by, status, price, expires_at, manager_cards(name, position, overall)").or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).eq("status", "pending").gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  const rows = data ?? []; const userIds = [...new Set(rows.flatMap((row) => [row.seller_id, row.buyer_id]))];
-  const { data: profiles, error: profileError } = userIds.length ? await db.from("profiles").select("id, username").in("id", userIds) : { data: [], error: null };
-  if (profileError) throw new Error(profileError.message);
-  const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
-  return rows.map((row) => { const card = Array.isArray(row.manager_cards) ? row.manager_cards[0] : row.manager_cards; return { id: row.id, seller_id: row.seller_id, buyer_id: row.buyer_id, proposed_by: row.proposed_by, status: "pending", price: row.price, expires_at: row.expires_at, card: { name: card?.name ?? "Ukjent", position: card?.position ?? "", overall: card?.overall ?? 0 }, seller_name: names.get(row.seller_id) ?? "Venn", buyer_name: names.get(row.buyer_id) ?? "Venn" }; }) as DirectTransferOffer[];
 }
 
 export type ManagerMatchHistory = { id: string; opponentName: string; result: "win" | "draw" | "loss"; myScore: number; opponentScore: number; managerBudget: number; completedAt: string | null };

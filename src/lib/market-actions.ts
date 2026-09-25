@@ -24,21 +24,3 @@ export async function buyNowMarketAction(_prev: ActionState, formData: FormData)
   const { error } = await supabaseAdmin().rpc("buy_now_market_listing", { target_buyer: user.id, target_listing: listingId });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") }; refreshMarket(); return { ok: true };
 }
-export async function sendDirectTransferOfferAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser(); const cardId = String(formData.get("card_id") ?? ""); const buyerId = String(formData.get("buyer_id") ?? ""); const price = Number(formData.get("price"));
-  if (!cardId || !buyerId || !Number.isInteger(price)) return { error: "Velg venn og gyldig pris" };
-  const { error } = await supabaseAdmin().rpc("create_direct_transfer_offer", { target_seller: user.id, target_buyer: buyerId, target_card: cardId, next_price: price });
-  if (error) return { error: error.message.replace(/^.*?:\s*/, "") }; refreshMarket(); return { ok: true };
-}
-export async function respondDirectTransferOfferAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser(); const offerId = String(formData.get("offer_id") ?? ""); const response = String(formData.get("response") ?? "");
-  if (!offerId || (response !== "accept" && response !== "decline")) return { error: "Ugyldig tilbudssvar" };
-  const { error } = await supabaseAdmin().rpc("respond_direct_transfer_offer", { target_actor: user.id, target_offer: offerId, response });
-  if (error) return { error: error.message.replace(/^.*?:\s*/, "") }; refreshMarket(); return { ok: true };
-}
-export async function counterDirectTransferOfferAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser(); const offerId = String(formData.get("offer_id") ?? ""); const price = Number(formData.get("price"));
-  if (!offerId || !Number.isInteger(price)) return { error: "Skriv inn en gyldig motpris" };
-  const { error } = await supabaseAdmin().rpc("counter_direct_transfer_offer", { target_actor: user.id, target_offer: offerId, next_price: price });
-  if (error) return { error: error.message.replace(/^.*?:\s*/, "") }; refreshMarket(); return { ok: true };
-}
