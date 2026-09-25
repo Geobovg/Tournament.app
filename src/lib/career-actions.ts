@@ -4,36 +4,16 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
 import type { ActionState } from "./actions";
-import { autoShotCell, getManagerKickoff, getManagerShots, getManagerSubstitutions, matchClock, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotMinutesOf, SUB_WINDOW_MINUTE, teamAfterSubstitutions, type ManagerKickoffEvent, type ManagerPlayerSnapshot } from "./manager-match";
+import { autoShotCell, getManagerKickoff, getManagerShots, getManagerSubstitutions, matchClock, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotMinutesOf, SUB_WINDOW_MINUTE, teamAfterSubstitutions, type ManagerKickoffEvent } from "./manager-match";
+import { managerTeamSnapshots } from "./manager-snapshot";
 import { supabaseAdmin } from "./supabase/server";
 
 function profilePaths() { revalidatePath("/profile"); revalidatePath("/managerkarriere"); }
 
-function uniqueIds(value: unknown) { return Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === "string"))] : []; }
-
 async function createManagerKickoff(db: ReturnType<typeof supabaseAdmin>, homeUserId: string, awayUserId: string): Promise<ManagerKickoffEvent | { error: string }> {
-  const { data: lineups, error: lineupsError } = await db.from("manager_lineups").select("user_id, formation, starters, bench").in("user_id", [homeUserId, awayUserId]);
-  if (lineupsError) return { error: lineupsError.message };
-  const homeLineup = (lineups ?? []).find((lineup) => lineup.user_id === homeUserId);
-  const awayLineup = (lineups ?? []).find((lineup) => lineup.user_id === awayUserId);
-  if (!homeLineup || !awayLineup) return { error: "Begge managerne må ha en lagret ellever" };
-  const allIds = [...uniqueIds(homeLineup.starters), ...uniqueIds(homeLineup.bench), ...uniqueIds(awayLineup.starters), ...uniqueIds(awayLineup.bench)];
-  // Katalogdataene blir med i laguttaket slik at kampbildet kan tegne spillerkortene uten flere oppslag.
-  const { data: cards, error: cardsError } = allIds.length ? await db.from("manager_cards").select("id, owner_id, name, position, overall, player_catalog(slug, club, accent)").in("id", allIds) : { data: [], error: null };
-  if (cardsError) return { error: cardsError.message };
-  const snapshotFor = (userId: string, lineup: typeof homeLineup) => {
-    const starters = uniqueIds(lineup.starters); const bench = uniqueIds(lineup.bench);
-    if (starters.length !== 11 || bench.length > 7 || starters.some((id) => bench.includes(id))) return null;
-    const owned = new Map<string, ManagerPlayerSnapshot>();
-    for (const card of (cards ?? []).filter((card) => card.owner_id === userId)) {
-      const catalog = Array.isArray(card.player_catalog) ? card.player_catalog[0] : card.player_catalog;
-      owned.set(card.id, { id: card.id, name: card.name, position: card.position, overall: card.overall, slug: catalog?.slug ?? null, club: catalog?.club ?? null, accent: catalog?.accent ?? null });
-    }
-    const selectedStarters = starters.map((id) => owned.get(id)).filter((card): card is ManagerPlayerSnapshot => Boolean(card));
-    const selectedBench = bench.map((id) => owned.get(id)).filter((card): card is ManagerPlayerSnapshot => Boolean(card));
-    return selectedStarters.length === 11 && selectedBench.length === bench.length ? { userId, formation: lineup.formation, starters: selectedStarters, bench: selectedBench } : null;
-  };
-  const home = snapshotFor(homeUserId, homeLineup); const away = snapshotFor(awayUserId, awayLineup);
+  const snapshots = await managerTeamSnapshots(db, [homeUserId, awayUserId]);
+  if ("error" in snapshots) return snapshots;
+  const home = snapshots.get(homeUserId); const away = snapshots.get(awayUserId);
   if (!home || !away) return { error: "Begge managerne må ha 11 gyldige spillere i startelleveren" };
   return { type: "kickoff", version: 2, home, away };
 }
@@ -82,7 +62,7 @@ export async function completeManagerMatchAction(_prev: ActionState, formData: F
   if (match.status !== "live" || !match.started_at || Date.now() - new Date(match.started_at).getTime() < fullTime) return { error: "Kampen er ikke ferdig ennå" };
   const { error } = await db.rpc("settle_finished_manager_matches", { target_match: matchId });
   if (error) return { error: error.message };
-  revalidatePath(`/karriere/kamp/${matchId}`); profilePaths(); return { ok: true };
+  revalidatePath(`/managerkarriere/kamp/${matchId}`); profilePaths(); return { ok: true };
 }
 
 /** Felles oppslag for de tre handlingene som skjer mens en managerkamp går. */
@@ -115,7 +95,7 @@ export async function makeManagerSubstitutionAction(_prev: ActionState, formData
   const nextEvents = planManagerTimeline(matchId, [...events, { type: "substitution", side, outId, inId, minute: SUB_WINDOW_MINUTE }]);
   const { error } = await db.from("career_matches").update({ events: nextEvents }).eq("id", matchId).eq("status", "live");
   if (error) return { error: error.message };
-  revalidatePath(`/karriere/kamp/${matchId}`);
+  revalidatePath(`/managerkarriere/kamp/${matchId}`);
   return { ok: true };
 }
 
@@ -141,7 +121,7 @@ export async function chooseShotCellAction(_prev: ActionState, formData: FormDat
   if (role === "keeper" && shot.kind !== "penalty") return { error: "Bare straffespark har keepervalg" };
   const { error } = await db.rpc("record_shot_choice", { target_match: matchId, target_minute: minute, target_kind: shot.kind, target_side: shot.side, target_role: role, target_cell: cell });
   if (error) return { error: error.message };
-  revalidatePath(`/karriere/kamp/${matchId}`);
+  revalidatePath(`/managerkarriere/kamp/${matchId}`);
   return { ok: true };
 }
 
@@ -177,7 +157,7 @@ export async function resolveShotAction(_prev: ActionState, formData: FormData):
     .upsert({ match_id: matchId, minute, kind: shot.kind, side: shot.side, shooter_cell: shooterCell, keeper_cell: keeperCell, outcome, resolved_at: new Date().toISOString() }, { onConflict: "match_id,minute" })
     .is("outcome", null);
   if (error) return { error: error.message };
-  revalidatePath(`/karriere/kamp/${matchId}`);
+  revalidatePath(`/managerkarriere/kamp/${matchId}`);
   return { ok: true };
 }
 
