@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import type { ActionState } from "./actions";
 import { requireUser } from "./auth";
-import { canPlayPosition, formationNames, formations, type Formation } from "./lineup";
+import { canPlayPosition, formationNames, formations, pickBestSquad, type Formation } from "./lineup";
+import { squadCapacity } from "./manager-limits";
 import { supabaseAdmin } from "./supabase/server";
 
 export async function buyCatalogCardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -59,6 +60,24 @@ export async function quickSellManagerCardAction(_prev: ActionState, formData: F
   const cardId = String(formData.get("card_id") ?? "");
   if (!cardId) return { error: "Mangler kort" };
   const { error } = await supabaseAdmin().rpc("quick_sell_manager_card", { target_user: user.id, target_card: cardId });
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+  revalidatePath("/managerkarriere");
+  return { ok: true };
+}
+
+// «Velg beste tropp» på troppsiden. Den plukker det beste laget fra hele
+// klubben – lageret inkludert – henter kortene inn i troppen og lagrer
+// elleveren i samme slengen. Kortene som må vike, går motsatt vei til lageret.
+export async function autoPickBestSquadAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const formation = String(formData.get("formation") ?? "4-3-3") as Formation;
+  if (!formationNames.includes(formation)) return { error: "Ugyldig formasjon" };
+  const db = supabaseAdmin();
+  const { data: cards, error: cardsError } = await db.from("manager_cards").select("id, position, overall").eq("owner_id", user.id);
+  if (cardsError) return { error: cardsError.message };
+  const best = pickBestSquad(cards ?? [], formation, squadCapacity);
+  if (best.starters.length !== 11 || best.bench.length !== 7) return { error: "Du trenger minst 18 spillerkort i klubben for å fylle ellever og benk" };
+  const { error } = await db.rpc("auto_pick_manager_squad", { target_user: user.id, next_formation: formation, next_squad: best.squad, next_starters: best.starters, next_bench: best.bench });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
   revalidatePath("/managerkarriere");
   return { ok: true };

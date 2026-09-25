@@ -64,3 +64,17 @@ export function rearrangeLineup<T extends SelectableCard>(cards: T[], formation:
   const bench = [...currentBench, ...currentStarters, ...cards.map((card) => card.id)].filter((id, index, all) => !selected.has(id) && all.indexOf(id) === index).slice(0, 7);
   return { starters, bench };
 }
+
+// «Velg beste tropp» ser på hele klubben, ikke bare kortene som allerede står i
+// troppen: elleveren fylles posisjon for posisjon, benken og reservene tar de
+// nest beste. Resten av kortene hører hjemme på lageret.
+export function pickBestSquad<T extends SelectableCard>(cards: T[], formation: Formation, capacity: number) {
+  const { starters, bench } = pickBestLineup(cards, formation);
+  const chosen = new Set([...starters, ...bench]);
+  const reserves = cards
+    .filter((card) => !chosen.has(card.id))
+    .sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id))
+    .slice(0, Math.max(0, capacity - chosen.size))
+    .map((card) => card.id);
+  return { starters, bench, reserves, squad: [...starters, ...bench, ...reserves] };
+}
