@@ -1,0 +1,3 @@
+# To separate sesongtyper: AI-sesong og Vennesesong
+
+Managerkarrieren manglet en sesongstruktur. Vi vurderte én blandet sesongtype (kamper mot AI og venner i samme tabell), men landet på to separate typer: en **AI-sesong** med divisjoner du kan rykke opp i, og en **Vennesesong** der tabellen kun består av venner. Årsak: appen har foreløpig svært få aktive brukere, så AI-sesongen må fungere godt alene for én spiller. Å blande AI- og vennekamper i samme tabell hadde gjort opprykk/divisjon vanskelig å definere når antall venner varierer sterkt fra bruker til bruker. De to sesongtypene kan kjøre samtidig for samme spiller.

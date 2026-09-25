@@ -46,18 +46,21 @@ export async function getCareerMatch(matchId: string, userId: string) {
   if (error) throw new Error(error.message);
   if (!data) return null;
   // Kampbildet viser managernavn og klubbnavn i stedet for «Hjemme» og «Borte».
+  const userIds = [data.home_user_id, data.away_user_id].filter((id): id is string => Boolean(id));
   const [{ data: profiles }, { data: careers }, { data: shots }] = await Promise.all([
-    db.from("profiles").select("id, username").in("id", [data.home_user_id, data.away_user_id]),
-    db.from("player_profiles").select("user_id, club_name").in("user_id", [data.home_user_id, data.away_user_id]),
+    db.from("profiles").select("id, username").in("id", userIds),
+    db.from("player_profiles").select("user_id, club_name").in("user_id", userIds),
     db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome").eq("match_id", matchId).order("minute", { ascending: true }),
   ]);
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
   const clubs = new Map((careers ?? []).map((career) => [career.user_id, career.club_name]));
   const sideFor = (id: string) => ({ userId: id, username: names.get(id) ?? "Ukjent", clubName: clubs.get(id) ?? "" });
+  // AI-klubben har ingen bruker. Den får samme id som i laguttaket, så den aldri blir forvekslet med deg.
+  const aiSide = { userId: "ai", username: data.away_ai_name ?? "AI-klubb", clubName: "AI-motstander" };
   return {
     ...data,
     home: sideFor(data.home_user_id),
-    away: sideFor(data.away_user_id),
+    away: data.away_user_id ? sideFor(data.away_user_id) : aiSide,
     // Klokka forankres i serverens tid, så en nettleser som går feil ikke flytter kampminuttet.
     serverNow: Date.now(),
     shots: (shots ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome })),
@@ -106,10 +109,10 @@ export async function listTransferMarket(): Promise<MarketListing[]> {
 export type ManagerMatchHistory = { id: string; opponentName: string; result: "win" | "draw" | "loss"; myScore: number; opponentScore: number; managerBudget: number; completedAt: string | null };
 export async function listManagerMatchHistory(userId: string): Promise<ManagerMatchHistory[]> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("career_matches").select("id, home_user_id, away_user_id, home_score, away_score, completed_at").eq("mode", "manager").eq("status", "completed").or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).order("completed_at", { ascending: false }).limit(8);
+  const { data, error } = await db.from("career_matches").select("id, home_user_id, away_user_id, away_ai_name, home_score, away_score, completed_at").eq("mode", "manager").eq("status", "completed").or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).order("completed_at", { ascending: false }).limit(8);
   if (error) throw new Error(error.message);
   const matches = data ?? [];
-  const opponentIds = [...new Set(matches.map((match) => match.home_user_id === userId ? match.away_user_id : match.home_user_id))];
+  const opponentIds = [...new Set(matches.map((match) => match.home_user_id === userId ? match.away_user_id : match.home_user_id).filter((id): id is string => Boolean(id)))];
   const { data: profiles, error: profilesError } = opponentIds.length ? await db.from("profiles").select("id, username").in("id", opponentIds) : { data: [], error: null };
   if (profilesError) throw new Error(profilesError.message);
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
@@ -118,6 +121,7 @@ export async function listManagerMatchHistory(userId: string): Promise<ManagerMa
     const myScore = home ? match.home_score : match.away_score;
     const opponentScore = home ? match.away_score : match.home_score;
     const result = myScore === opponentScore ? "draw" : myScore > opponentScore ? "win" : "loss";
-    return { id: match.id, opponentName: names.get(home ? match.away_user_id : match.home_user_id) ?? "Venn", result, myScore, opponentScore, managerBudget: result === "win" ? 5 : result === "draw" ? 2 : 0, completedAt: match.completed_at };
+    const opponentId = home ? match.away_user_id : match.home_user_id;
+    return { id: match.id, opponentName: opponentId ? names.get(opponentId) ?? "Venn" : match.away_ai_name ?? "AI-klubb", result, myScore, opponentScore, managerBudget: result === "win" ? 5 : result === "draw" ? 2 : 0, completedAt: match.completed_at };
   });
 }

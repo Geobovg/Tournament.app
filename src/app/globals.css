@@ -455,6 +455,11 @@ body:has(.winner-page) .audio-fab {
   display: none;
 }
 
+/* Fanelinjen nederst i managerkarrieren: musikkknappen flyttes opp så den ikke dekker fanene. */
+body:has(.manager-bottom-nav) .audio-fab {
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+}
+
 .theme-fade {
   animation: theme-fade 0.55s ease-out both;
 }
