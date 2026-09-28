@@ -68,6 +68,11 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
   const best = pulls.reduce((top, pull) => Math.max(top, pull.overall), 0);
 
   return <div className="pack-stage" role="dialog" aria-modal="true" aria-label={`Åpner ${packName}`}>
+    {/* Alle kortene i pakka tegnes usynlig med en gang, så bilde, flagg og klubbmerke
+        lastes ned mens pakka ryker opp og ligger klare når hvert kort snus. */}
+    {done ? null : <div aria-hidden className="pointer-events-none invisible absolute left-0 top-0 w-72 overflow-hidden">
+      {pulls.map((pull) => <PlayerCardFace key={pull.card_id} player={pull} eager />)}
+    </div>}
     {done ? <div className="grid max-h-full w-full max-w-4xl gap-4 overflow-y-auto">
       <div className="text-center text-white">
         <p className="text-xs font-bold tracking-[.3em] text-white/60">{packName.toUpperCase()}</p>
@@ -76,7 +81,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {pulls.map((pull) => <div key={pull.card_id} className="grid gap-1">
-          <PlayerCardFace player={pull} />
+          <PlayerCardFace player={pull} eager />
           <p className="text-center text-xs text-white/70">{pull.location === "storage" ? "Til lageret" : "I troppen"}{pull.duplicate ? " · duplikat" : ""}</p>
         </div>)}
       </div>
@@ -97,7 +102,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
         </div> : null}
 
         {card && revealed ? <div className="relative grid gap-2">
-          <div className={walkout ? "pack-card-walkout w-72" : "pack-card-enter w-72"}><PlayerCardFace player={card} /></div>
+          <div className={walkout ? "pack-card-walkout w-72" : "pack-card-enter w-72"}><PlayerCardFace player={card} eager /></div>
           <p className="pack-label-rise text-center text-sm text-white/75">
             {walkout ? "Stort kort!" : ""} {card.location === "storage" ? "Lagt på lageret" : "Lagt i troppen"}{card.duplicate ? " · du hadde ham fra før" : ""}
           </p>
