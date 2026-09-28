@@ -6,7 +6,7 @@ import { cache } from "react";
 import { supabaseAdmin } from "./supabase/server";
 
 const SESSION_COOKIE = "tournament_session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
 
 export type AppUser = {
   id: string;

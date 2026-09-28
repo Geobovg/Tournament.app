@@ -41,20 +41,24 @@ async function siteUrl() {
   return host ? `${protocol}://${host}` : "http://localhost:3000";
 }
 
+// Supabase Auth krever en e-postadresse. Brukere registrerer seg bare med brukernavn og kode,
+// så de får en intern adresse på et domene som aldri kan motta e-post (.invalid, RFC 2606).
+function internalEmail() {
+  return `${randomUUID()}@brukere.invalid`;
+}
+
 export async function registerAction(
   _previous: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
   const username = formValue(formData, "username");
   const usernameKey = normalizeUsername(username);
-  const email = formValue(formData, "email").toLowerCase();
   const code = formValue(formData, "code");
   const confirmCode = formValue(formData, "confirm_code");
 
   if (!validUsername(username)) {
     return { error: "Brukernavn må ha 3–24 tegn og bare bokstaver, tall, punktum, bindestrek eller understrek" };
   }
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Skriv inn en gyldig e-postadresse" };
   if (!validAccountCode(code)) return { error: "Koden må være nøyaktig 6 sifre" };
   if (code !== confirmCode) return { error: "Kodene er ikke like" };
 
@@ -63,16 +67,17 @@ export async function registerAction(
   const { data: existing } = await db
     .from("profiles")
     .select("id")
-    .or(`username_key.eq.${usernameKey},code_fingerprint.eq.${fingerprint},email.eq.${email}`)
+    .or(`username_key.eq.${usernameKey},code_fingerprint.eq.${fingerprint}`)
     .limit(1);
   if (existing && existing.length > 0) {
-    return { error: "Brukernavnet, e-posten eller den sekssifrede koden er allerede i bruk" };
+    return { error: "Brukernavnet eller den sekssifrede koden er allerede i bruk" };
   }
 
-  const { data: authData, error: authError } = await supabasePublic().auth.signUp({
+  const email = internalEmail();
+  const { data: authData, error: authError } = await db.auth.admin.createUser({
     email,
     password: code,
-    options: { emailRedirectTo: `${await siteUrl()}/auth/callback` },
+    email_confirm: true,
   });
   if (authError || !authData.user) return { error: authError?.message ?? "Kunne ikke opprette kontoen" };
 
@@ -89,7 +94,9 @@ export async function registerAction(
     return { error: "Kunne ikke lagre kontoen. Prøv en annen kode eller et annet brukernavn." };
   }
 
-  return { ok: true, message: "Sjekk e-posten din og trykk på bekreftelseslenken for å aktivere kontoen." };
+  await setSession(authData.user.id);
+  revalidatePath("/", "layout");
+  redirect("/");
 }
 
 export async function loginAction(
