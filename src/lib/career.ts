@@ -1,6 +1,8 @@
 import "server-only";
 
 import { formationNames, pickBestLineup, type Formation } from "./lineup";
+import { catalogPageSize, type CatalogFilters } from "./catalog-filters";
+import { catalogBuyMaxOverall } from "./manager-limits";
 import { supabaseAdmin } from "./supabase/server";
 
 export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number; club_xp: number };
@@ -68,7 +70,7 @@ export async function getCareerMatch(matchId: string, userId: string) {
   };
 }
 
-export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number> };
+export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number>; value: number };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
 export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string };
@@ -108,23 +110,54 @@ export async function getManagerHome(userId: string): Promise<{ formation: strin
   return { ...ratingFromSquad(ratingInfo), packs: (packs ?? []) as ManagerPack[], freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
 }
 
-export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; catalog: CatalogCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks: Record<string, number> }> {
+// Kortverdien (katalogprisen) følger med egne kort, så sidene slipper å hente hele katalogen.
+export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks: Record<string, number> }> {
   const db = supabaseAdmin();
-  const [{ data: cards, error: cardsError }, { data: catalog, error: catalogError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }, { data: inventory, error: inventoryError }] = await Promise.all([
-    db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club)").eq("owner_id", userId).order("overall", { ascending: false }),
-    db.from("player_catalog").select("id, slug, name, position, overall, price, accent, club, attributes").eq("active", true).order("overall", { ascending: false }),
+  const [{ data: cards, error: cardsError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }, { data: inventory, error: inventoryError }] = await Promise.all([
+    db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club, price)").eq("owner_id", userId).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench, updated_at").eq("user_id", userId).maybeSingle(),
     db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
     db.from("market_listings").select("card_id").eq("seller_id", userId).eq("status", "active"),
     db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
   ]);
-  if (cardsError || catalogError || lineupError || packsError || listingsError || inventoryError) throw new Error(cardsError?.message ?? catalogError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message ?? inventoryError?.message);
+  if (cardsError || lineupError || packsError || listingsError || inventoryError) throw new Error(cardsError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message ?? inventoryError?.message);
   // Academy-kort er laget for hånd og mangler katalograd, så kortbildet faller tilbake på nøytrale verdier.
   const owned = (cards ?? []).map((row) => {
     const source = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
-    return { ...row, player_catalog: undefined, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Akademiet" };
+    return { ...row, player_catalog: undefined, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Akademiet", value: source?.price ?? 0 };
   });
-  return { cards: owned as unknown as ManagerCard[], catalog: (catalog ?? []) as CatalogCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
+  return { cards: owned as unknown as ManagerCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
+}
+
+// Katalogen har 1300+ kort, og databasen gir maks 1000 rader per spørring. Derfor søkes,
+// filtreres og sorteres det her, og bare én side med kort hentes om gangen.
+export async function getCatalogPage(filters: CatalogFilters, offset = 0): Promise<{ cards: CatalogCard[]; total: number }> {
+  let query = supabaseAdmin().from("player_catalog").select("id, slug, name, position, overall, price, accent, club, attributes", { count: "exact" }).eq("active", true).lte("overall", catalogBuyMaxOverall);
+  // % _ * og \ er jokertegn i søket, så de fjernes fra det brukeren skriver.
+  const search = filters.search.replace(/[%_*\\]/g, "").trim();
+  if (search) query = query.ilike("name", `%${search}%`);
+  if (filters.position !== "all") query = query.eq("position", filters.position);
+  if (filters.minimum > 0) query = query.gte("overall", filters.minimum);
+  if (filters.maximumPrice !== null) query = query.lte("price", filters.maximumPrice);
+  if (filters.clubs.length) query = query.in("club", filters.clubs);
+  if (filters.sort === "price-asc") query = query.order("price", { ascending: true }).order("overall", { ascending: false });
+  else if (filters.sort === "price-desc") query = query.order("price", { ascending: false }).order("overall", { ascending: false });
+  else query = query.order("overall", { ascending: false }).order("price", { ascending: true });
+  const { data, error, count } = await query.order("id").range(offset, offset + catalogPageSize - 1);
+  if (error) throw new Error(error.message);
+  return { cards: (data ?? []) as CatalogCard[], total: count ?? 0 };
+}
+
+// Klubblista til filteret hentes først når filteret åpnes, i biter på 1000 rader.
+export async function listCatalogClubs(): Promise<string[]> {
+  const db = supabaseAdmin(); const clubs = new Set<string>();
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await db.from("player_catalog").select("club").eq("active", true).lte("overall", catalogBuyMaxOverall).order("id").range(offset, offset + 999);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) clubs.add(row.club);
+    if ((data ?? []).length < 1000) break;
+  }
+  return [...clubs].sort((first, second) => first.localeCompare(second, "nb-NO"));
 }
 
 export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number; club: string }; seller_name: string; highest_bid: number | null };

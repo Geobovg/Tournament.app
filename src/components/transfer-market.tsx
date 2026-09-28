@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import type { ActionState } from "@/lib/actions";
-import type { CatalogCard, ManagerCard, MarketListing } from "@/lib/career";
+import type { ManagerCard, MarketListing } from "@/lib/career";
 import { marketListingLimit, marketPriceRange } from "@/lib/manager-limits";
 import { buyNowMarketAction, createMarketListingAction, placeMarketBidAction } from "@/lib/market-actions";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
@@ -50,8 +50,8 @@ function ListingCard({ listing, budget, own }: { listing: MarketListing; budget:
   </article>;
 }
 
-export function TransferMarket({ cards, catalog, listings, userId, budget }: { cards: ManagerCard[]; catalog: CatalogCard[]; listings: MarketListing[]; userId: string; budget: number }) {
-  const values = useMemo(() => new Map(catalog.map((player) => [player.id, player.price])), [catalog]);
+export function TransferMarket({ cards, listings, userId, budget }: { cards: ManagerCard[]; listings: MarketListing[]; userId: string; budget: number }) {
+  const values = useMemo(() => new Map(cards.flatMap((card) => card.catalog_id ? [[card.catalog_id, card.value] as const] : [])), [cards]);
   const own = listings.filter((listing) => listing.seller_id === userId);
   const listedIds = new Set(own.map((listing) => listing.card_id));
   const sellable = cards.filter((card) => card.tradable && !listedIds.has(card.id));

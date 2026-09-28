@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import type { ActionState } from "./actions";
 import { requireUser } from "./auth";
+import { getCatalogPage, listCatalogClubs, type CatalogCard } from "./career";
+import type { CatalogFilters } from "./catalog-filters";
 import { canPlayPosition, formationNames, formations, pickBestSquad, type Formation } from "./lineup";
 import { squadCapacity } from "./manager-limits";
 import { supabaseAdmin } from "./supabase/server";
@@ -15,6 +17,19 @@ export async function buyCatalogCardAction(_prev: ActionState, formData: FormDat
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
   revalidatePath("/managerkarriere");
   return { ok: true };
+}
+
+// Katalogen i nettleseren henter én side med kort om gangen herfra når filteret endres eller man trykker «Vis flere».
+export async function loadCatalogPageAction(filters: CatalogFilters, offset: number): Promise<{ cards: CatalogCard[]; total: number }> {
+  await requireUser();
+  const sort = filters.sort === "price-asc" || filters.sort === "price-desc" ? filters.sort : "overall";
+  const maximumPrice = filters.maximumPrice === null || !Number.isFinite(Number(filters.maximumPrice)) ? null : Number(filters.maximumPrice);
+  return getCatalogPage({ search: String(filters.search ?? "").slice(0, 60), position: String(filters.position ?? "all"), minimum: Number(filters.minimum) || 0, maximumPrice, clubs: (Array.isArray(filters.clubs) ? filters.clubs : []).map(String).slice(0, 100), sort }, Math.max(0, Math.floor(Number(offset) || 0)));
+}
+
+export async function loadCatalogClubsAction(): Promise<string[]> {
+  await requireUser();
+  return listCatalogClubs();
 }
 
 export type PackPull = { card_id: string; catalog_id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number>; location: "squad" | "storage"; duplicate: boolean };

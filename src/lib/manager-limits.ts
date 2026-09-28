@@ -1,7 +1,8 @@
 // Kapasitetene speiler manager_squad_capacity() og manager_storage_capacity() i
 // databasen. Endrer du dem her, må migrasjonen endres i samme slengen.
 export const squadCapacity = 23;
-export const storageCapacity = 80;
+// Lageret er i praksis ubegrenset (0038_unlimited_storage.sql).
+export const storageCapacity = 1_000_000;
 
 // Økonomireglene speiler 0033_fc_economy.sql. Katalogprisen er kortets verdi.
 export const catalogBuyMaxOverall = 83;
