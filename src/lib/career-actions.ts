@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
 import type { ActionState } from "./actions";
-import { autoShotCell, getManagerKickoff, getManagerShots, getManagerSubstitutions, matchClock, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotMinutesOf, SUB_WINDOW_MINUTE, teamAfterSubstitutions, type ManagerKickoffEvent } from "./manager-match";
+import { autoShotCell, getManagerKickoff, MANAGER_KICKOFF_VERSION, getManagerShots, getManagerSubstitutions, matchClock, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotKeeperRating, shotMinutesOf, SUB_WINDOW_MINUTE, teamAfterSubstitutions, type ManagerKickoffEvent } from "./manager-match";
 import { managerTeamSnapshots } from "./manager-snapshot";
 import { supabaseAdmin } from "./supabase/server";
 
@@ -15,7 +15,7 @@ async function createManagerKickoff(db: ReturnType<typeof supabaseAdmin>, homeUs
   if ("error" in snapshots) return snapshots;
   const home = snapshots.get(homeUserId); const away = snapshots.get(awayUserId);
   if (!home || !away) return { error: "Begge managerne må ha 11 gyldige spillere i startelleveren" };
-  return { type: "kickoff", version: 2, home, away };
+  return { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home, away };
 }
 
 export async function createCareerChallengeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -155,8 +155,9 @@ export async function resolveShotAction(_prev: ActionState, formData: FormData):
   // gjort straffen til en gratis scoring.
   const shooterCell = row?.shooter_cell ?? autoShotCell(matchId, shot, "shooter");
   const keeperCell = shot.kind === "penalty" ? (row?.keeper_cell ?? autoShotCell(matchId, shot, "keeper")) : null;
-  const taker = playersById(events).get(shot.takerId);
-  const outcome = resolveShot(matchId, shot, taker ? shootingOf(taker) : 70, shooterCell, keeperCell);
+  const players = playersById(events);
+  const taker = players.get(shot.takerId);
+  const outcome = resolveShot(matchId, shot, taker ? shootingOf(taker) : 70, shotKeeperRating(shot, players), shooterCell, keeperCell);
 
   const { error } = await db
     .from("career_match_shots")

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionState } from "@/lib/actions";
 import { chooseShotCellAction, completeManagerMatchAction, makeManagerSubstitutionAction, resolveShotAction } from "@/lib/career-actions";
@@ -15,11 +15,13 @@ import {
   getManagerShots,
   getManagerSubstitutions,
   getManagerTimeline,
+  keeperZone,
   matchClock,
   plannedDurationMs,
   playersById,
   scoreAtMinute,
   shootingOf,
+  shotKeeperRating,
   SHOT_CHOICE_MS,
   SHOT_COLUMNS,
   SHOT_CELLS,
@@ -118,7 +120,7 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
     case "chance":
       return {
         title: event.outcome === "post" ? "I STOLPEN" : "REDNING",
-        detail: event.outcome === "post" ? "Centimeter fra mål" : "Keeper fikk en hånd på den",
+        detail: event.outcome === "post" ? "Centimeter fra mål" : event.keeper ? `Reddet av ${shortName(event.keeper)}` : "Keeper fikk en hånd på den",
         playerId: event.playerId,
         playerName: shortName(event.player),
         icon: <span>{event.outcome === "post" ? "🎯" : "🧤"}</span>,
@@ -130,7 +132,7 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
       const scored = result?.outcome === "goal";
       return {
         title: scored ? `${label} – MÅL` : result?.outcome === "saved" ? `${label} – REDDET` : `${label} – BOM`,
-        detail: scored ? "Satt i mål" : result?.outcome === "saved" ? "Keeper gikk rett vei" : "Utenfor",
+        detail: scored ? "Satt i mål" : result?.outcome === "saved" ? (event.kind === "penalty" ? "Keeper gikk rett vei" : "Keeper reddet") : "Utenfor",
         playerId: event.takerId,
         playerName: shortName(event.taker),
         icon: <span>{scored ? "⚽" : result?.outcome === "saved" ? "🧤" : "❌"}</span>,
@@ -207,36 +209,43 @@ function SideName({ side, you }: { side: ManagerSideInfo; you: boolean }) {
 /**
  * Målet sett forfra, delt i tolv ruter. De grønne er plasseringene skytteren er god nok til å
  * sikte på – en svak avslutter får bare de trygge midtrutene, en god også krysset.
+ * Keeperen dekker flere ruter jo bedre han er, så valget og det han dekker vises som en hel sone.
  */
 function GoalGrid({
   options,
   chanceFor,
-  myCell,
-  otherCell,
+  myCells,
+  otherCells,
   otherLabel,
+  previewZone,
   disabled,
   onPick,
 }: {
   options: number[];
   chanceFor: ((cell: number) => number) | null;
-  myCell: number | null;
-  otherCell: number | null;
+  myCells: number[];
+  otherCells: number[];
   otherLabel: string | null;
+  /** Rutene et valg ville dekket, vist mens man holder over en rute. */
+  previewZone: ((cell: number) => number[]) | null;
   disabled: boolean;
   onPick: (cell: number) => void;
 }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const preview = !disabled && previewZone && hovered !== null ? previewZone(hovered) : [];
   return (
-    <div className="rounded-xl border-4 border-white/70 bg-black/40 p-1.5">
+    <div className="rounded-xl border-4 border-white/70 bg-black/40 p-1.5" onMouseLeave={() => setHovered(null)}>
       <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${SHOT_COLUMNS}, minmax(0, 1fr))` }}>
         {Array.from({ length: SHOT_CELLS }, (_, cell) => {
           const available = options.includes(cell);
-          const mine = myCell === cell;
-          const theirs = otherCell === cell;
+          const mine = myCells.includes(cell) || preview.includes(cell);
+          const theirs = otherCells.includes(cell);
           return (
             <button
               key={cell}
               type="button"
               disabled={disabled || !available}
+              onMouseEnter={() => setHovered(cell)}
               onClick={() => onPick(cell)}
               aria-label={available ? `Sikt mot rute ${cell + 1}` : `Rute ${cell + 1} er utenfor rekkevidde`}
               className={`relative grid h-14 place-items-center gap-0.5 rounded border transition sm:h-16 ${
@@ -246,7 +255,7 @@ function GoalGrid({
               <span className={`h-3 w-3 rounded-full ${mine ? "bg-success" : theirs ? "bg-accent" : available ? "bg-success/70" : "bg-danger/70"}`} />
               {theirs && otherLabel ? (
                 <span className="text-[9px] font-bold leading-none text-accent">{otherLabel}</span>
-              ) : mine ? (
+              ) : myCells.includes(cell) ? (
                 <span className="text-[9px] font-bold leading-none text-success">DITT</span>
               ) : chanceFor && available ? (
                 <span className="text-[10px] font-bold leading-none text-white/75">{Math.round(chanceFor(cell) * 100)}%</span>
@@ -388,6 +397,17 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
   const iAmKeeping = Boolean(activeShot && activeShot.kind === "penalty" && activeShot.side !== userSide);
   const myCell = iAmShooting ? activeResult?.shooterCell ?? null : iAmKeeping ? activeResult?.keeperCell ?? null : null;
   const revealCell = choosingWindow ? null : iAmShooting ? activeResult?.keeperCell ?? null : activeResult?.shooterCell ?? null;
+  const shotKeeper = activeShot?.keeperId ? players.get(activeShot.keeperId) : undefined;
+  const keeperRating = activeShot ? shotKeeperRating(activeShot, players) : null;
+  const reach = activeShot?.reach ?? 1;
+  // Keeperen dekker en hel sone, så både eget valg og det som avsløres tegnes som sone.
+  const myCells = myCell === null ? [] : iAmKeeping && activeShot ? keeperZone(activeShot, myCell) : [myCell];
+  const otherCells = iAmShooting && activeShot ? keeperZone(activeShot, revealCell) : revealCell === null ? [] : [revealCell];
+  const keeperLine = !activeShot || keeperRating === null
+    ? null
+    : iAmKeeping
+      ? `Du dekker ${reach === 1 ? "bare ruta du velger" : `${reach} ruter: den du velger og ${reach === 2 ? "naboruta" : "naborutene"}`}`
+      : `Keeper: ${shotKeeper ? `${shortName(shotKeeper.name)} (${keeperRating})` : "ingen – en utespiller står i mål"}${activeShot.kind === "penalty" ? ` · dekker ${reach} ${reach === 1 ? "rute" : "ruter"}` : ""}`;
   const shotSeconds = activeShot ? Math.max(0, Math.ceil((SHOT_CHOICE_MS - clock.shotElapsedMs) / 1000)) : 0;
 
   return (
@@ -445,19 +465,22 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
             <div className="grid min-w-0 flex-1 gap-2">
               <GoalGrid
                 options={activeShot.options}
-                chanceFor={iAmShooting && taker ? (cell) => cellGoalChance(shootingOf(taker), activeShot.kind, cell) : null}
-                myCell={myCell}
-                otherCell={revealCell}
+                chanceFor={iAmShooting && taker ? (cell) => cellGoalChance(shootingOf(taker), activeShot.kind, cell, activeShot.kind === "chance" ? keeperRating : null) : null}
+                myCells={myCells}
+                otherCells={otherCells}
                 otherLabel={iAmShooting ? "KEEPER" : "SKUDD"}
+                previewZone={iAmKeeping && myCell === null ? (cell) => keeperZone(activeShot, cell) : null}
                 disabled={!choosingWindow || picking || myCell !== null || (!iAmShooting && !iAmKeeping)}
                 onPick={(cell) => {
                   const data = new FormData();
                   data.set("match_id", match.id);
                   data.set("minute", String(activeShot.minute));
                   data.set("cell", String(cell));
-                  shotAction(data);
+                  // Kalles fra et klikk, ikke et skjema, så den må pakkes i en transition selv.
+                  startTransition(() => shotAction(data));
                 }}
               />
+              {keeperLine ? <p className="text-xs font-semibold text-muted">{keeperLine}</p> : null}
               {myCell !== null && choosingWindow ? <p className="text-xs text-muted">Valgt – venter på {iAmShooting && activeShot.kind === "penalty" ? "keeperen" : "avslutningen"}…</p> : null}
               {shotState.error ? <p className="text-xs text-danger">{shotState.error}</p> : null}
             </div>
