@@ -43,7 +43,7 @@ async function siteUrl() {
 }
 
 // Gjelder bare kontoer som faktisk blir opprettet, så feiltastinger i skjemaet teller ikke.
-const SIGNUPS_PER_IP_PER_HOUR = 3;
+const SIGNUPS_PER_IP_PER_HOUR = 20;
 
 async function clientIp() {
   const requestHeaders = await headers();
