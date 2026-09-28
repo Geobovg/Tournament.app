@@ -60,8 +60,14 @@ export async function completeManagerMatchAction(_prev: ActionState, formData: F
   // Kampen varer lenger når den har stoppet for straffer, så lengden leses ut av selve planen.
   const fullTime = plannedDurationMs(shotMinutesOf(Array.isArray(match.events) ? match.events : []));
   if (match.status !== "live" || !match.started_at || Date.now() - new Date(match.started_at).getTime() < fullTime) return { error: "Kampen er ikke ferdig ennå" };
-  const { error } = await db.rpc("settle_finished_manager_matches", { target_match: matchId });
+  const { data: settled, error } = await db.rpc("settle_finished_manager_matches", { target_match: matchId });
   if (error) return { error: error.message };
+  // 0 betyr at databasen ikke regnet kampen som ferdig (eller at motstanderen rakk det først).
+  // Da må vi ikke svare «lagret» – klienten prøver igjen til statusen faktisk er fullført.
+  if (!settled) {
+    const { data: after } = await db.from("career_matches").select("status").eq("id", matchId).maybeSingle();
+    if (after?.status !== "completed") return { error: "Venter på at serveren avslutter kampen …" };
+  }
   revalidatePath(`/managerkarriere/kamp/${matchId}`); profilePaths(); return { ok: true };
 }
 
