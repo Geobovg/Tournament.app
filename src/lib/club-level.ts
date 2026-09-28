@@ -1,24 +1,25 @@
-// Klubbnivå-kurven og belønningene speiler club_level_for_xp og grant_club_xp i
-// supabase/migrations/0026_club_levels.sql. Endres den ene, må den andre endres også.
+// Klubbnivå-kurven speiler club_level_for_xp i supabase/migrations/0037_steeper_club_levels.sql,
+// og belønningene grant_club_xp i 0026_club_levels.sql. Endres den ene, må den andre endres også.
 
 export const clubXpRewards = {
   manager: { win: 30, draw: 15, loss: 10 },
   tournament: { win: 20, draw: 10, loss: 5 },
 } as const;
 
-const earlyLevels = 10;
-const earlyCost = 100;
-const lateCost = 150;
+// Hvert nivå koster 50 XP mer enn det forrige: 100, 150, 200, 250 …
+const firstCost = 100;
+const costStep = 50;
 
 export function xpToReach(level: number) {
   if (level <= 1) return 0;
-  if (level <= earlyLevels) return (level - 1) * earlyCost;
-  return (earlyLevels - 1) * earlyCost + (level - earlyLevels) * lateCost;
+  const steps = level - 1;
+  return firstCost * steps + (costStep / 2) * steps * (steps - 1);
 }
 
 export function clubLevelForXp(xp: number) {
-  const early = (earlyLevels - 1) * earlyCost;
-  return xp < early ? 1 + Math.floor(xp / earlyCost) : earlyLevels + Math.floor((xp - early) / lateCost);
+  let level = 1;
+  while (xpToReach(level + 1) <= xp) level += 1;
+  return level;
 }
 
 export function levelUpReward(level: number) {

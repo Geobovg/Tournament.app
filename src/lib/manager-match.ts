@@ -11,16 +11,26 @@ export type ManagerPlayerSnapshot = {
   shooting?: number | null;
 };
 export type ManagerTeamSnapshot = { userId: string; formation: string; starters: ManagerPlayerSnapshot[]; bench: ManagerPlayerSnapshot[] };
-export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot };
+export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot };
+/**
+ * Kamper som startes nå får versjon 4: angrep mot forsvar og avslutter mot keeper. Eldre kamper
+ * beholder den gamle modellen, ellers ville et bytte midt i en pågående kamp skrevet om det som
+ * alt er spilt – planen regnes ut på nytt fra avspark ved hvert bytte.
+ */
+export const MANAGER_KICKOFF_VERSION = 4;
 export type MatchSide = "home" | "away";
 export type ManagerSubstitutionEvent = { type: "substitution"; side: MatchSide; outId: string; inId: string; minute: number };
 export type ManagerFullTimeEvent = { type: "full_time"; minute: 90; homeScore: number; awayScore: number };
 export type TimelineGoal = { type: "goal"; minute: number; side: MatchSide; scorer: string; scorerId?: string; assist?: string | null; assistId?: string | null };
 export type TimelineCard = { type: "card"; minute: number; side: MatchSide; card: "yellow" | "red"; player: string; playerId: string };
-export type TimelineChance = { type: "chance"; minute: number; side: MatchSide; outcome: "post" | "save"; player: string; playerId: string };
+export type TimelineChance = { type: "chance"; minute: number; side: MatchSide; outcome: "post" | "save"; player: string; playerId: string; keeper?: string | null };
 export type ShotKind = "penalty" | "chance";
-/** En planlagt sjanse spilleren selv skyter. Utfallet lagres i career_match_shots, ikke her. */
-export type TimelineShot = { type: "shot"; minute: number; side: MatchSide; kind: ShotKind; takerId: string; taker: string; options: number[] };
+/**
+ * En planlagt sjanse spilleren selv skyter. Utfallet lagres i career_match_shots, ikke her.
+ * `keeperId` og `reach` finnes bare på kamper fra versjon 4: hvem som står i mål, og hvor mange
+ * ruter han dekker når han kaster seg på straffe.
+ */
+export type TimelineShot = { type: "shot"; minute: number; side: MatchSide; kind: ShotKind; takerId: string; taker: string; options: number[]; keeperId?: string | null; reach?: number };
 export type TimelineEvent = TimelineGoal | TimelineCard | TimelineChance | ManagerSubstitutionEvent | TimelineShot;
 export type ManagerMatchEvent = ManagerKickoffEvent | TimelineEvent | ManagerFullTimeEvent;
 
@@ -122,7 +132,7 @@ export function getManagerKickoff(events: unknown): ManagerKickoffEvent | null {
   const kickoff = events.find((event) => event && typeof event === "object" && (event as { type?: unknown }).type === "kickoff") as Record<string, unknown> | undefined;
   if (!kickoff) return null;
   // Eldre kamper ligger lagret som versjon 1 og 2, uten katalogdata og skuddstat.
-  const known = kickoff.version === 1 || kickoff.version === 2 || kickoff.version === 3;
+  const known = kickoff.version === 1 || kickoff.version === 2 || kickoff.version === 3 || kickoff.version === 4;
   return known && isTeam(kickoff.home) && isTeam(kickoff.away) ? (kickoff as ManagerKickoffEvent) : null;
 }
 
@@ -267,6 +277,29 @@ function teamStrength(players: ManagerPlayerSnapshot[], onPitch: Map<string, num
   return total / players.length - Math.max(0, 11 - players.length) * 7;
 }
 
+// Hvor mye hver plass teller i angrepet og i forsvaret. Keeperen veier tyngst av alle bakover.
+const attackWeights: Record<string, number> = { ST: 3, SA: 3, LW: 2.6, RW: 2.6, LM: 2, RM: 2, CAM: 2.4, CM: 1.4, CDM: 0.7, LWB: 0.9, RWB: 0.9, LB: 0.6, RB: 0.6, CB: 0.3, GK: 0 };
+const defenceWeights: Record<string, number> = { GK: 3, CB: 2.6, LB: 1.8, RB: 1.8, LWB: 1.4, RWB: 1.4, CDM: 1.8, CM: 0.9, LM: 0.5, RM: 0.5, CAM: 0.3, LW: 0.2, RW: 0.2, ST: 0.1, SA: 0.1 };
+
+/** Som lagstyrken, men med plassene vektet – en god spiss løfter angrepet, en god keeper forsvaret. */
+function unitStrength(players: ManagerPlayerSnapshot[], weights: Record<string, number>, onPitch: Map<string, number>, minute: number): number {
+  if (players.length === 0) return 40;
+  let total = 0;
+  let weight = 0;
+  for (const player of players) {
+    const share = weights[player.position] ?? 1;
+    total += share * (player.overall - fatigueAt(onPitch.get(player.id) ?? 0, minute));
+    weight += share;
+  }
+  return (weight > 0 ? total / weight : 40) - Math.max(0, 11 - players.length) * 7;
+}
+
+/** Keeperen som står i mål akkurat nå. Er han utvist, står en utespiller der – og det merkes. */
+function keeperOf(players: ManagerPlayerSnapshot[]): { id: string | null; name: string | null; rating: number } {
+  const keeper = players.find((player) => player.position === "GK");
+  return keeper ? { id: keeper.id, name: keeper.name, rating: keeper.overall } : { id: null, name: null, rating: 40 };
+}
+
 // ---------------------------------------------------------------------------
 // Skudd-rutenettet
 // ---------------------------------------------------------------------------
@@ -305,24 +338,71 @@ export function shotOptions(shooting: number): number[] {
   return UNLOCK_ORDER.slice(0, shotOptionCount(shooting)).sort((first, second) => first - second);
 }
 
-/** Sjansen for mål i en gitt rute, gitt at keeperen ikke gjettet riktig. */
-export function cellGoalChance(shooting: number, kind: ShotKind, cell: number): number {
+/**
+ * Sjansen for mål i en gitt rute, gitt at keeperen ikke gjettet riktig. På en stor sjanse
+ * gjetter ingen, så der trekker en god keeper sjansen ned og en svak drar den opp.
+ */
+export function cellGoalChance(shooting: number, kind: ShotKind, cell: number, keeper: number | null = null): number {
   // Kalibrert mot ekte straffer: en god avslutter setter rundt tre av fire når keeperen gjetter
   // feil, en svak under halvparten – og han har dessuten færre ruter å gjemme seg i.
   const base = kind === "penalty"
     ? bounded(0.74 + (shooting - 55) * 0.0062, 0.6, 0.97)
     : bounded(0.42 + (shooting - 55) * 0.004, 0.28, 0.8);
-  return bounded(base * (PLACEMENT[cell] ?? 0.85), 0.05, 0.97);
+  const keeperFactor = kind === "chance" && keeper !== null ? bounded(1 + (70 - keeper) * 0.015, 0.7, 1.3) : 1;
+  return bounded(base * (PLACEMENT[cell] ?? 0.85) * keeperFactor, 0.05, 0.97);
+}
+
+/**
+ * Hvor mange ruter keeperen dekker når han kaster seg på straffe: en god keeper mot en middels
+ * straffetaker når tre, en svak keeper bare ruta han valgte. Skytteren har alltid minst to
+ * ruter keeperen ikke kan dekke, så straffen er aldri avgjort før han har valgt.
+ */
+export function penaltyReach(keeper: number, shooting: number, optionCount: number): number {
+  const reach = Math.round(1 + (keeper - 65) / 10 - (shooting - 75) / 12);
+  return bounded(reach, 1, Math.max(1, Math.min(3, optionCount - 2)));
+}
+
+/**
+ * Rutene keeperen dekker: den han valgte, pluss de nærmeste naborutene skytteren kan sikte
+ * på. Et kast går sidelengs, så ruta ved siden av velges før den over eller under.
+ */
+export function keeperZone(shot: TimelineShot, keeperCell: number | null): number[] {
+  if (keeperCell === null) return [];
+  const reach = shot.reach ?? 1;
+  const row = Math.floor(keeperCell / SHOT_COLUMNS);
+  const column = keeperCell % SHOT_COLUMNS;
+  const neighbours = shot.options
+    .filter((cell) => cell !== keeperCell)
+    .map((cell) => ({ cell, rows: Math.abs(Math.floor(cell / SHOT_COLUMNS) - row), columns: Math.abs((cell % SHOT_COLUMNS) - column) }))
+    .filter((entry) => entry.rows <= 1 && entry.columns <= 1)
+    .sort((first, second) => first.columns + first.rows * 1.5 - (second.columns + second.rows * 1.5) || first.cell - second.cell);
+  return [keeperCell, ...neighbours.slice(0, reach - 1).map((entry) => entry.cell)];
+}
+
+/** Ratingen til keeperen skuddet går mot, eller null på eldre kamper der keeperen ikke telte. */
+export function shotKeeperRating(shot: TimelineShot, players: Map<string, ManagerPlayerSnapshot>): number | null {
+  if (shot.keeperId === undefined) return null;
+  return (shot.keeperId ? players.get(shot.keeperId)?.overall : undefined) ?? 40;
 }
 
 /**
  * Utfallet regnes ut likt hos begge managerne: samme kamp, samme minutt og samme to valg
  * gir alltid samme svar, så ingen av dem ser et annet resultat enn den andre.
+ *
+ * Gjetter keeperen riktig på straffe, er det redning – gjetter han feil, kan han ikke redde,
+ * og da avgjør bare skytterens skuddstat om ballen går i mål eller utenfor.
  */
-export function resolveShot(matchId: string, shot: TimelineShot, shooting: number, shooterCell: number, keeperCell: number | null): "goal" | "saved" | "missed" {
-  if (shot.kind === "penalty" && keeperCell !== null && keeperCell === shooterCell) return "saved";
+export function resolveShot(matchId: string, shot: TimelineShot, shooting: number, keeper: number | null, shooterCell: number, keeperCell: number | null): "goal" | "saved" | "missed" {
+  if (shot.kind === "penalty" && keeperZone(shot, keeperCell).includes(shooterCell)) return "saved";
   const roll = numberFromSeed(`${matchId}:${shot.minute}:${shot.side}:shot:${shooterCell}:${keeperCell ?? "none"}`);
-  return roll < cellGoalChance(shooting, shot.kind, shooterCell) ? "goal" : "missed";
+  // Keeperen på en stor sjanse finnes bare på kamper fra versjon 4; eldre kamper gir aldri redning her.
+  const rated = shot.kind === "chance" && shot.keeperId !== undefined;
+  const chance = cellGoalChance(shooting, shot.kind, shooterCell, rated ? keeper : null);
+  if (roll < chance) return "goal";
+  if (!rated) return "missed";
+  // Det som ikke går inn, er en redning oftere jo bedre keeperen er.
+  const saveShare = bounded(0.55 + ((keeper ?? 60) - shooting) * 0.01, 0.35, 0.8);
+  return (roll - chance) / (1 - chance) < saveShare ? "saved" : "missed";
 }
 
 /** Et valg for den som ikke rakk å trykke innen tiden gikk ut. */
@@ -360,6 +440,18 @@ const BASE_YELLOW_RATE = 0.021;
 const BASE_RED_RATE = 0.0004;
 /** En spiller med gult kort tar færre sjanser, så han blir sjeldnere plukket til det neste. */
 const BOOKED_DAMPING = 0.3;
+
+// Versjon 4: først avgjør angrep mot forsvar hvor ofte laget kommer til avslutning, deretter
+// avgjør avslutteren mot keeperen om det blir mål. Et bedre lag vinner dermed på begge.
+const BASE_ATTEMPT_RATE = 0.052;
+const ATTACK_SLOPE = 0.02;
+const BASE_FINISH = 0.33;
+const FINISH_SLOPE = 0.012;
+
+/** Sjansen for at en avslutning i åpent spill går i mål. */
+export function finishChance(shooting: number, keeper: number): number {
+  return bounded(BASE_FINISH * Math.exp((shooting - keeper) * FINISH_SLOPE), 0.08, 0.7);
+}
 
 /**
  * Straffespark og store sjanser plasseres ut fra kamp-id alene – aldri ut fra laguttak eller
@@ -401,6 +493,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
   const bookings = new Map<string, number>();
   const timeline: TimelineEvent[] = [];
   const shotSlots = new Map(plannedShotSlots(matchId).map((slot) => [slot.minute, slot.kind]));
+  const rated = kickoff.version >= 4;
   const onPitch = {
     home: minutesOnPitch(kickoff.home, substitutions.filter((event) => event.side === "home")),
     away: minutesOnPitch(kickoff.away, substitutions.filter((event) => event.side === "away")),
@@ -416,11 +509,40 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
       const opponent: MatchSide = side === "home" ? "away" : "home";
       const players = active[side];
       if (players.length === 0) continue;
-      const edge = (teamStrength(players, onPitch[side], minute) - teamStrength(active[opponent], onPitch[opponent], minute)) / 25;
-      const attack = 1 + edge * 0.7;
-      const goalRate = bounded(BASE_GOAL_RATE * attack, 0.004, 0.06);
-      const chanceRate = bounded(BASE_CHANCE_RATE * attack, 0.01, 0.09);
       const roll = numberFromSeed(`${matchId}:${minute}:${side}:event`);
+      let goalRate: number;
+      let chanceRate: number;
+
+      if (rated) {
+        const edge = unitStrength(players, attackWeights, onPitch[side], minute) - unitStrength(active[opponent], defenceWeights, onPitch[opponent], minute);
+        const attemptRate = bounded(BASE_ATTEMPT_RATE * Math.exp(edge * ATTACK_SLOPE), 0.012, 0.15);
+        goalRate = 0;
+        chanceRate = attemptRate;
+        if (roll < attemptRate) {
+          const shooter = weightedPick(players, scorerWeights, numberFromSeed(`${matchId}:${minute}:${side}:scorer`));
+          if (!shooter) continue;
+          const keeper = keeperOf(active[opponent]);
+          const finish = numberFromSeed(`${matchId}:${minute}:${side}:finish`);
+          const scoring = finishChance(shootingOf(shooter), keeper.rating);
+          if (finish < scoring) {
+            const assistCandidates = players.filter((player) => player.id !== shooter.id);
+            const solo = numberFromSeed(`${matchId}:${minute}:${side}:solo`) < 0.22;
+            const assist = solo ? null : weightedPick(assistCandidates, assistWeights, numberFromSeed(`${matchId}:${minute}:${side}:assist`));
+            timeline.push({ type: "goal", minute, side, scorer: shooter.name, scorerId: shooter.id, assist: assist?.name ?? null, assistId: assist?.id ?? null });
+          } else {
+            // Det som ikke går inn, blir oftere en redning jo bedre keeperen er – ellers stolpen.
+            const saveShare = bounded(0.62 + (keeper.rating - shootingOf(shooter)) * 0.01, 0.4, 0.85);
+            const saved = (finish - scoring) / (1 - scoring) < saveShare;
+            timeline.push({ type: "chance", minute, side, outcome: saved ? "save" : "post", player: shooter.name, playerId: shooter.id, keeper: saved ? keeper.name : null });
+          }
+          continue;
+        }
+      } else {
+        const edge = (teamStrength(players, onPitch[side], minute) - teamStrength(active[opponent], onPitch[opponent], minute)) / 25;
+        const attack = 1 + edge * 0.7;
+        goalRate = bounded(BASE_GOAL_RATE * attack, 0.004, 0.06);
+        chanceRate = bounded(BASE_CHANCE_RATE * attack, 0.01, 0.09);
+      }
 
       if (roll < goalRate) {
         const scorer = weightedPick(players, scorerWeights, numberFromSeed(`${matchId}:${minute}:${side}:scorer`));
@@ -462,7 +584,14 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
       const taker = kind === "penalty"
         ? [...players].sort((first, second) => shootingOf(second) - shootingOf(first) || first.name.localeCompare(second.name))[0]
         : weightedPick(players, scorerWeights, numberFromSeed(`${matchId}:${minute}:${side}:taker`));
-      if (taker) timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options: shotOptions(shootingOf(taker)) });
+      if (taker && rated) {
+        const keeper = keeperOf(active[side === "home" ? "away" : "home"]);
+        const options = shotOptions(shootingOf(taker));
+        const reach = kind === "penalty" ? penaltyReach(keeper.rating, shootingOf(taker), options.length) : 1;
+        timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options, keeperId: keeper.id, reach });
+      } else if (taker) {
+        timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options: shotOptions(shootingOf(taker)) });
+      }
     }
   }
 

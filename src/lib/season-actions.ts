@@ -6,7 +6,7 @@ import type { ActionState } from "./actions";
 import { aiTeamSnapshot, type AiTeam } from "./ai-opponent";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
-import { planManagerTimeline, type ManagerKickoffEvent } from "./manager-match";
+import { MANAGER_KICKOFF_VERSION, planManagerTimeline, type ManagerKickoffEvent } from "./manager-match";
 import { managerTeamSnapshots } from "./manager-snapshot";
 import { supabaseAdmin } from "./supabase/server";
 
@@ -50,7 +50,7 @@ export async function playAiSeasonMatchAction(_prev: ActionState, _formData: For
   const mine = snapshots.get(user.id);
   if (!mine) return { error: "Sett opp en ellever med 11 spillere i Tropp før du spiller" };
   // Du står alltid som hjemmelag i selve kampen. Hjemme og borte i sesongoppsettet gjelder bare tabellen.
-  const result = await kickOffFixture(db, next.id, { type: "kickoff", version: 2, home: mine, away: aiTeamSnapshot(season.id, team) }, { home_user_id: user.id, away_user_id: null, away_ai_name: team.name });
+  const result = await kickOffFixture(db, next.id, { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home: mine, away: aiTeamSnapshot(season.id, team) }, { home_user_id: user.id, away_user_id: null, away_ai_name: team.name });
   if ("error" in result) return { error: result.error };
   seasonPaths();
   redirect(`/managerkarriere/kamp/${result.matchId}`);
@@ -67,7 +67,7 @@ export async function playFriendSeasonMatchAction(_prev: ActionState, formData: 
   if ("error" in snapshots) return { error: snapshots.error };
   const home = snapshots.get(fixture.home_user_id); const away = snapshots.get(fixture.away_user_id);
   if (!home || !away) return { error: "Begge managerne må ha en ellever med 11 spillere" };
-  const result = await kickOffFixture(db, fixture.id, { type: "kickoff", version: 2, home, away }, { home_user_id: fixture.home_user_id, away_user_id: fixture.away_user_id, away_ai_name: null });
+  const result = await kickOffFixture(db, fixture.id, { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home, away }, { home_user_id: fixture.home_user_id, away_user_id: fixture.away_user_id, away_ai_name: null });
   if ("error" in result) return { error: result.error };
   seasonPaths();
   redirect(`/managerkarriere/kamp/${result.matchId}`);
