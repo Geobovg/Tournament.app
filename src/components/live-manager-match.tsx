@@ -265,7 +265,6 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
   const resolveFormRef = useRef<HTMLFormElement>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const pinnedToBottom = useRef(true);
-  const automaticallyFinished = useRef(false);
   const resolvedShot = useRef<number | null>(null);
   // Klokka forankres i serverens tid. Uten dette ville en nettleser som går noen sekunder feil
   // vist et annet kampminutt enn motstanderen sin.
@@ -338,10 +337,13 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
             : `Live · ${clock.minute}′`
       : "Venter i lobby";
 
+  // Prøv igjen hvert tredje sekund til serveren har avsluttet kampen. Ett enkelt forsøk ble
+  // stående fast hvis serverens klokke eller varighet ikke helt stemte med vår.
   useEffect(() => {
-    if (match.status !== "live" || !fullTime || automaticallyFinished.current) return;
-    automaticallyFinished.current = true;
+    if (match.status !== "live" || !fullTime) return;
     finishFormRef.current?.requestSubmit();
+    const retry = setInterval(() => finishFormRef.current?.requestSubmit(), 3_000);
+    return () => clearInterval(retry);
   }, [fullTime, match.status]);
 
   // Når velgetiden er ute avgjøres sjansen. Begge klientene prøver; serveren tar bare imot én gang.
@@ -552,7 +554,8 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
         </section>
       ) : null}
 
-      {state.error ? <p className="text-sm text-danger">{state.error}</p> : complete || state.ok ? <p className="text-sm text-success">Resultatet, V/U/T og belønningen er lagret.</p> : null}
+      {/* Mens vi venter på serveren prøves det på nytt, så da holder «lagres automatisk» over. */}
+      {state.error && !(match.status === "live" && fullTime) ? <p className="text-sm text-danger">{state.error}</p> : complete ? <p className="text-sm text-success">Resultatet, V/U/T og belønningen er lagret.</p> : null}
     </section>
   );
 }
