@@ -6,7 +6,7 @@ import { cache } from "react";
 import { supabaseAdmin } from "./supabase/server";
 
 const SESSION_COOKIE = "tournament_session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
 
 export type AppUser = {
   id: string;
@@ -54,6 +54,11 @@ export function verifyAccountCode(value: string, stored: string) {
 /** Allows a global uniqueness constraint without storing the six digits themselves. */
 export function accountCodeFingerprint(value: string) {
   return createHmac("sha256", secret()).update(`account-code:${value}`).digest("hex");
+}
+
+/** Lets us rate-limit by IP address without storing the address itself. */
+export function ipFingerprint(ip: string) {
+  return createHmac("sha256", secret()).update(`ip:${ip}`).digest("hex");
 }
 
 export async function setSession(userId: string) {
