@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { supabaseAdmin } from "./supabase/server";
 
 const SESSION_COOKIE = "tournament_session";
@@ -72,13 +73,22 @@ export async function clearSession() {
   (await cookies()).delete(SESSION_COOKIE);
 }
 
-export async function currentUser(): Promise<AppUser | null> {
+// Bruker-id-en fra den signerte cookien, uten databaseoppslag. Sider kan dermed starte
+// datahentingen samtidig med currentUser() i stedet for å vente på den først.
+export const sessionUserId = cache(async (): Promise<string | null> => {
   const raw = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!raw) return null;
   const [id, expiry, signature] = raw.split(".");
   const value = `${id}.${expiry}`;
   if (!id || !expiry || !signature || signature !== sign(value)) return null;
   if (Number(expiry) < Math.floor(Date.now() / 1000)) return null;
+  return id;
+});
+
+// cache() gjør at layout, side og actions deler ett oppslag per forespørsel i stedet for hvert sitt.
+export const currentUser = cache(async (): Promise<AppUser | null> => {
+  const id = await sessionUserId();
+  if (!id) return null;
 
   const { data, error } = await supabaseAdmin()
     .from("profiles")
@@ -87,7 +97,7 @@ export async function currentUser(): Promise<AppUser | null> {
     .maybeSingle();
   if (error || !data) return null;
   return data as AppUser;
-}
+});
 
 export async function requireUser(): Promise<AppUser> {
   const user = await currentUser();

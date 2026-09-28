@@ -37,7 +37,8 @@ async function usernames(ids: string[]) {
 }
 
 /** Brukerens aktive AI-sesong. Finnes den ikke, startes en ny med én gang. */
-export async function getAiSeason(userId: string, clubName: string): Promise<AiSeason> {
+// Klubbnavnet kan komme som et løfte, så sesongen kan hentes samtidig med profilen.
+export async function getAiSeason(userId: string, clubName: string | Promise<string>): Promise<AiSeason> {
   const db = supabaseAdmin();
   const { data: seasonId, error: ensureError } = await db.rpc("ensure_ai_season", { target_user: userId });
   if (ensureError) throw new Error(ensureError.message);
@@ -49,7 +50,7 @@ export async function getAiSeason(userId: string, clubName: string): Promise<AiS
   ]);
   if (seasonError || fixturesError || standingsError) throw new Error(seasonError?.message ?? fixturesError?.message ?? standingsError?.message);
   const teams = (season.teams ?? []) as AiTeam[];
-  const names = new Map<string, string>([[userId, clubName || "Din klubb"], ...teams.map((team) => [team.key, team.name] as [string, string])]);
+  const names = new Map<string, string>([[userId, (await clubName) || "Din klubb"], ...teams.map((team) => [team.key, team.name] as [string, string])]);
   const all = ((fixtures ?? []) as FixtureRow[]).map((row) => toFixture(row, names, userId));
   const mine = all.filter((fixture) => fixture.homeIsMe || fixture.awayIsMe);
   return {

@@ -3,17 +3,19 @@ import { redirect } from "next/navigation";
 import { ManagerTopBar } from "@/components/manager-navigation";
 import { ManagerOverview } from "@/components/manager-overview";
 import { AiSeasonHero, FriendSeasonTeaser } from "@/components/season-panels";
-import { currentUser } from "@/lib/auth";
+import { currentUser, sessionUserId } from "@/lib/auth";
 import { getCareerChallenges, getCareerProfile, getManagerHome, listManagerMatchHistory } from "@/lib/career";
 import { getAiSeason, getFriendSeasons } from "@/lib/seasons";
 
 export const dynamic = "force-dynamic";
 
 export default async function ManagerCareerPage() {
-  const user = await currentUser();
+  // Id-en kommer fra den signerte cookien, så alt kan hentes samtidig i stedet for etter hverandre.
+  const userId = await sessionUserId();
+  if (!userId) redirect("/login");
+  const careerPromise = getCareerProfile(userId);
+  const [user, career, manager, challenges, matches, friendSeasons, season] = await Promise.all([currentUser(), careerPromise, getManagerHome(userId), getCareerChallenges(userId), listManagerMatchHistory(userId), getFriendSeasons(userId), getAiSeason(userId, careerPromise.then((profile) => profile.club_name))]);
   if (!user) redirect("/login");
-  const [career, manager, challenges, matches, friendSeasons] = await Promise.all([getCareerProfile(user.id), getManagerHome(user.id), getCareerChallenges(user.id), listManagerMatchHistory(user.id), getFriendSeasons(user.id)]);
-  const season = await getAiSeason(user.id, career.club_name);
   return <div className="mx-auto grid w-full max-w-[1600px] gap-4">
     <ManagerTopBar clubName={career.club_name} budget={career.manager_budget} rating={manager.rating} clubXp={career.club_xp} />
     <AiSeasonHero season={season} />
