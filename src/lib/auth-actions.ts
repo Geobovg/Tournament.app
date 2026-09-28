@@ -9,6 +9,7 @@ import {
   clearSession,
   currentUser,
   hashAccountCode,
+  ipFingerprint,
   normalizeUsername,
   requireUser,
   setSession,
@@ -41,6 +42,21 @@ async function siteUrl() {
   return host ? `${protocol}://${host}` : "http://localhost:3000";
 }
 
+// Gjelder bare kontoer som faktisk blir opprettet, så feiltastinger i skjemaet teller ikke.
+const SIGNUPS_PER_IP_PER_HOUR = 3;
+
+async function clientIp() {
+  const requestHeaders = await headers();
+  // Vercel setter x-forwarded-for; første adresse er klientens egen.
+  const forwarded = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || requestHeaders.get("x-real-ip")?.trim() || null;
+}
+
+// Innlogging tar bare imot /join/-lenker som neste side, og registrering følger samme regel.
+function safeNext(next: string) {
+  return next.startsWith("/join/") ? next : "/";
+}
+
 // Supabase Auth krever en e-postadresse. Brukere registrerer seg bare med brukernavn og kode,
 // så de får en intern adresse på et domene som aldri kan motta e-post (.invalid, RFC 2606).
 function internalEmail() {
@@ -55,6 +71,7 @@ export async function registerAction(
   const usernameKey = normalizeUsername(username);
   const code = formValue(formData, "code");
   const confirmCode = formValue(formData, "confirm_code");
+  const next = formValue(formData, "next");
 
   if (!validUsername(username)) {
     return { error: "Brukernavn må ha 3–24 tegn og bare bokstaver, tall, punktum, bindestrek eller understrek" };
@@ -63,6 +80,19 @@ export async function registerAction(
   if (code !== confirmCode) return { error: "Kodene er ikke like" };
 
   const db = supabaseAdmin();
+  const ip = await clientIp();
+  const ipHash = ip ? ipFingerprint(ip) : null;
+  if (ipHash) {
+    const { count } = await db
+      .from("signup_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_hash", ipHash)
+      .gte("created_at", new Date(Date.now() - 60 * 60_000).toISOString());
+    if ((count ?? 0) >= SIGNUPS_PER_IP_PER_HOUR) {
+      return { error: "Det er opprettet for mange brukere fra denne nettverksforbindelsen den siste timen. Prøv igjen senere." };
+    }
+  }
+
   const fingerprint = accountCodeFingerprint(code);
   const { data: existing } = await db
     .from("profiles")
@@ -94,9 +124,14 @@ export async function registerAction(
     return { error: "Kunne ikke lagre kontoen. Prøv en annen kode eller et annet brukernavn." };
   }
 
+  if (ipHash) {
+    await db.from("signup_attempts").delete().lt("created_at", new Date(Date.now() - 24 * 60 * 60_000).toISOString());
+    await db.from("signup_attempts").insert({ ip_hash: ipHash });
+  }
+
   await setSession(authData.user.id);
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(safeNext(next));
 }
 
 export async function loginAction(
@@ -146,7 +181,7 @@ export async function loginAction(
   await db.from("profiles").update({ failed_attempts: 0, locked_until: null, updated_at: new Date().toISOString() }).eq("id", profile.id);
   await setSession(profile.id);
   revalidatePath("/", "layout");
-  redirect(next.startsWith("/join/") ? next : "/");
+  redirect(safeNext(next));
 }
 
 /** Creates a short-lived Supabase Auth session so the browser can register a passkey. */

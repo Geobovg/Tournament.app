@@ -39,7 +39,7 @@ export function LoginForm() {
       {state.error ? <p className="text-danger">{state.error}</p> : null}
       <button className={buttonClass} disabled={pending}>{pending ? "Logger inn…" : "Logg inn"}</button>
       <PasskeyLoginButton next={next} />
-      <div className="flex justify-between text-sm"><Link href="/forgot-code" className="text-accent underline">Glemt kode?</Link><Link href="/register" className="text-accent underline">Ny bruker</Link></div>
+      <div className="flex justify-between text-sm"><Link href="/forgot-code" className="text-accent underline">Glemt kode?</Link><Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="text-accent underline">Ny bruker</Link></div>
     </form>
   );
 }
@@ -107,6 +107,7 @@ export function PasskeyRegistrationForm() {
 
 export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, initialState);
+  const next = useSearchParams().get("next") ?? "";
   const [code, setCode] = useState("");
   const [confirm, setConfirm] = useState("");
   const [available, setAvailable] = useState<boolean | null>(null);
@@ -118,13 +119,14 @@ export function RegisterForm() {
   const status = confirm.length !== 6 ? "idle" : code !== confirm || available === false ? "bad" : available === true && !checking ? "good" : "idle";
   return (
     <form action={action} className={`${cardClass} grid gap-4`}>
+      <input type="hidden" name="next" value={next} />
       <div><label className={labelClass} htmlFor="register-username">Brukernavn</label><input id="register-username" name="username" autoComplete="username" minLength={3} maxLength={24} className="mt-1 w-full" required /><p className="mt-1 text-sm text-muted">3–24 tegn. Bokstaver, tall, punktum, bindestrek og understrek.</p></div>
       <CodeInput id="register-code" name="code" label="Velg sekssifret kode" autoComplete="new-password" onChange={(value) => { setCode(value); check(value, confirm); }} />
       <div className="relative"><CodeInput id="register-confirm-code" name="confirm_code" label="Tast inn koden en gang til" autoComplete="new-password" onChange={(value) => { setConfirm(value); check(code, value); }} />{status !== "idle" ? <span className={`absolute right-3 top-9 text-lg ${status === "good" ? "text-success" : "text-danger"}`}>{status === "good" ? "✓" : "✕"}</span> : null}{checking ? <span className="absolute right-3 top-9 text-xs text-muted">Sjekker…</span> : null}</div>
       {state.error ? <p className="text-danger">{state.error}</p> : null}
       {state.message ? <p className="text-success">{state.message}</p> : null}
       <button className={buttonClass} disabled={pending || status === "bad"}>{pending ? "Oppretter…" : "Opprett bruker"}</button>
-      <Link href="/login" className="text-center text-sm text-accent underline">Har du allerede en bruker? Logg inn</Link>
+      <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-center text-sm text-accent underline">Har du allerede en bruker? Logg inn</Link>
     </form>
   );
 }
