@@ -8,6 +8,10 @@ En app for å holde styr på en simulert fotball-managerkarriere med spillerkort
 Den kortbaserte modusen der du bygger en tropp av spillerkort, kjøper/selger på overgangsmarkedet, åpner pakker og spiller simulerte kamper mot venners tropper. Alt skjer inne i appen.
 _Avoid_: Karriere alene (tvetydig med Turnering)
 
+**Markedschat** (kommer):
+Én felles samtale på overgangsmarkedet der alle managere kan skrive og lese, og der hver melding vises med brukernavnet til den som skrev den.
+_Avoid_: Annonsetråd, privatmelding (det er noe annet enn direkte overgangstilbud mellom venner)
+
 **Turnering**:
 En serie ekte EA FC- eller NHL-kamper som venner spiller på selve spillkonsollen/PC-en, der appen kun brukes til å registrere resultatene og holde oversikt (kamplogg, tabell). Appen simulerer ikke disse kampene.
 _Avoid_: Karriere, Manager-turnering
