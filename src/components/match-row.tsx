@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getT } from "@/i18n/server";
 import { matchStatusLabel, resultTypeLabel } from "@/lib/labels";
 import type { Match } from "@/lib/tournament/types";
 
-export function MatchRow({
+export async function MatchRow({
   match,
   teamNames,
   tournamentId,
@@ -13,13 +14,14 @@ export function MatchRow({
 }) {
   const home = match.home_team_id ? teamNames.get(match.home_team_id) : null;
   const away = match.away_team_id ? teamNames.get(match.away_team_id) : null;
-  const extra = resultTypeLabel(match);
+  const t = await getT();
+  const extra = resultTypeLabel(match, t);
 
   if (match.is_bye) {
     return (
       <li className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">
         <span>{home}</span>
-        <span className="text-muted">Fri denne runden</span>
+        <span className="text-muted">{t.tournaments.match.byeThisRound}</span>
       </li>
     );
   }
@@ -38,7 +40,7 @@ export function MatchRow({
         </span>
         <span className="flex-1 truncate text-right">{away}</span>
         <span className="hidden w-44 shrink-0 text-right text-xs text-muted sm:block">
-          {extra ?? matchStatusLabel(match)}
+          {extra ?? matchStatusLabel(match, t)}
         </span>
       </Link>
     </li>

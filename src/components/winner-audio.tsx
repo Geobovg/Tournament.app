@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/i18n/client";
 
 const TRACK = "/audio/Ooh%20La%20La.mp3";
 
 export function WinnerAudio() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [needsTap, setNeedsTap] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -54,7 +56,7 @@ export function WinnerAudio() {
     <>
       <audio ref={audioRef} src={TRACK} loop preload="auto" />
       {needsTap ? (
-        <p className="winner-sound-hint">🔈 Trykk hvor som helst for lyd</p>
+        <p className="winner-sound-hint">🔈 {t.tournaments.winner.tapForSound}</p>
       ) : null}
     </>
   );

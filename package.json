@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:db-errors": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-db-errors.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

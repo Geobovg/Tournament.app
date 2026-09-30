@@ -3,8 +3,8 @@ import type { ManagerPlayerSnapshot, ManagerTeamSnapshot } from "./manager-match
 
 export type AiTeam = { key: string; name: string; rating: number };
 
-const firstNames = ["Ola", "Jonas", "Emil", "Sander", "Magnus", "Henrik", "Mathias", "Tobias", "Kristian", "Eirik", "Håkon", "Sindre", "Martin", "Fredrik", "Aksel", "Vegard", "Even", "Jørgen", "Aleksander", "Simen"];
-const lastNames = ["Berg", "Hansen", "Dahl", "Lie", "Strand", "Moen", "Haugen", "Solberg", "Nygård", "Bakke", "Lunde", "Aas", "Vik", "Holm", "Eide", "Brekke", "Sæther", "Rønning", "Myhre", "Tangen"];
+const firstNames = ["James", "Liam", "Oliver", "Harry", "Jack", "Charlie", "Thomas", "George", "Oscar", "William", "Noah", "Ethan", "Leo", "Mason", "Lucas", "Ryan", "Callum", "Daniel", "Joe", "Kieran"];
+const lastNames = ["Carter", "Walsh", "Bennett", "Hughes", "Turner", "Parker", "Collins", "Morgan", "Reid", "Foster", "Hayes", "Barnes", "Cooper", "Ward", "Fletcher", "Doyle", "Murphy", "Price", "Shaw", "Holloway"];
 
 /** Enkel deterministisk tallgenerator, så samme AI-klubb får samme spillere hver gang. */
 function seeded(seed: string) {

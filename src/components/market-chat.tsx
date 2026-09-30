@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTran
 import type { MarketChatMessage, MarketChatUnread } from "@/lib/market-chat";
 import { deleteMarketChatMessageAction, loadMarketChatAction, marketChatUnreadAction, sendMarketChatAction, suggestMentionsAction } from "@/lib/market-chat-actions";
 import { mentionInProgress, splitMentions } from "@/lib/market-chat-mentions";
+import { useLocale, useT } from "@/i18n/client";
+import { INTL_LOCALES, type Locale } from "@/i18n/locales";
 import { buttonClass } from "./ui";
 
 export const marketChatReadEvent = "market-chat-read";
@@ -22,16 +24,18 @@ function useWide() {
 }
 
 export function UnreadBadge({ unread, className = "" }: { unread: MarketChatUnread; className?: string }) {
+  const t = useT();
   if (!unread.count) return null;
-  return <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black leading-5 ${unread.mentioned ? "bg-amber-400 text-black" : "bg-danger text-white"} ${className}`} aria-label={`${unread.count} uleste meldinger${unread.mentioned ? ", du er nevnt" : ""}`}>
+  return <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black leading-5 ${unread.mentioned ? "bg-amber-400 text-black" : "bg-danger text-white"} ${className}`} aria-label={t.market.chat.unreadLabel(unread.count, unread.mentioned)}>
     {unread.mentioned ? "@ " : ""}{unread.count > 50 ? "50+" : unread.count}
   </span>;
 }
 
-function clock(iso: string) {
+function clock(iso: string, locale: Locale) {
   const date = new Date(iso);
   const sameDay = date.toDateString() === new Date().toDateString();
-  return sameDay ? date.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" }) : date.toLocaleString("nb-NO", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+  const intl = INTL_LOCALES[locale];
+  return sameDay ? date.toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit" }) : date.toLocaleString(intl, { weekday: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 function Avatar({ name, url }: { name: string; url: string | null }) {
@@ -39,13 +43,15 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
 }
 
 function MessageRow({ message, own, onDelete }: { message: MarketChatMessage; own: boolean; onDelete: (id: string) => void }) {
+  const tc = useT().market.chat;
+  const locale = useLocale();
   return <li className={`flex gap-2 ${own ? "flex-row-reverse" : ""}`}>
     <Avatar name={message.author_name} url={message.author_avatar} />
     <div className={`group min-w-0 max-w-[80%] rounded-xl px-3 py-2 ${own ? "bg-accent-soft" : message.mentions_me ? "bg-amber-400/15 ring-1 ring-amber-400/60" : "bg-surface-raised"}`}>
       <p className={`flex items-baseline gap-2 text-xs ${own ? "justify-end" : ""}`}>
-        <b className={own ? "text-accent" : ""}>{own ? "Du" : message.author_name}</b>
-        <span className="text-muted" suppressHydrationWarning>{clock(message.created_at)}</span>
-        {own ? <button type="button" onClick={() => onDelete(message.id)} className="text-muted underline-offset-2 hover:text-danger hover:underline" aria-label="Slett meldingen">Slett</button> : null}
+        <b className={own ? "text-accent" : ""}>{own ? tc.you : message.author_name}</b>
+        <span className="text-muted" suppressHydrationWarning>{clock(message.created_at, locale)}</span>
+        {own ? <button type="button" onClick={() => onDelete(message.id)} className="text-muted underline-offset-2 hover:text-danger hover:underline" aria-label={tc.deleteMessage}>{tc.delete}</button> : null}
       </p>
       <p className="mt-0.5 whitespace-pre-wrap break-words text-sm">{splitMentions(message.body).map((part, index) => part.mention ? <b key={index} className="text-accent">{part.text}</b> : part.text)}</p>
     </div>
@@ -53,6 +59,7 @@ function MessageRow({ message, own, onDelete }: { message: MarketChatMessage; ow
 }
 
 function Composer({ onSent }: { onSent: () => void }) {
+  const tc = useT().market.chat;
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, startSending] = useTransition();
@@ -102,18 +109,18 @@ function Composer({ onSent }: { onSent: () => void }) {
   };
 
   return <form onSubmit={(event) => { event.preventDefault(); send(); }} className="relative grid gap-1 border-t border-border p-3">
-    {shown.length ? <ul role="listbox" aria-label="Nevn en manager" className="absolute inset-x-3 bottom-full mb-1 overflow-hidden rounded-lg border border-border bg-background shadow-xl">
+    {shown.length ? <ul role="listbox" aria-label={tc.mentionManager} className="absolute inset-x-3 bottom-full mb-1 overflow-hidden rounded-lg border border-border bg-background shadow-xl">
       {shown.map((name, index) => <li key={name} role="option" aria-selected={index === highlighted}>
         <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => pick(name)} className={`block w-full px-3 py-2 text-left text-sm ${index === highlighted ? "bg-accent-soft text-accent" : "hover:bg-surface-raised"}`}>@{name}</button>
       </li>)}
     </ul> : null}
     <div className="flex items-end gap-2">
-      <textarea ref={inputRef} rows={1} value={text} maxLength={maxLength} placeholder="Skriv til markedet… (@ for å nevne)" aria-label="Melding"
+      <textarea ref={inputRef} rows={1} value={text} maxLength={maxLength} placeholder={tc.placeholder} aria-label={tc.message}
         onChange={(event) => { setText(event.target.value); setCaret(event.target.selectionStart); }}
         onSelect={(event) => setCaret(event.currentTarget.selectionStart)}
         onKeyDown={onKeyDown}
         className="max-h-28 min-h-10 w-full resize-none" />
-      <button className={buttonClass} disabled={sending || !text.trim()}>Send</button>
+      <button className={buttonClass} disabled={sending || !text.trim()}>{tc.send}</button>
     </div>
     <div className="flex justify-between gap-2 text-xs">
       <span className="text-danger">{error}</span>
@@ -124,6 +131,7 @@ function Composer({ onSent }: { onSent: () => void }) {
 
 /** Markedschatten: panel ved siden av annonsene på PC, knapp som åpner et vindu på mobil. */
 export function MarketChat({ userId, initialMessages, initialUnread }: { userId: string; initialMessages: MarketChatMessage[]; initialUnread: MarketChatUnread }) {
+  const tc = useT().market.chat;
   const wide = useWide();
   const [open, setOpen] = useState(false);
   const visible = wide || open;
@@ -173,15 +181,15 @@ export function MarketChat({ userId, initialMessages, initialUnread }: { userId:
 
   return <>
     <button type="button" onClick={() => setOpen(true)} className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-full bg-accent px-4 py-3 font-bold text-accent-contrast shadow-xl lg:hidden">
-      💬 Markedschat <UnreadBadge unread={unread} />
+      💬 {tc.title} <UnreadBadge unread={unread} />
     </button>
-    <aside aria-label="Markedschat" className={`${open ? "fixed inset-0 z-50 flex bg-background" : "hidden"} flex-col overflow-hidden lg:sticky lg:top-4 lg:z-auto lg:flex lg:h-[calc(100dvh-8rem)] lg:rounded-xl lg:border lg:border-border lg:bg-surface`}>
+    <aside aria-label={tc.title} className={`${open ? "fixed inset-0 z-50 flex bg-background" : "hidden"} flex-col overflow-hidden lg:sticky lg:top-4 lg:z-auto lg:flex lg:h-[calc(100dvh-8rem)] lg:rounded-xl lg:border lg:border-border lg:bg-surface`}>
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div><h2 className="font-bold">Markedschat</h2><p className="text-xs text-muted">Alle managere · meldinger slettes etter 7 dager</p></div>
-        <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-3 py-1 text-sm text-muted hover:bg-surface-raised lg:hidden">Lukk</button>
+        <div><h2 className="font-bold">{tc.title}</h2><p className="text-xs text-muted">{tc.subtitle}</p></div>
+        <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-3 py-1 text-sm text-muted hover:bg-surface-raised lg:hidden">{tc.close}</button>
       </header>
       <ul ref={listRef} onScroll={(event) => { const list = event.currentTarget; stickToBottom.current = list.scrollHeight - list.scrollTop - list.clientHeight < 40; }} className="grid flex-1 content-start gap-3 overflow-y-auto p-4">
-        {messages.length ? messages.map((message) => <MessageRow key={message.id} message={message} own={message.author_id === userId} onDelete={remove} />) : <li className="m-auto py-10 text-center text-sm text-muted">Ingen har skrevet noe ennå. Start praten!</li>}
+        {messages.length ? messages.map((message) => <MessageRow key={message.id} message={message} own={message.author_id === userId} onDelete={remove} />) : <li className="m-auto py-10 text-center text-sm text-muted">{tc.empty}</li>}
       </ul>
       {error ? <p className="px-4 text-sm text-danger">{error}</p> : null}
       <Composer onSent={() => { stickToBottom.current = true; load().catch(() => undefined); }} />

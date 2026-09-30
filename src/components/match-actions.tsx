@@ -6,6 +6,7 @@ import {
   submitResultAction,
   type ActionState,
 } from "@/lib/actions";
+import { useT } from "@/i18n/client";
 import { buttonClass, labelClass, secondaryButtonClass } from "./ui";
 
 const initialState: ActionState = {};
@@ -27,6 +28,7 @@ export function MatchActions({
   homeTeam: TeamRef;
   awayTeam: TeamRef;
 }) {
+  const text = useT().tournaments.actions;
   const [submitState, submitAction, submitting] = useActionState(
     submitResultAction,
     initialState,
@@ -42,16 +44,16 @@ export function MatchActions({
         <form action={confirmAction} className="grid gap-4">
           <input type="hidden" name="match_id" value={matchId} />
           <p className="text-sm text-muted">
-            Er resultatet riktig? Motstanderen må bekrefte før det telles.
+            {text.confirmQuestion}
           </p>
           {confirmState.error ? (
             <p className="text-danger">{confirmState.error}</p>
           ) : null}
           {confirmState.ok ? (
-            <p className="text-success">Resultatet er bekreftet!</p>
+            <p className="text-success">{text.confirmed}</p>
           ) : null}
           <button type="submit" className={buttonClass} disabled={confirming}>
-            {confirming ? "Bekrefter…" : "Bekreft resultatet"}
+            {confirming ? text.confirming : text.confirm}
           </button>
         </form>
       ) : null}
@@ -61,8 +63,8 @@ export function MatchActions({
 
         <h3 className="font-semibold">
           {status === "pending_confirmation"
-            ? "Uenig? Legg inn nytt resultat"
-            : "Legg inn resultat"}
+            ? text.disagree
+            : text.enterResult}
         </h3>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -102,7 +104,7 @@ export function MatchActions({
 
         {isNhl ? (
           <fieldset>
-            <legend className={labelClass}>Hvordan ble kampen avgjort?</legend>
+            <legend className={labelClass}>{text.howDecided}</legend>
             <div className="mt-2 flex flex-wrap gap-3">
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3">
                 <input
@@ -112,7 +114,7 @@ export function MatchActions({
                   defaultChecked
                   className="w-auto"
                 />
-                <span>Ordinær tid</span>
+                <span>{text.regulation}</span>
               </label>
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3">
                 <input
@@ -121,7 +123,7 @@ export function MatchActions({
                   value="ot_so"
                   className="w-auto"
                 />
-                <span>Overtime / straffeslagkonkurranse</span>
+                <span>{text.otSo}</span>
               </label>
             </div>
           </fieldset>
@@ -131,7 +133,7 @@ export function MatchActions({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <p className={labelClass}>
-                Straffekonkurranse – fyll ut kun hvis duellen står likt
+                {text.penaltiesLabel}
               </p>
             </div>
             <input
@@ -141,7 +143,7 @@ export function MatchActions({
               pattern="[0-9]*"
               min={0}
               max={99}
-              placeholder={`Straffer ${homeTeam.name}`}
+              placeholder={text.penaltiesFor(homeTeam.name)}
               className="w-full"
             />
             <input
@@ -151,7 +153,7 @@ export function MatchActions({
               pattern="[0-9]*"
               min={0}
               max={99}
-              placeholder={`Straffer ${awayTeam.name}`}
+              placeholder={text.penaltiesFor(awayTeam.name)}
               className="w-full"
             />
           </div>
@@ -162,7 +164,7 @@ export function MatchActions({
         ) : null}
         {submitState.ok ? (
           <p className="text-success">
-            Resultatet er sendt inn – motstanderen må bekrefte det.
+            {text.submitted}
           </p>
         ) : null}
 
@@ -173,7 +175,7 @@ export function MatchActions({
           }
           disabled={submitting}
         >
-          {submitting ? "Sender…" : "Send inn resultat"}
+          {submitting ? text.sending : text.submit}
         </button>
       </form>
     </div>

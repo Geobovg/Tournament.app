@@ -11,16 +11,18 @@ import {
   listTournamentMembers,
 } from "@/lib/data";
 import { currentUser } from "@/lib/auth";
+import { getT } from "@/i18n/server";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { knockoutRoundLabel, typeLabel } from "@/lib/labels";
 import { computeStandings } from "@/lib/tournament/standings";
 import type { Match } from "@/lib/tournament/types";
 
 export const dynamic = "force-dynamic";
 
-function roundTitle(stage: Match["stage"], roundNumber: number, ties: number) {
+function roundTitle(stage: Match["stage"], roundNumber: number, ties: number, t: Dictionary) {
   return stage === "league"
-    ? `Ligaspill, runde ${roundNumber}`
-    : knockoutRoundLabel(ties);
+    ? t.tournaments.stats.leagueRound(roundNumber)
+    : knockoutRoundLabel(ties, t);
 }
 
 export default async function StatsPage({
@@ -32,6 +34,8 @@ export default async function StatsPage({
 
   const tournament = await getTournament(id);
   if (!tournament) notFound();
+  const t = await getT();
+  const text = t.tournaments.stats;
 
   const [teams, matches, votes, members] = await Promise.all([
     listTeams(id),
@@ -93,8 +97,8 @@ export default async function StatsPage({
       if (!clip) return null;
 
       return {
-        title: roundTitle(stage, round, ties),
-        teamName: teamNames.get(clip.team_id) ?? "Ukjent lag",
+        title: roundTitle(stage, round, ties, t),
+        teamName: teamNames.get(clip.team_id) ?? t.tournaments.unknownTeam,
         votes: count,
         url: clip.video_url,
       };
@@ -112,16 +116,16 @@ export default async function StatsPage({
           ← {tournament.name}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold uppercase tracking-tight">
-          Statistikk
+          {text.title}
         </h1>
         <p className="text-sm text-white/75">
-          {typeLabel(tournament.type)} · hele turneringen (liga + sluttspill)
+          {typeLabel(tournament.type)} · {text.scope}
         </p>
       </ThemePanel>
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className={cardClass}>
-          <h2 className="mb-4 text-lg font-semibold">Scorede mål</h2>
+          <h2 className="mb-4 text-lg font-semibold">{text.goalsScored}</h2>
           <ul className="grid gap-2">
             {topScorers.map((row) => (
               <li
@@ -136,7 +140,7 @@ export default async function StatsPage({
         </section>
 
         <section className={cardClass}>
-          <h2 className="mb-4 text-lg font-semibold">Clean sheets</h2>
+          <h2 className="mb-4 text-lg font-semibold">{text.cleanSheets}</h2>
           <ul className="grid gap-2">
             {cleanSheetLeaders.map((row) => (
               <li
@@ -152,9 +156,9 @@ export default async function StatsPage({
       </div>
 
       <section className={cardClass}>
-        <h2 className="mb-4 text-lg font-semibold">Rundens mål</h2>
+        <h2 className="mb-4 text-lg font-semibold">{text.goalOfTheRound}</h2>
         {roundWinners.length === 0 ? (
-          <p className="text-muted">Ingen avstemninger er avgjort ennå.</p>
+          <p className="text-muted">{text.noVotes}</p>
         ) : (
           <ul className="grid gap-2">
             {roundWinners.map((row) => (
@@ -165,7 +169,7 @@ export default async function StatsPage({
                 <span className="text-muted">{row.title}</span>
                 <span className="font-medium">{row.teamName}</span>
                 <span className="text-muted">
-                  {row.votes} {row.votes === 1 ? "stemme" : "stemmer"}
+                  {t.tournaments.votes(row.votes)}
                 </span>
                 <a
                   href={row.url}
@@ -173,7 +177,7 @@ export default async function StatsPage({
                   rel="noopener noreferrer"
                   className="text-accent underline"
                 >
-                  Se målet ↗
+                  {t.tournaments.watchGoal}
                 </a>
               </li>
             ))}

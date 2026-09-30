@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "@/i18n/client";
 import type { ActionState } from "@/lib/actions";
 import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard } from "@/lib/career";
 import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filters";
@@ -23,23 +24,25 @@ const positionOrder = ["GK", "RB", "CB", "LB", "CDM", "CM", "CAM", "RW", "LW", "
 
 function PlayerCard({ player, owned, budget, action, pending }: { player: CatalogCard; owned: boolean; budget: number; action: (formData: FormData) => void; pending: boolean }) {
   const canBuy = !owned && budget >= player.price;
+  const text = useT().career.catalog;
   return <form action={action}>
     <PlayerCardFace player={player} className="group transition hover:-translate-y-1 hover:border-white/40" footer={<>
       <input type="hidden" name="catalog_id" value={player.id} />
-      <div className="flex items-center justify-between gap-3"><span className="rounded-full bg-black/20 px-3 py-1 text-sm font-bold">{player.price} MB</span><button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending}>{owned ? "Eies" : budget < player.price ? "For dyr" : "Kjøp kort"}</button></div>
+      <div className="flex items-center justify-between gap-3"><span className="rounded-full bg-black/20 px-3 py-1 text-sm font-bold">{player.price} MB</span><button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending}>{owned ? text.owned : budget < player.price ? text.tooExpensive : text.buy}</button></div>
     </>} />
   </form>;
 }
 
 function Catalog({ initialPage, owned, budget }: { initialPage: { cards: CatalogCard[]; total: number }; owned: Set<string>; budget: number }) {
   const [state, action, pending] = useActionState(buyCatalogCardAction, initial);
+  const t = useT(); const text = t.career.catalog; const filterText = t.career.filters; const clubName = t.career.clubName;
   const [search, setSearch] = useState(""); const [sort, setSort] = useState<CatalogFilters["sort"]>("overall"); const [filtersOpen, setFiltersOpen] = useState(false);
   const [position, setPosition] = useState("all"); const [minimum, setMinimum] = useState("0"); const [maximumPrice, setMaximumPrice] = useState(""); const [clubs, setClubs] = useState<string[]>([]); const [clubSearch, setClubSearch] = useState("");
   // Serveren søker og filtrerer, så her ligger bare kortene som er hentet så langt.
   const [page, setPage] = useState(initialPage); const [loading, setLoading] = useState(false); const [loadError, setLoadError] = useState("");
   const [clubOptions, setClubOptions] = useState<string[] | null>(null); const clubsRequested = useRef(false);
   const request = useRef(0); const loadedKey = useRef(JSON.stringify(defaultCatalogFilters));
-  const visibleClubs = useMemo(() => { const options = clubOptions ?? []; const needle = clubSearch.trim().toLocaleLowerCase("nb-NO"); return needle ? options.filter((club) => club.toLocaleLowerCase("nb-NO").includes(needle)) : options; }, [clubOptions, clubSearch]);
+  const visibleClubs = useMemo(() => { const options = clubOptions ?? []; const needle = clubSearch.trim().toLocaleLowerCase("nb-NO"); return needle ? options.filter((club) => club.toLocaleLowerCase("nb-NO").includes(needle) || clubName(club).toLocaleLowerCase("nb-NO").includes(needle)) : options; }, [clubName, clubOptions, clubSearch]);
   const parsedPrice = Number(maximumPrice); const priceLimit = maximumPrice.trim() === "" || !Number.isFinite(parsedPrice) ? null : parsedPrice;
   const activeFilters = (position === "all" ? 0 : 1) + (minimum === "0" ? 0 : 1) + (priceLimit !== null ? 1 : 0) + (clubs.length ? 1 : 0);
   const filters = useMemo<CatalogFilters>(() => ({ search: search.trim(), position, minimum: Number(minimum), maximumPrice: priceLimit, clubs, sort }), [clubs, minimum, position, priceLimit, search, sort]);
@@ -49,11 +52,11 @@ function Catalog({ initialPage, owned, budget }: { initialPage: { cards: Catalog
       const result = await loadCatalogPageAction(next, offset);
       if (id === request.current) setPage((current) => offset ? { cards: [...current.cards, ...result.cards], total: result.total } : result);
     } catch {
-      if (id === request.current) setLoadError("Klarte ikke å hente spillere. Prøv igjen.");
+      if (id === request.current) setLoadError(text.loadError);
     } finally {
       if (id === request.current) setLoading(false);
     }
-  }, []);
+  }, [text.loadError]);
   // Venter litt etter siste tastetrykk, så et søk ikke blir én spørring per bokstav.
   useEffect(() => {
     const key = JSON.stringify(filters);
@@ -69,20 +72,20 @@ function Catalog({ initialPage, owned, budget }: { initialPage: { cards: Catalog
   };
   const toggleClub = (club: string) => setClubs((current) => current.includes(club) ? current.filter((item) => item !== club) : [...current, club]);
   const resetFilters = () => { setPosition("all"); setMinimum("0"); setMaximumPrice(""); setClubs([]); setClubSearch(""); };
-  return <section className={`${cardClass} grid gap-4`}><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm font-semibold text-muted">SPILLERMARKED</p><h2 className="mt-1 text-2xl font-bold">Bygg drømmelaget</h2><p className="mt-1 text-sm text-muted">Katalogen selger spillere opp til {catalogBuyMaxOverall} i rating. Stjerner på {catalogBuyMaxOverall + 1}+ finnes bare i pakker og på overgangsmarkedet.</p></div><b className="rounded-xl bg-accent-soft px-4 py-3 text-xl text-accent">{budget} MB</b></div>
-    <div className="grid gap-2 rounded-xl border border-border bg-surface-raised p-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end"><label className="text-xs text-muted">Søk<input className="mt-1 w-full" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Spiller…" /></label><label className="text-xs text-muted">Sorter<select className="mt-1 w-full" value={sort} onChange={(event) => setSort(event.target.value as CatalogFilters["sort"])}><option value="overall">Rating (høy–lav)</option><option value="price-asc">Pris (lav–høy)</option><option value="price-desc">Pris (høy–lav)</option></select></label><button type="button" onClick={toggleFilters} aria-expanded={filtersOpen} className={secondaryButtonClass}>{filtersOpen ? "Skjul filter" : "Filter"}{activeFilters ? ` (${activeFilters})` : ""}</button></div>
+  return <section className={`${cardClass} grid gap-4`}><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm font-semibold text-muted">{text.eyebrow}</p><h2 className="mt-1 text-2xl font-bold">{text.heading}</h2><p className="mt-1 text-sm text-muted">{text.intro(catalogBuyMaxOverall)}</p></div><b className="rounded-xl bg-accent-soft px-4 py-3 text-xl text-accent">{budget} MB</b></div>
+    <div className="grid gap-2 rounded-xl border border-border bg-surface-raised p-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end"><label className="text-xs text-muted">{filterText.search}<input className="mt-1 w-full" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={text.playerPlaceholder} /></label><label className="text-xs text-muted">{filterText.sort}<select className="mt-1 w-full" value={sort} onChange={(event) => setSort(event.target.value as CatalogFilters["sort"])}><option value="overall">{filterText.ratingHighLow}</option><option value="price-asc">{filterText.priceLowHigh}</option><option value="price-desc">{filterText.priceHighLow}</option></select></label><button type="button" onClick={toggleFilters} aria-expanded={filtersOpen} className={secondaryButtonClass}>{filtersOpen ? text.hideFilters : text.showFilters}{activeFilters ? ` (${activeFilters})` : ""}</button></div>
     {filtersOpen ? <div className="grid gap-3 rounded-xl border border-border bg-surface-raised p-3">
-      <div className="grid gap-2 sm:grid-cols-3"><label className="text-xs text-muted">Posisjon<select className="mt-1 w-full" value={position} onChange={(event) => setPosition(event.target.value)}><option value="all">Alle</option>{positionOrder.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs text-muted">Min. rating<select className="mt-1 w-full" value={minimum} onChange={(event) => setMinimum(event.target.value)}>{[0, 70, 75, 80].map((value) => <option key={value} value={value}>{value === 0 ? "Alle" : `${value}+`}</option>)}</select></label><label className="text-xs text-muted">Maks pris (MB)<input className="mt-1 w-full" type="number" min="0" step="5" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} placeholder="Ingen grense" /></label></div>
-      <div className="grid gap-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-muted">Klubber{clubs.length ? ` · ${clubs.length} valgt` : " · alle"}</p><div className="flex gap-3 text-xs">{clubs.length ? <button type="button" className="underline" onClick={() => setClubs([])}>Fjern klubbvalg</button> : null}{activeFilters ? <button type="button" className="underline" onClick={resetFilters}>Nullstill alle filtre</button> : null}</div></div>
-        {clubs.length ? <div className="flex flex-wrap gap-1">{clubs.map((club) => <button key={club} type="button" onClick={() => toggleClub(club)} className="rounded-full bg-accent-soft px-3 py-1 text-xs text-accent" aria-label={`Fjern ${club}`}>{club} ×</button>)}</div> : null}
-        <input className="w-full" value={clubSearch} onChange={(event) => setClubSearch(event.target.value)} placeholder="Søk etter klubb…" aria-label="Søk etter klubb" />
-        {clubOptions === null ? <p className="p-4 text-center text-sm text-muted">Henter klubber…</p> : visibleClubs.length ? <div className="grid max-h-56 gap-1 overflow-y-auto rounded-lg border border-border p-2 sm:grid-cols-2 lg:grid-cols-3">{visibleClubs.map((club) => <label key={club} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={clubs.includes(club)} onChange={() => toggleClub(club)} /><span className="truncate">{club}</span></label>)}</div> : <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted">Ingen klubber matcher søket.</p>}</div>
+      <div className="grid gap-2 sm:grid-cols-3"><label className="text-xs text-muted">{filterText.position}<select className="mt-1 w-full" value={position} onChange={(event) => setPosition(event.target.value)}><option value="all">{filterText.all}</option>{positionOrder.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs text-muted">{text.minRating}<select className="mt-1 w-full" value={minimum} onChange={(event) => setMinimum(event.target.value)}>{[0, 70, 75, 80].map((value) => <option key={value} value={value}>{value === 0 ? filterText.all : `${value}+`}</option>)}</select></label><label className="text-xs text-muted">{text.maxPrice}<input className="mt-1 w-full" type="number" min="0" step="5" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} placeholder={text.noLimit} /></label></div>
+      <div className="grid gap-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-muted">{clubs.length ? text.clubsSelected(clubs.length) : text.clubsAll}</p><div className="flex gap-3 text-xs">{clubs.length ? <button type="button" className="underline" onClick={() => setClubs([])}>{text.clearClubs}</button> : null}{activeFilters ? <button type="button" className="underline" onClick={resetFilters}>{text.resetFilters}</button> : null}</div></div>
+        {clubs.length ? <div className="flex flex-wrap gap-1">{clubs.map((club) => <button key={club} type="button" onClick={() => toggleClub(club)} className="rounded-full bg-accent-soft px-3 py-1 text-xs text-accent" aria-label={text.removeClub(clubName(club))}>{clubName(club)} ×</button>)}</div> : null}
+        <input className="w-full" value={clubSearch} onChange={(event) => setClubSearch(event.target.value)} placeholder={text.searchClubPlaceholder} aria-label={text.searchClub} />
+        {clubOptions === null ? <p className="p-4 text-center text-sm text-muted">{text.loadingClubs}</p> : visibleClubs.length ? <div className="grid max-h-56 gap-1 overflow-y-auto rounded-lg border border-border p-2 sm:grid-cols-2 lg:grid-cols-3">{visibleClubs.map((club) => <label key={club} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={clubs.includes(club)} onChange={() => toggleClub(club)} /><span className="truncate">{clubName(club)}</span></label>)}</div> : <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted">{text.noClubs}</p>}</div>
     </div> : null}
-    <p className="text-sm text-muted">{loading && !page.cards.length ? "Henter spillere…" : `Viser ${page.cards.length} av ${page.total} kort.`}</p>
-    {page.cards.length ? <div className={`grid gap-3 transition-opacity sm:grid-cols-2 lg:grid-cols-3 ${loading ? "opacity-60" : ""}`}>{page.cards.map((player) => <PlayerCard key={player.id} player={player} owned={owned.has(player.id)} budget={budget} action={action} pending={pending} />)}</div> : loading ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">Ingen spillere passer filtrene.</p>}
+    <p className="text-sm text-muted">{loading && !page.cards.length ? text.loadingPlayers : filterText.showing(page.cards.length, page.total)}</p>
+    {page.cards.length ? <div className={`grid gap-3 transition-opacity sm:grid-cols-2 lg:grid-cols-3 ${loading ? "opacity-60" : ""}`}>{page.cards.map((player) => <PlayerCard key={player.id} player={player} owned={owned.has(player.id)} budget={budget} action={action} pending={pending} />)}</div> : loading ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.noPlayers}</p>}
     {loadError ? <p className="text-sm text-danger">{loadError}</p> : null}
-    {page.cards.length < page.total ? <button type="button" className={`${secondaryButtonClass} justify-self-center`} disabled={loading} onClick={() => void load(filters, page.cards.length)}>{loading ? "Henter…" : "Vis flere"}</button> : null}
-    {state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">Spilleren er lagt til.</p> : null}
+    {page.cards.length < page.total ? <button type="button" className={`${secondaryButtonClass} justify-self-center`} disabled={loading} onClick={() => void load(filters, page.cards.length)}>{loading ? text.loadingMore : text.showMore}</button> : null}
+    {state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">{text.added}</p> : null}
   </section>;
 }
 
@@ -121,6 +124,7 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const t = useT(); const text = t.career.squad;
   const [savedSnapshot] = useState(`${savedFormation}|${initialLineup.starters.join(",")}|${initialLineup.bench.join(",")}`);
   const [state, action, pending] = useActionState(saveManagerLineupAction, initial);
   // Egen handling: «Velg beste tropp» henter fra hele klubben og må derfor flytte kort på serveren.
@@ -137,8 +141,8 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
     const sourceStarter = starters.indexOf(sourceId); const targetStarter = starters.indexOf(targetId);
     const sourceBench = bench.indexOf(sourceId); const targetBench = bench.indexOf(targetId);
     const slots = formations[formation];
-    if (targetStarter >= 0 && !canPlayPosition(source.position, slots[targetStarter].position)) { setNotice(`${source.name} kan ikke spille ${slots[targetStarter].position}.`); return; }
-    if (sourceStarter >= 0 && targetStarter >= 0 && !canPlayPosition(target.position, slots[sourceStarter].position)) { setNotice(`${target.name} kan ikke spille ${slots[sourceStarter].position}.`); return; }
+    if (targetStarter >= 0 && !canPlayPosition(source.position, slots[targetStarter].position)) { setNotice(text.cannotPlay(source.name, slots[targetStarter].position)); return; }
+    if (sourceStarter >= 0 && targetStarter >= 0 && !canPlayPosition(target.position, slots[sourceStarter].position)) { setNotice(text.cannotPlay(target.name, slots[sourceStarter].position)); return; }
     const nextStarters = [...starters]; const nextBench = [...bench];
     if (targetStarter >= 0) {
       nextStarters[targetStarter] = sourceId;
@@ -178,16 +182,16 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   const selected = selectedId ? cardById.get(selectedId) : null;
   const selectedFlag = selected ? playerFlag(selected.slug) : null;
   const visibleSlots = formations[formation];
-  return <section className={`${cardClass} grid gap-5 overflow-hidden`}><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-[.22em] text-cyan-300">SQUAD</p><h2 className="mt-1 text-2xl font-black">Troppen min</h2><p className="mt-1 text-sm text-muted">Dra kort for å bytte spillere. Du trenger 11 i elleveren og 7 på benken før laget kan lagres.</p></div><span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{cards.length} / {squadCapacity}</span></div>
+  return <section className={`${cardClass} grid gap-5 overflow-hidden`}><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-[.22em] text-cyan-300">{text.eyebrow}</p><h2 className="mt-1 text-2xl font-black">{text.heading}</h2><p className="mt-1 text-sm text-muted">{text.intro}</p></div><span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{cards.length} / {squadCapacity}</span></div>
     <form action={action} className="grid gap-4"><input type="hidden" name="formation" value={formation} />{starters.map((id) => <input key={`starter-${id}`} type="hidden" name="starter_ids" value={id} />)}{bench.map((id) => <input key={`bench-${id}`} type="hidden" name="bench_ids" value={id} />)}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3"><label className="text-sm font-semibold text-white/75">Formasjon<select value={formation} onChange={(event) => chooseFormation(event.target.value as Formation)} className="ml-2 bg-slate-900 text-sm"><>{formationNames.map((name) => <option key={name}>{name}</option>)}</></select></label><button type="submit" formAction={autoAction} className={secondaryButtonClass} disabled={autoPending}>{autoPending ? "Henter beste tropp…" : "Velg beste tropp"}</button><span className="ml-auto text-xs text-white/50">{starters.length}/11 XI · {bench.length}/7 benk</span></div>
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3"><label className="text-sm font-semibold text-white/75">{text.formation}<select value={formation} onChange={(event) => chooseFormation(event.target.value as Formation)} className="ml-2 bg-slate-900 text-sm"><>{formationNames.map((name) => <option key={name}>{name}</option>)}</></select></label><button type="submit" formAction={autoAction} className={secondaryButtonClass} disabled={autoPending}>{autoPending ? text.pickingBest : text.pickBest}</button><span className="ml-auto text-xs text-white/50">{text.counts(starters.length, bench.length)}</span></div>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">{/* Høy bane på mobil, bred fra sm og opp. Mål og kortbredder følger pitchLayouts i squad-pitch.tsx. */}
         <div className="@container relative aspect-[1000/1500] overflow-hidden rounded-2xl border border-emerald-200/25 bg-[#062a1d] shadow-[inset_0_0_90px_rgba(0,0,0,.6)] sm:aspect-[1000/900]"><PitchMarkings layout="tall" className="sm:hidden" /><PitchMarkings layout="wide" className="hidden sm:block" />
         {visibleSlots.map((slot, index) => { const card = cardById.get(starters[index]); const tall = slotPoint(slot, "tall"); const wide = slotPoint(slot, "wide"); return card ? <div key={`${slot.position}-${index}`} className="absolute left-(--tall-left) top-(--tall-top) w-[16cqw] -translate-x-1/2 -translate-y-1/2 sm:left-(--wide-left) sm:top-(--wide-top) sm:w-[clamp(60px,12.5cqw,170px)]" style={{ "--tall-left": tall.left, "--tall-top": tall.top, "--wide-left": wide.left, "--wide-top": wide.top } as React.CSSProperties}><SquadCard card={card} position={slot.position} {...cardProps(card.id)} /></div> : null; })}</div>
-        <aside className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 text-white">{selected ? <><div className="flex items-start gap-3">{selectedFlag ? <Image src={selectedFlag} alt="" width={48} height={36} unoptimized className="mt-1 h-9 w-12 shrink-0 rounded object-cover shadow ring-1 ring-black/30" /> : null}<div><p className="text-xs font-bold tracking-[.18em] text-cyan-300">SPILLERDETALJER</p><h3 className="mt-1 text-lg font-black">{selected.name}</h3><p className="text-sm text-white/55">{selected.club}</p></div></div><div className="mt-5 grid grid-cols-2 gap-3 text-center">{[["OVR", selected.overall], ...Object.entries(selected.attributes).slice(0, 5).map(([key, value]) => [key.slice(0, 3).toUpperCase(), value])].map(([label, value]) => <div key={String(label)} className="rounded-lg bg-white/8 p-3"><b className="block text-2xl">{value}</b><span className="text-[10px] font-bold text-white/45">{label}</span></div>)}</div></> : <div className="grid h-full min-h-36 place-items-center text-center text-sm text-white/50">Trykk på et spillerkort for detaljer.</div>}</aside></div>
-      <div><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-black tracking-wide">BENK</h3><span className="text-xs text-muted">Dra spillere hit for å bytte</span></div><div className="flex flex-wrap gap-3">{bench.map((id) => { const card = cardById.get(id); return card ? <div key={id} className={benchCardClass}><SquadCard card={card} position={card.position} {...cardProps(id)} /></div> : null; })}</div></div>
-      <div><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-black tracking-wide">RESERVER</h3><span className="text-xs text-muted">{reserves.length} tilgjengelige</span></div>{reserves.length ? <div className="flex flex-wrap gap-3">{reserves.map((card) => <div key={card.id} className={benchCardClass}><SquadCard card={card} position={card.position} {...cardProps(card.id)} /></div>)}</div> : <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted">Ingen reserver i troppen.</p>}</div>
-      <div className="flex flex-wrap items-center gap-3"><button className={buttonClass} disabled={!canSave}>{pending ? "Lagrer…" : "Lagre ellever"}</button>{!canSave && !pending ? <span className="text-xs text-muted">{starters.length !== 11 || bench.length !== 7 ? "Velg 11 startspillere og 7 på benken." : "Ingen ulagrede endringer."}</span> : null}{notice ? <span className="text-sm text-cyan-300">{notice}</span> : null}{autoState.error ? <p className="text-sm text-danger">{autoState.error}</p> : null}{state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">Elleveren er lagret.</p> : null}</div>
+        <aside className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 text-white">{selected ? <><div className="flex items-start gap-3">{selectedFlag ? <Image src={selectedFlag} alt="" width={48} height={36} unoptimized className="mt-1 h-9 w-12 shrink-0 rounded object-cover shadow ring-1 ring-black/30" /> : null}<div><p className="text-xs font-bold tracking-[.18em] text-cyan-300">{text.playerDetails}</p><h3 className="mt-1 text-lg font-black">{selected.name}</h3><p className="text-sm text-white/55">{t.career.clubName(selected.club)}</p></div></div><div className="mt-5 grid grid-cols-2 gap-3 text-center">{[["OVR", selected.overall], ...Object.entries(selected.attributes).slice(0, 5).map(([key, value]) => [key.slice(0, 3).toUpperCase(), value])].map(([label, value]) => <div key={String(label)} className="rounded-lg bg-white/8 p-3"><b className="block text-2xl">{value}</b><span className="text-[10px] font-bold text-white/45">{label}</span></div>)}</div></> : <div className="grid h-full min-h-36 place-items-center text-center text-sm text-white/50">{text.tapForDetails}</div>}</aside></div>
+      <div><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-black tracking-wide">{text.bench}</h3><span className="text-xs text-muted">{text.dragHere}</span></div><div className="flex flex-wrap gap-3">{bench.map((id) => { const card = cardById.get(id); return card ? <div key={id} className={benchCardClass}><SquadCard card={card} position={card.position} {...cardProps(id)} /></div> : null; })}</div></div>
+      <div><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-black tracking-wide">{text.reserves}</h3><span className="text-xs text-muted">{text.available(reserves.length)}</span></div>{reserves.length ? <div className="flex flex-wrap gap-3">{reserves.map((card) => <div key={card.id} className={benchCardClass}><SquadCard card={card} position={card.position} {...cardProps(card.id)} /></div>)}</div> : <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted">{text.noReserves}</p>}</div>
+      <div className="flex flex-wrap items-center gap-3"><button className={buttonClass} disabled={!canSave}>{pending ? text.saving : text.save}</button>{!canSave && !pending ? <span className="text-xs text-muted">{starters.length !== 11 || bench.length !== 7 ? text.needFullLineup : text.noChanges}</span> : null}{notice ? <span className="text-sm text-cyan-300">{notice}</span> : null}{autoState.error ? <p className="text-sm text-danger">{autoState.error}</p> : null}{state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">{text.saved}</p> : null}</div>
     </form>
     {/* Kortet som følger pekeren. Portal til body, så det ikke klippes av banen (overflow-hidden) når det dras ned til benken. */}
     {ghost && ghostCard ? createPortal(<div ref={(element) => { ghostRef.current = element; moveGhost(); }} aria-hidden className="pointer-events-none fixed left-0 top-0 z-50" style={{ width: ghost.width }}><div className="rotate-3 scale-110 drop-shadow-[0_18px_24px_rgba(0,0,0,.55)]"><SquadCard card={ghostCard} position={ghostPosition ?? ghostCard.position} active selected={false} /></div></div>, document.body) : null}
@@ -198,53 +202,56 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
 function QuickSellButton({ card, value }: { card: ManagerCard; value: number }) {
   const [state, action, pending] = useActionState(quickSellManagerCardAction, initial);
   const payout = quickSellValue(value);
-  return <form action={action} className="flex flex-wrap items-center gap-2"><input type="hidden" name="card_id" value={card.id} /><button className={secondaryButtonClass} disabled={pending} onClick={(event) => { if (!window.confirm(`Hurtigselge ${card.name} for ${payout} MB? Dette kan ikke angres.`)) event.preventDefault(); }}>Hurtigsalg ({payout} MB)</button>{state.error ? <span className="text-sm text-danger">{state.error}</span> : null}</form>;
+  const text = useT().career.quickSell;
+  return <form action={action} className="flex flex-wrap items-center gap-2"><input type="hidden" name="card_id" value={card.id} /><button className={secondaryButtonClass} disabled={pending} onClick={(event) => { if (!window.confirm(text.confirm(card.name, payout))) event.preventDefault(); }}>{text.button(payout)}</button>{state.error ? <span className="text-sm text-danger">{state.error}</span> : null}</form>;
 }
 
 function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; squad: ManagerCard[]; listedCardIds: Set<string> }) {
   const [moveState, moveAction, movePending] = useActionState(moveManagerCardAction, initial);
   const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
   const roomInSquad = squad.length < squadCapacity;
+  const t = useT(); const text = t.career.storage; const filterText = t.career.filters; const clubName = t.career.clubName;
   const message = moveState.error ?? swapState.error;
   // Lageret har ingen grense, så med mange kort trengs søk, posisjonsfilter og sortering.
   const [search, setSearch] = useState(""); const [position, setPosition] = useState("all"); const [sort, setSort] = useState("overall-desc");
   const cards = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("nb-NO");
-    const matches = storage.filter((card) => (position === "all" || card.position === position) && (!needle || card.name.toLocaleLowerCase("nb-NO").includes(needle) || card.club.toLocaleLowerCase("nb-NO").includes(needle)));
+    const matches = storage.filter((card) => (position === "all" || card.position === position) && (!needle || card.name.toLocaleLowerCase("nb-NO").includes(needle) || card.club.toLocaleLowerCase("nb-NO").includes(needle) || clubName(card.club).toLocaleLowerCase("nb-NO").includes(needle)));
     if (sort === "overall-asc") return matches.sort((first, second) => first.overall - second.overall || first.name.localeCompare(second.name, "nb-NO"));
     if (sort === "value-desc") return matches.sort((first, second) => second.value - first.value || second.overall - first.overall);
     if (sort === "name") return matches.sort((first, second) => first.name.localeCompare(second.name, "nb-NO"));
     if (sort === "position") return matches.sort((first, second) => positionOrder.indexOf(first.position) - positionOrder.indexOf(second.position) || second.overall - first.overall);
     return matches.sort((first, second) => second.overall - first.overall || first.name.localeCompare(second.name, "nb-NO"));
-  }, [position, search, sort, storage]);
+  }, [clubName, position, search, sort, storage]);
   const positions = useMemo(() => positionOrder.filter((item) => storage.some((card) => card.position === item)), [storage]);
   return <section className={`${cardClass} grid gap-4`}>
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h2 className="text-lg font-semibold">Klubblageret</h2><p className="text-sm text-muted">{roomInSquad ? "Det er ledig plass i troppen, så du kan sette inn spillere direkte." : "Troppen er full. Velg hvem som må ut for å få en spiller inn."}</p></div>
-      <span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{storage.length} kort</span>
+      <div><h2 className="text-lg font-semibold">{text.heading}</h2><p className="text-sm text-muted">{roomInSquad ? text.roomInSquad : text.squadFull}</p></div>
+      <span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{text.cardCount(storage.length)}</span>
     </div>
-    {storage.length ? <div className="grid gap-2 rounded-xl border border-border bg-surface-raised p-3 sm:grid-cols-[2fr_1fr_1fr] sm:items-end"><label className="text-xs text-muted">Søk<input className="mt-1 w-full" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Spiller eller klubb…" /></label><label className="text-xs text-muted">Posisjon<select className="mt-1 w-full" value={position} onChange={(event) => setPosition(event.target.value)}><option value="all">Alle</option>{positions.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs text-muted">Sorter<select className="mt-1 w-full" value={sort} onChange={(event) => setSort(event.target.value)}><option value="overall-desc">Rating (høy–lav)</option><option value="overall-asc">Rating (lav–høy)</option><option value="value-desc">Verdi (høy–lav)</option><option value="position">Posisjon</option><option value="name">Navn (A–Å)</option></select></label></div> : null}
-    {storage.length && cards.length !== storage.length ? <p className="text-sm text-muted">Viser {cards.length} av {storage.length} kort.</p> : null}
-    {storage.length && !cards.length ? <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">Ingen kort passer filteret.</p> : null}
+    {storage.length ? <div className="grid gap-2 rounded-xl border border-border bg-surface-raised p-3 sm:grid-cols-[2fr_1fr_1fr] sm:items-end"><label className="text-xs text-muted">{filterText.search}<input className="mt-1 w-full" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={text.searchPlaceholder} /></label><label className="text-xs text-muted">{filterText.position}<select className="mt-1 w-full" value={position} onChange={(event) => setPosition(event.target.value)}><option value="all">{filterText.all}</option>{positions.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs text-muted">{filterText.sort}<select className="mt-1 w-full" value={sort} onChange={(event) => setSort(event.target.value)}><option value="overall-desc">{filterText.ratingHighLow}</option><option value="overall-asc">{filterText.ratingLowHigh}</option><option value="value-desc">{filterText.valueHighLow}</option><option value="position">{filterText.position}</option><option value="name">{filterText.name}</option></select></label></div> : null}
+    {storage.length && cards.length !== storage.length ? <p className="text-sm text-muted">{filterText.showing(cards.length, storage.length)}</p> : null}
+    {storage.length && !cards.length ? <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.noMatches}</p> : null}
     {cards.length ? <div className="grid gap-2">{cards.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
       <div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold">{card.overall}</div>
-      <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position} · {card.club}</span></div>
-      {roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>Sett i troppen</button></form>
-        : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={`Bytt ${card.name} med`} defaultValue="">{<option value="" disabled>Bytt med…</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>Bytt</button></form>}
-      {card.tradable && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">Ligger ute på markedet</span> : <QuickSellButton card={card} value={card.value} /> : null}
-    </div>)}</div> : storage.length ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">Lageret er tomt. Kort du ikke får plass til i troppen havner her.</p>}
+      <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position} · {clubName(card.club)}</span></div>
+      {roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>{text.moveToSquad}</button></form>
+        : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={text.swapWith(card.name)} defaultValue="">{<option value="" disabled>{text.swapWithPlaceholder}</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>{text.swap}</button></form>}
+      {card.tradable && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">{text.listed}</span> : <QuickSellButton card={card} value={card.value} /> : null}
+    </div>)}</div> : storage.length ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.empty}</p>}
     {message ? <p className="text-sm text-danger">{message}</p> : null}
   </section>;
 }
 
 function Duplicates({ groups }: { groups: ManagerCard[][] }) {
+  const text = useT().career.duplicates;
   if (groups.length === 0) return null;
   return <section className={`${cardClass} grid gap-4 border-danger/40`}>
-    <div><h2 className="text-lg font-semibold">Duplikater må avklares</h2><p className="text-sm text-muted">Du eier samme spiller flere ganger. Legg ett av kortene ut på overgangsmarkedet, eller hurtigselg det her for 25 % av verdien. Pakker er stengt til det er gjort.</p></div>
+    <div><h2 className="text-lg font-semibold">{text.heading}</h2><p className="text-sm text-muted">{text.intro}</p></div>
     {groups.map((group) => <div key={group[0].catalog_id} className="grid gap-2 rounded-lg border border-border p-3">
-      <b className="text-sm">{group[0].name} · {group.length} eksemplarer</b>
+      <b className="text-sm">{text.copies(group[0].name, group.length)}</b>
       {group.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="flex-1 text-muted">{card.overall} {card.position} · {card.location === "squad" ? "i troppen" : "på lageret"} · kjøpt for {card.acquired_price} MB</span>
+        <span className="flex-1 text-muted">{text.card(card.overall, card.position, card.location === "squad", card.acquired_price)}</span>
         <QuickSellButton card={card} value={card.value} />
       </div>)}
     </div>)}

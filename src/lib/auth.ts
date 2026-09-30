@@ -3,6 +3,7 @@ import "server-only";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { getT, syncLocaleAfterLogin } from "@/i18n/server";
 import { supabaseAdmin } from "./supabase/server";
 
 const SESSION_COOKIE = "tournament_session";
@@ -67,6 +68,7 @@ export async function setSession(userId: string) {
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
+  await syncLocaleAfterLogin(userId);
 }
 
 export async function clearSession() {
@@ -101,6 +103,6 @@ export const currentUser = cache(async (): Promise<AppUser | null> => {
 
 export async function requireUser(): Promise<AppUser> {
   const user = await currentUser();
-  if (!user) throw new Error("Du må logge inn først");
+  if (!user) throw new Error((await getT()).common.notLoggedIn);
   return user;
 }

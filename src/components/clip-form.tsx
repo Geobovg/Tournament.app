@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useSyncExternalStore } from "react";
+import { useT } from "@/i18n/client";
 import { submitClipAction, type ActionState } from "@/lib/actions";
 import { labelClass, secondaryButtonClass } from "./ui";
 
@@ -45,6 +46,7 @@ export function ClipForm({
   matchId: string;
 }) {
   const router = useRouter();
+  const text = useT().tournaments.clips;
   const [state, action, pending] = useActionState(submitClipAction, initialState);
   const skipped = useSyncExternalStore(
     subscribe,
@@ -60,13 +62,13 @@ export function ClipForm({
   if (skipped) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
-        <p className="text-sm text-muted">Ingen bangers denne kampen.</p>
+        <p className="text-sm text-muted">{text.noBangers}</p>
         <button
           type="button"
           onClick={() => writeSkip(matchId, false)}
           className="text-sm text-accent underline"
         >
-          Legg inn målvideo likevel
+          {text.addAnyway}
         </button>
       </div>
     );
@@ -78,7 +80,7 @@ export function ClipForm({
 
       <div>
         <label className={labelClass} htmlFor={`clip-${matchId}`}>
-          Lenke til målvideo (YouTube o.l.)
+          {text.linkLabel}
         </label>
         <input
           id={`clip-${matchId}`}
@@ -89,19 +91,19 @@ export function ClipForm({
           required
         />
         <p className="mt-1 text-sm text-muted">
-          Maks ett klipp per lag per kamp – en ny lenke erstatter den forrige.
+          {text.hint}
         </p>
       </div>
 
       {state.error ? <p className="text-danger">{state.error}</p> : null}
-      {state.ok ? <p className="text-success">Målvideoen er lagt inn!</p> : null}
+      {state.ok ? <p className="text-success">{text.added}</p> : null}
 
       <div className="flex flex-wrap gap-3">
         <button type="submit" className={secondaryButtonClass} disabled={pending}>
-          {pending ? "Lagrer…" : "Legg inn målvideo"}
+          {pending ? text.saving : text.add}
         </button>
         <button type="button" onClick={skip} className={secondaryButtonClass}>
-          Ingen bangers - Skip
+          {text.skip}
         </button>
       </div>
     </form>

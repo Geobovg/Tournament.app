@@ -22,6 +22,8 @@ import {
   listVotes,
 } from "@/lib/data";
 import { currentUser } from "@/lib/auth";
+import { getT } from "@/i18n/server";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { listFriends } from "@/lib/friends";
 import { knockoutRoundLabel, statusLabel, typeLabel } from "@/lib/labels";
 import { knockoutCutoff } from "@/lib/tournament/bracket";
@@ -68,6 +70,7 @@ function RoundVoting({
   teamNames,
   voterId,
   defaultOpen,
+  t,
 }: {
   stage: MatchStage;
   roundNumber: number;
@@ -77,7 +80,9 @@ function RoundVoting({
   teamNames: Map<string, string>;
   voterId: string | null;
   defaultOpen: boolean;
+  t: Dictionary;
 }) {
+  const text = t.tournaments.voting;
   const matchIds = new Set(matches.map((match) => match.id));
   const roundClips = clips.filter((clip) => matchIds.has(clip.match_id));
   const roundVotes = votes.filter(
@@ -93,18 +98,14 @@ function RoundVoting({
     >
       <summary className="cursor-pointer text-sm font-medium">
         {roundClips.length === 0 ? (
-          <span className="text-muted">
-            Rundens mål – ingen målvideoer lagt inn ennå
-          </span>
+          <span className="text-muted">{text.noClips}</span>
         ) : myVoteClipId ? (
           <>
-            Rundens mål ({roundClips.length} klipp) ·{" "}
-            <span className="text-accent">du har stemt ✓</span>
+            {text.summary(roundClips.length)}
+            <span className="text-accent">{text.youVoted}</span>
           </>
         ) : (
-          <span className="text-accent">
-            Stem på rundens mål ({roundClips.length} klipp)
-          </span>
+          <span className="text-accent">{text.cta(roundClips.length)}</span>
         )}
       </summary>
       <div className="mt-4">
@@ -124,11 +125,14 @@ function KnockoutTie({
   legs,
   teamNames,
   tournament,
+  t,
 }: {
   legs: Match[];
   teamNames: Map<string, string>;
   tournament: Tournament;
+  t: Dictionary;
 }) {
+  const text = t.tournaments.detail;
   const state = resolveTie(legs, tournament.type);
   const first = legs[0];
   const homeName = first.home_team_id ? teamNames.get(first.home_team_id) : null;
@@ -138,11 +142,11 @@ function KnockoutTie({
     <div className="rounded-lg border border-border p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="font-medium">
-          {first.is_bye ? `${homeName} (fribytte)` : `${homeName} mot ${awayName}`}
+          {first.is_bye ? text.bye(homeName ?? "") : text.versus(homeName ?? "", awayName ?? "")}
         </p>
         {state.decided && state.winnerTeamId ? (
           <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
-            {teamNames.get(state.winnerTeamId)} videre
+            {text.advances(teamNames.get(state.winnerTeamId) ?? "")}
           </span>
         ) : null}
       </div>
@@ -168,6 +172,8 @@ export default async function TournamentPage({
   if (!user) redirect(`/login?next=/tournaments/${id}`);
   const tournament = await getTournament(id);
   if (!tournament) notFound();
+  const t = await getT();
+  const text = t.tournaments.detail;
 
   const [teams, matches, votes, members] = await Promise.all([
     listTeams(id),
@@ -221,7 +227,7 @@ export default async function TournamentPage({
         type={tournament.type}
         tournamentId={id}
         tournamentName={tournament.name}
-        winnerName={teamNames.get(champion) ?? "Ukjent lag"}
+        winnerName={teamNames.get(champion) ?? t.tournaments.unknownTeam}
       />
     );
   }
@@ -233,27 +239,28 @@ export default async function TournamentPage({
       <TournamentHero
         type={tournament.type}
         title={tournament.name}
-        meta={`${typeLabel(tournament.type)} · ${statusLabel(tournament.status)} · ${namedTeams.length}/${tournament.max_teams} lag`}
+        meta={`${typeLabel(tournament.type)} · ${statusLabel(tournament.status, t)} · ${text.teamsMeta(namedTeams.length, tournament.max_teams)}`}
         back={
           <Link href="/turneringer" className="text-sm text-muted hover:underline">
-            ← Alle turneringer
+            ← {text.allTournaments}
           </Link>
         }
+        t={t}
         actions={
-          <div className="flex items-center gap-2"><Link href={`/tournaments/${id}/stats`} className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-surface-raised">Statistikk</Link>{isOwner ? <TournamentSettings tournamentId={id} tournamentName={tournament.name} inviteToken={tournament.invite_token} inviteCode={tournament.invite_code} members={members.filter((member) => member.user_id !== user.id)} friends={availableFriends} registrationOpen={tournament.status === "registration"} /> : null}</div>
+          <div className="flex items-center gap-2"><Link href={`/tournaments/${id}/stats`} className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-surface-raised">{text.stats}</Link>{isOwner ? <TournamentSettings tournamentId={id} tournamentName={tournament.name} inviteToken={tournament.invite_token} inviteCode={tournament.invite_code} members={members.filter((member) => member.user_id !== user.id)} friends={availableFriends} registrationOpen={tournament.status === "registration"} /> : null}</div>
         }
       />
 
       {tournament.status === "registration" ? (
         <div className="grid gap-6 md:grid-cols-2">
           <section className={cardClass}>
-            <h2 className="mb-4 text-lg font-semibold">Velg laget ditt</h2>
+            <h2 className="mb-4 text-lg font-semibold">{text.chooseTeam}</h2>
             {myMembership ? <TeamPicker tournamentId={id} teamSize={tournament.team_size} slots={slots} myTeamId={myMembership.team_id} joined /> : isOwner ? <JoinTournamentForm tournamentId={id} inviteToken="" /> : null}
           </section>
 
           <section className={cardClass}>
             <h2 className="mb-4 text-lg font-semibold">
-              Lag ({slots.filter((slot) => slot.name).length}/{tournament.max_teams})
+              {text.teamsHeading(slots.filter((slot) => slot.name).length, tournament.max_teams)}
             </h2>
               {hasSelectedTeam ? <ul className="mb-5 grid gap-2">
                 {slots.map((team, index) => (
@@ -261,27 +268,24 @@ export default async function TournamentPage({
                     key={team.id}
                     className="rounded-lg border border-border px-3 py-2 text-sm"
                   >
-                    <div className="flex justify-between gap-3"><span>{team.name ?? `Lag ${index + 1}`}</span><span className="text-muted">{team.members.length}/{tournament.team_size}</span></div>
+                    <div className="flex justify-between gap-3"><span>{team.name ?? text.teamSlot(index + 1)}</span><span className="text-muted">{team.members.length}/{tournament.team_size}</span></div>
                     {team.members.length > 0 ? <p className="mt-1 text-xs text-muted">{team.members.map((member) => member.username).join(", ")}</p> : null}
                   </li>
                 ))}
-              </ul> : <p className="mb-5 text-sm text-muted">Velg et ledig lag i panelet til venstre for å bli med på et lag.</p>}
+              </ul> : <p className="mb-5 text-sm text-muted">{text.pickTeamHint}</p>}
 
             <p className="mb-4 text-sm text-muted">
-              Med {tournament.max_teams} lag går topp {knockoutCutoff(tournament.max_teams)} videre
-              til sluttspillet. Sluttspillet spilles med{" "}
-              {tournament.legs_per_knockout_round === 2 ? "2 kamper" : "1 kamp"} per
-              duell (finalen alltid 1 kamp).
+              {text.knockoutInfo(tournament.max_teams, knockoutCutoff(tournament.max_teams), tournament.legs_per_knockout_round)}
             </p>
 
-            {isOwner ? <LockRegistrationForm tournamentId={id} ready={registrationReady} /> : <p className="text-sm text-muted">Arrangøren starter turneringen når alle lag er klare.</p>}
+            {isOwner ? <LockRegistrationForm tournamentId={id} ready={registrationReady} /> : <p className="text-sm text-muted">{text.ownerStarts}</p>}
           </section>
         </div>
       ) : null}
 
       {leagueMatches.length > 0 ? (
         <section className={`${cardClass} min-w-0`}>
-          <h2 className="mb-4 text-lg font-semibold">Tabell</h2>
+          <h2 className="mb-4 text-lg font-semibold">{text.table}</h2>
           <StandingsTable
             rows={standings}
             type={tournament.type}
@@ -292,11 +296,11 @@ export default async function TournamentPage({
 
       {leagueMatches.length > 0 ? (
         <section className="grid gap-4">
-          <h2 className="text-lg font-semibold">Ligaspill</h2>
+          <h2 className="text-lg font-semibold">{text.league}</h2>
           {[...groupByRound(leagueMatches).entries()].map(
             ([roundNumber, roundMatches]) => (
               <div key={roundNumber} className={cardClass}>
-                <h3 className="mb-3 font-medium">Runde {roundNumber}</h3>
+                <h3 className="mb-3 font-medium">{text.round(roundNumber)}</h3>
                 <ul className="grid gap-2">
                   {roundMatches.map((match) => (
                     <MatchRow
@@ -316,6 +320,7 @@ export default async function TournamentPage({
                   teamNames={teamNames}
                   voterId={voterId}
                   defaultOpen={roundNumber === openLeagueVote}
+                  t={t}
                 />
               </div>
             ),
@@ -325,13 +330,13 @@ export default async function TournamentPage({
 
       {knockoutMatches.length > 0 ? (
         <section className="grid gap-4">
-          <h2 className="text-lg font-semibold">Sluttspill</h2>
+          <h2 className="text-lg font-semibold">{text.knockout}</h2>
           {[...knockoutRounds.entries()].map(([roundNumber, roundMatches]) => {
             const ties = groupByTie(roundMatches);
             return (
               <div key={roundNumber} className={cardClass}>
                 <h3 className="mb-3 font-medium">
-                  {knockoutRoundLabel(ties.length)}
+                  {knockoutRoundLabel(ties.length, t)}
                 </h3>
                 <div className="grid gap-3">
                   {ties.map((legs) => (
@@ -340,6 +345,7 @@ export default async function TournamentPage({
                       legs={legs}
                       teamNames={teamNames}
                       tournament={tournament}
+                      t={t}
                     />
                   ))}
                 </div>
@@ -352,6 +358,7 @@ export default async function TournamentPage({
                   teamNames={teamNames}
                   voterId={voterId}
                   defaultOpen={roundNumber === openKnockoutVote}
+                  t={t}
                 />
               </div>
             );

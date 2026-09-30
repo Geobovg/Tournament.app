@@ -1,6 +1,8 @@
 // Klubbnivå-kurven speiler club_level_for_xp i supabase/migrations/0037_steeper_club_levels.sql,
 // og belønningene grant_club_xp i 0026_club_levels.sql. Endres den ene, må den andre endres også.
 
+import type { Dictionary } from "@/i18n/dictionaries";
+
 export const clubXpRewards = {
   manager: { win: 30, draw: 15, loss: 10 },
   tournament: { win: 20, draw: 10, loss: 5 },
@@ -35,7 +37,6 @@ export function clubLevelProgress(xp: number) {
   return { level, xp, into: xp - floor, needed: next - floor, nextReward: levelUpReward(level + 1) };
 }
 
-export function describeLevelReward(reward: { managerBudget: number; goldPacks: number }) {
-  const packs = reward.goldPacks ? ` + ${reward.goldPacks} ${reward.goldPacks === 1 ? "Gullpakke" : "Gullpakker"}` : "";
-  return `${reward.managerBudget} MB${packs}`;
+export function describeLevelReward(reward: { managerBudget: number; goldPacks: number }, t: Dictionary) {
+  return t.career.levelReward(reward.managerBudget, reward.goldPacks);
 }

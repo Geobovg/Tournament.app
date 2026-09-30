@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { getT } from "@/i18n/server";
 import { secondaryButtonClass } from "./ui";
 
-export function ModeMenuLink() {
-  return <Link href="/meny" className={secondaryButtonClass}>← Meny</Link>;
+export async function ModeMenuLink() {
+  const t = await getT();
+  return <Link href="/meny" className={secondaryButtonClass}>{t.profile.modeMenu.back}</Link>;
 }
 
 export function ModePageHeading({ title, description }: { title: string; description: string }) {

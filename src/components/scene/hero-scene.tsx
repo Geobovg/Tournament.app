@@ -272,9 +272,11 @@ function Ground({
 export function HeroScene({
   type,
   variant,
+  label,
 }: {
   type: TournamentType;
   variant: Variant;
+  label: string;
 }) {
   const { w, h, kitScale, wallRows } = LAYOUT[variant];
   const palette = PALETTE[type];
@@ -288,11 +290,7 @@ export function HeroScene({
       viewBox={`0 0 ${w} ${h}`}
       className="hero-scene__svg"
       role="img"
-      aria-label={
-        type === "fifa"
-          ? "Fotballspillere på en flomlyst bane"
-          : "Ishockeyspillere på isen i en opplyst arena"
-      }
+      aria-label={label}
     >
       <defs>
         <linearGradient id={`sky-${uid}`} x1="0" y1="0" x2="0" y2="1">

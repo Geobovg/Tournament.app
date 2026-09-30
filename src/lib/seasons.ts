@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Dictionary } from "@/i18n/dictionaries";
+import { getT } from "@/i18n/server";
 import type { AiTeam } from "./ai-opponent";
 import { supabaseAdmin } from "./supabase/server";
 
@@ -12,15 +14,15 @@ export type FriendSeason = { id: string; name: string; status: "open" | "active"
 type FixtureRow = { id: string; round: number; home_user_id: string | null; away_user_id: string | null; home_ai_key: string | null; away_ai_key: string | null; status: SeasonFixture["status"]; home_score: number | null; away_score: number | null; match_id: string | null };
 type StandingRow = { participant: string; played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; points: number; table_position: number };
 
-export const divisionName = (division: number) => `Divisjon ${division}`;
+export const divisionName = (t: Dictionary, division: number) => t.seasons.division(division);
 
-function toTable(rows: StandingRow[], names: Map<string, string>, userId: string): SeasonTableRow[] {
-  return rows.map((row) => ({ participant: row.participant, name: names.get(row.participant) ?? "Ukjent", isMe: row.participant === userId, played: row.played, wins: row.wins, draws: row.draws, losses: row.losses, goalsFor: row.goals_for, goalsAgainst: row.goals_against, points: row.points, position: row.table_position })).sort((a, b) => a.position - b.position);
+function toTable(rows: StandingRow[], names: Map<string, string>, userId: string, unknown: string): SeasonTableRow[] {
+  return rows.map((row) => ({ participant: row.participant, name: names.get(row.participant) ?? unknown, isMe: row.participant === userId, played: row.played, wins: row.wins, draws: row.draws, losses: row.losses, goalsFor: row.goals_for, goalsAgainst: row.goals_against, points: row.points, position: row.table_position })).sort((a, b) => a.position - b.position);
 }
 
-function toFixture(row: FixtureRow, names: Map<string, string>, userId: string): SeasonFixture {
+function toFixture(row: FixtureRow, names: Map<string, string>, userId: string, unknown: string): SeasonFixture {
   const home = row.home_user_id ?? row.home_ai_key ?? ""; const away = row.away_user_id ?? row.away_ai_key ?? "";
-  return { id: row.id, round: row.round, homeName: names.get(home) ?? "Ukjent", awayName: names.get(away) ?? "Ukjent", homeIsMe: home === userId, awayIsMe: away === userId, status: row.status, homeScore: row.home_score, awayScore: row.away_score, matchId: row.match_id };
+  return { id: row.id, round: row.round, homeName: names.get(home) ?? unknown, awayName: names.get(away) ?? unknown, homeIsMe: home === userId, awayIsMe: away === userId, status: row.status, homeScore: row.home_score, awayScore: row.away_score, matchId: row.match_id };
 }
 
 /** Den neste kampen som venter på deg: en som allerede er i gang, ellers den første uspilte. */
@@ -40,6 +42,7 @@ async function usernames(ids: string[]) {
 // Klubbnavnet kan komme som et løfte, så sesongen kan hentes samtidig med profilen.
 export async function getAiSeason(userId: string, clubName: string | Promise<string>): Promise<AiSeason> {
   const db = supabaseAdmin();
+  const fallback = (await getT()).seasons.fallback;
   const { data: seasonId, error: ensureError } = await db.rpc("ensure_ai_season", { target_user: userId });
   if (ensureError) throw new Error(ensureError.message);
   const [{ data: season, error: seasonError }, { data: fixtures, error: fixturesError }, { data: standings, error: standingsError }, { data: previous }] = await Promise.all([
@@ -50,12 +53,12 @@ export async function getAiSeason(userId: string, clubName: string | Promise<str
   ]);
   if (seasonError || fixturesError || standingsError) throw new Error(seasonError?.message ?? fixturesError?.message ?? standingsError?.message);
   const teams = (season.teams ?? []) as AiTeam[];
-  const names = new Map<string, string>([[userId, (await clubName) || "Din klubb"], ...teams.map((team) => [team.key, team.name] as [string, string])]);
-  const all = ((fixtures ?? []) as FixtureRow[]).map((row) => toFixture(row, names, userId));
+  const names = new Map<string, string>([[userId, (await clubName) || fallback.yourClub], ...teams.map((team) => [team.key, team.name] as [string, string])]);
+  const all = ((fixtures ?? []) as FixtureRow[]).map((row) => toFixture(row, names, userId, fallback.unknown));
   const mine = all.filter((fixture) => fixture.homeIsMe || fixture.awayIsMe);
   return {
     id: season.id, seasonNumber: season.season_number, division: season.division, teams,
-    table: toTable((standings ?? []) as StandingRow[], names, userId),
+    table: toTable((standings ?? []) as StandingRow[], names, userId, fallback.unknown),
     fixtures: mine, nextFixture: nextFor(mine), played: mine.filter((fixture) => fixture.status === "completed").length,
     previous: previous?.outcome ? { division: previous.division, position: previous.final_position, outcome: previous.outcome } : null,
   };
@@ -64,6 +67,7 @@ export async function getAiSeason(userId: string, clubName: string | Promise<str
 /** Vennesesongene du er med i eller invitert til. Avsluttede sesonger vises bare de tre siste. */
 export async function getFriendSeasons(userId: string): Promise<FriendSeason[]> {
   const db = supabaseAdmin();
+  const fallback = (await getT()).seasons.fallback;
   const { data: memberships, error } = await db.from("career_friend_season_members").select("season_id, status").eq("user_id", userId);
   if (error) throw new Error(error.message);
   const ids = (memberships ?? []).map((row) => row.season_id);
@@ -78,14 +82,14 @@ export async function getFriendSeasons(userId: string): Promise<FriendSeason[]> 
   const recentCompleted = new Set((seasons ?? []).filter((season) => season.status === "completed").slice(0, 3).map((season) => season.id));
   const visible = (seasons ?? []).filter((season) => season.status !== "completed" || recentCompleted.has(season.id));
   return Promise.all(visible.map(async (season) => {
-    const seasonFixtures = ((fixtures ?? []) as (FixtureRow & { friend_season_id: string })[]).filter((row) => row.friend_season_id === season.id).map((row) => toFixture(row, names, userId));
+    const seasonFixtures = ((fixtures ?? []) as (FixtureRow & { friend_season_id: string })[]).filter((row) => row.friend_season_id === season.id).map((row) => toFixture(row, names, userId, fallback.unknown));
     const { data: standings } = season.status === "open" ? { data: [] } : await db.rpc("season_standings", { target_ai_season: null, target_friend_season: season.id });
     const mine = seasonFixtures.filter((fixture) => fixture.homeIsMe || fixture.awayIsMe);
     return {
       id: season.id, name: season.name, status: season.status, isOwner: season.created_by === userId,
       myStatus: (memberships ?? []).find((row) => row.season_id === season.id)?.status ?? "invited",
-      members: (members ?? []).filter((member) => member.season_id === season.id).map((member) => ({ userId: member.user_id, username: names.get(member.user_id) ?? "Venn", status: member.status })),
-      table: toTable((standings ?? []) as StandingRow[], names, userId),
+      members: (members ?? []).filter((member) => member.season_id === season.id).map((member) => ({ userId: member.user_id, username: names.get(member.user_id) ?? fallback.friend, status: member.status })),
+      table: toTable((standings ?? []) as StandingRow[], names, userId, fallback.unknown),
       fixtures: seasonFixtures, nextFixture: nextFor(mine),
     } as FriendSeason;
   }));

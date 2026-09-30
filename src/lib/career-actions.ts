@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { dbErrorMessage, getT } from "@/i18n/server";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
 import type { ActionState } from "./actions";
@@ -14,16 +15,16 @@ async function createManagerKickoff(db: ReturnType<typeof supabaseAdmin>, homeUs
   const snapshots = await managerTeamSnapshots(db, [homeUserId, awayUserId]);
   if ("error" in snapshots) return snapshots;
   const home = snapshots.get(homeUserId); const away = snapshots.get(awayUserId);
-  if (!home || !away) return { error: "Begge managerne må ha 11 gyldige spillere i startelleveren" };
+  if (!home || !away) return { error: (await getT()).career.errors.bothNeedLineup };
   return { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home, away };
 }
 
 export async function createCareerChallengeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const opponentId = String(formData.get("opponent_id") ?? "");
-  if (!(await friendshipId(user.id, opponentId))) return { error: "Du kan bare utfordre venner" };
+  if (!(await friendshipId(user.id, opponentId))) return { error: (await getT()).career.errors.onlyFriends };
   const { error } = await supabaseAdmin().from("career_challenges").insert({ challenger_id: user.id, opponent_id: opponentId, mode: "manager" });
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   profilePaths(); revalidatePath("/venner");
   return { ok: true };
 }
@@ -31,10 +32,10 @@ export async function createCareerChallengeAction(_prev: ActionState, formData: 
 export async function acceptCareerChallengeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser(); const challengeId = String(formData.get("challenge_id") ?? ""); const db = supabaseAdmin();
   const { data: challenge } = await db.from("career_challenges").select("*").eq("id", challengeId).maybeSingle();
-  if (!challenge || challenge.opponent_id !== user.id || challenge.status !== "pending" || new Date(challenge.expires_at) <= new Date()) return { error: "Utfordringen er ikke lenger tilgjengelig" };
-  if (challenge.mode === "manager") { const { data: lineup } = await db.from("manager_lineups").select("starters").eq("user_id", user.id).maybeSingle(); if (!lineup || lineup.starters.length !== 11) return { error: "Velg en ellever før du godtar managerkampen" }; }
+  if (!challenge || challenge.opponent_id !== user.id || challenge.status !== "pending" || new Date(challenge.expires_at) <= new Date()) return { error: (await getT()).career.errors.challengeUnavailable };
+  if (challenge.mode === "manager") { const { data: lineup } = await db.from("manager_lineups").select("starters").eq("user_id", user.id).maybeSingle(); if (!lineup || lineup.starters.length !== 11) return { error: (await getT()).career.errors.pickLineupFirst }; }
   const { error } = await db.from("career_matches").insert({ challenge_id: challenge.id, mode: challenge.mode, home_user_id: challenge.challenger_id, away_user_id: challenge.opponent_id });
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   await db.from("career_challenges").update({ status: "accepted", accepted_at: new Date().toISOString() }).eq("id", challenge.id).eq("status", "pending");
   profilePaths(); return { ok: true };
 }
@@ -42,31 +43,31 @@ export async function acceptCareerChallengeAction(_prev: ActionState, formData: 
 export async function startCareerMatchAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser(); const matchId = String(formData.get("match_id") ?? ""); const db = supabaseAdmin();
   const { data: match } = await db.from("career_matches").select("*").eq("id", matchId).maybeSingle();
-  if (!match || (match.home_user_id !== user.id && match.away_user_id !== user.id) || match.status !== "lobby") return { error: "Kampen kan ikke startes" };
+  if (!match || (match.home_user_id !== user.id && match.away_user_id !== user.id) || match.status !== "lobby") return { error: (await getT()).career.errors.cannotStart };
   const startedAt = new Date().toISOString();
-  if (match.mode !== "manager") return { error: "Kampen kan ikke startes" };
+  if (match.mode !== "manager") return { error: (await getT()).career.errors.cannotStart };
   const kickoff = await createManagerKickoff(db, match.home_user_id, match.away_user_id);
   if ("error" in kickoff) return { error: kickoff.error };
   const managerEvents = planManagerTimeline(match.id, [kickoff]);
   const { error } = await db.from("career_matches").update({ status: "live", started_at: startedAt, events: managerEvents }).eq("id", matchId).eq("status", "lobby");
-  if (error) return { error: error.message }; profilePaths(); return { ok: true };
+  if (error) return { error: await dbErrorMessage(error) }; profilePaths(); return { ok: true };
 }
 
 export async function completeManagerMatchAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser(); const matchId = String(formData.get("match_id") ?? ""); const db = supabaseAdmin();
   const { data: match } = await db.from("career_matches").select("*").eq("id", matchId).maybeSingle();
-  if (!match || match.mode !== "manager" || (match.home_user_id !== user.id && match.away_user_id !== user.id)) return { error: "Fant ikke managerkampen" };
+  if (!match || match.mode !== "manager" || (match.home_user_id !== user.id && match.away_user_id !== user.id)) return { error: (await getT()).career.errors.matchNotFound };
   if (match.status === "completed") return { ok: true };
   // Kampen varer lenger når den har stoppet for straffer, så lengden leses ut av selve planen.
   const fullTime = plannedDurationMs(shotMinutesOf(Array.isArray(match.events) ? match.events : []));
-  if (match.status !== "live" || !match.started_at || Date.now() - new Date(match.started_at).getTime() < fullTime) return { error: "Kampen er ikke ferdig ennå" };
+  if (match.status !== "live" || !match.started_at || Date.now() - new Date(match.started_at).getTime() < fullTime) return { error: (await getT()).career.errors.notFinished };
   const { data: settled, error } = await db.rpc("settle_finished_manager_matches", { target_match: matchId });
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   // 0 betyr at databasen ikke regnet kampen som ferdig (eller at motstanderen rakk det først).
   // Da må vi ikke svare «lagret» – klienten prøver igjen til statusen faktisk er fullført.
   if (!settled) {
     const { data: after } = await db.from("career_matches").select("status").eq("id", matchId).maybeSingle();
-    if (after?.status !== "completed") return { error: "Venter på at serveren avslutter kampen …" };
+    if (after?.status !== "completed") return { error: (await getT()).career.errors.waitingForServer };
   }
   revalidatePath(`/managerkarriere/kamp/${matchId}`); profilePaths(); return { ok: true };
 }
@@ -75,12 +76,12 @@ export async function completeManagerMatchAction(_prev: ActionState, formData: F
 async function liveManagerMatch(matchId: string, userId: string) {
   const db = supabaseAdmin();
   const { data: match } = await db.from("career_matches").select("*").eq("id", matchId).maybeSingle();
-  if (!match || match.mode !== "manager" || match.status !== "live" || !match.started_at) return { error: "Kampen er ikke aktiv" } as const;
+  if (!match || match.mode !== "manager" || match.status !== "live" || !match.started_at) return { error: (await getT()).career.errors.notLive } as const;
   const events = Array.isArray(match.events) ? match.events : [];
   const kickoff = getManagerKickoff(events);
-  if (!kickoff) return { error: "Kampens laguttak mangler" } as const;
+  if (!kickoff) return { error: (await getT()).career.errors.lineupsMissing } as const;
   const side = kickoff.home.userId === userId ? "home" : kickoff.away.userId === userId ? "away" : null;
-  if (!side) return { error: "Du deltar ikke i denne kampen" } as const;
+  if (!side) return { error: (await getT()).career.errors.notParticipant } as const;
   const elapsed = Date.now() - new Date(match.started_at).getTime();
   return { db, match, events, side, elapsed, clock: matchClock(elapsed, shotMinutesOf(events)) } as const;
 }
@@ -93,14 +94,14 @@ export async function makeManagerSubstitutionAction(_prev: ActionState, formData
   const live = await liveManagerMatch(matchId, user.id);
   if ("error" in live) return { error: live.error };
   const { db, events, side, clock } = live;
-  if (clock.phase !== "substitutions") return { error: "Bytter kan bare gjøres i byttevinduet på 70′" };
-  if (getManagerSubstitutions(events).filter((event) => event.side === side).length >= 3) return { error: "Du har allerede brukt tre bytter" };
+  if (clock.phase !== "substitutions") return { error: (await getT()).career.errors.subsOnlyInWindow };
+  if (getManagerSubstitutions(events).filter((event) => event.side === side).length >= 3) return { error: (await getT()).career.errors.subsUsed };
   const team = teamAfterSubstitutions(events, side);
-  if (!team?.starters.some((player) => player.id === outId) || !team.bench.some((player) => player.id === inId)) return { error: "Velg en spiller fra elleveren og en fra benken" };
+  if (!team?.starters.some((player) => player.id === outId) || !team.bench.some((player) => player.id === inId)) return { error: (await getT()).career.errors.pickSubPlayers };
   // Byttet skjer på 70′, så det slår inn fra 71′ og kan aldri skrive om noe som alt er spilt.
   const nextEvents = planManagerTimeline(matchId, [...events, { type: "substitution", side, outId, inId, minute: SUB_WINDOW_MINUTE }]);
   const { error } = await db.from("career_matches").update({ events: nextEvents }).eq("id", matchId).eq("status", "live");
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   revalidatePath(`/managerkarriere/kamp/${matchId}`);
   return { ok: true };
 }
@@ -114,19 +115,19 @@ export async function chooseShotCellAction(_prev: ActionState, formData: FormDat
   const matchId = String(formData.get("match_id") ?? "");
   const minute = Number(formData.get("minute"));
   const cell = Number(formData.get("cell"));
-  if (!Number.isInteger(minute) || !Number.isInteger(cell)) return { error: "Ugyldig valg" };
+  if (!Number.isInteger(minute) || !Number.isInteger(cell)) return { error: (await getT()).career.errors.invalidChoice };
   const live = await liveManagerMatch(matchId, user.id);
   if ("error" in live) return { error: live.error };
   const { db, events, side, clock } = live;
   const shot = getManagerShots(events).find((entry) => entry.minute === minute);
-  if (!shot) return { error: "Fant ikke sjansen" };
-  if (clock.shotMinute !== minute) return { error: "Denne sjansen er ikke aktiv nå" };
-  if (clock.shotElapsedMs >= SHOT_CHOICE_MS) return { error: "Tiden er ute" };
-  if (!shot.options.includes(cell)) return { error: "Du kan ikke sikte dit" };
+  if (!shot) return { error: (await getT()).career.errors.chanceNotFound };
+  if (clock.shotMinute !== minute) return { error: (await getT()).career.errors.chanceNotActive };
+  if (clock.shotElapsedMs >= SHOT_CHOICE_MS) return { error: (await getT()).career.errors.timeUp };
+  if (!shot.options.includes(cell)) return { error: (await getT()).career.errors.cannotAim };
   const role = shot.side === side ? "shooter" : "keeper";
-  if (role === "keeper" && shot.kind !== "penalty") return { error: "Bare straffespark har keepervalg" };
+  if (role === "keeper" && shot.kind !== "penalty") return { error: (await getT()).career.errors.keeperOnlyPenalty };
   const { error } = await db.rpc("record_shot_choice", { target_match: matchId, target_minute: minute, target_kind: shot.kind, target_side: shot.side, target_role: role, target_cell: cell });
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   revalidatePath(`/managerkarriere/kamp/${matchId}`);
   return { ok: true };
 }
@@ -139,14 +140,14 @@ export async function resolveShotAction(_prev: ActionState, formData: FormData):
   const user = await requireUser();
   const matchId = String(formData.get("match_id") ?? "");
   const minute = Number(formData.get("minute"));
-  if (!Number.isInteger(minute)) return { error: "Ugyldig sjanse" };
+  if (!Number.isInteger(minute)) return { error: (await getT()).career.errors.invalidChance };
   const live = await liveManagerMatch(matchId, user.id);
   if ("error" in live) return { error: live.error };
   const { db, events, clock } = live;
   const shot = getManagerShots(events).find((entry) => entry.minute === minute);
-  if (!shot) return { error: "Fant ikke sjansen" };
+  if (!shot) return { error: (await getT()).career.errors.chanceNotFound };
   const choiceOver = clock.shotMinute !== minute || clock.shotElapsedMs >= SHOT_CHOICE_MS;
-  if (!choiceOver) return { error: "Tiden til å velge er ikke ute ennå" };
+  if (!choiceOver) return { error: (await getT()).career.errors.choiceNotOver };
 
   const { data: row } = await db.from("career_match_shots").select("shooter_cell, keeper_cell, outcome").eq("match_id", matchId).eq("minute", minute).maybeSingle();
   if (row?.outcome) return { ok: true };
@@ -163,7 +164,7 @@ export async function resolveShotAction(_prev: ActionState, formData: FormData):
     .from("career_match_shots")
     .upsert({ match_id: matchId, minute, kind: shot.kind, side: shot.side, shooter_cell: shooterCell, keeper_cell: keeperCell, outcome, resolved_at: new Date().toISOString() }, { onConflict: "match_id,minute" })
     .is("outcome", null);
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   revalidatePath(`/managerkarriere/kamp/${matchId}`);
   return { ok: true };
 }

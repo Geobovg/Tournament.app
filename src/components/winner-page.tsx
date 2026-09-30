@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { getT } from "@/i18n/server";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { tournamentThemes } from "@/lib/theme";
 import type { TournamentType } from "@/lib/tournament/types";
 import { ThemeBackdrop } from "./tournament-theme";
 import { WinnerAudio } from "./winner-audio";
 
-const QUOTES = [
+const quotes = (t: Dictionary) => [
   { by: "José Mourinho", text: "Absolute cinema!" },
   {
     by: "Pep Guardiola",
@@ -14,12 +16,13 @@ const QUOTES = [
     by: "Gennaro Gattuso",
     text: "Sometimes maybe got, sometimes maybe shit, this was got!",
   },
-  { by: "Martin (15)", text: "Det er klart det er stort." },
+  { by: "Martin (15)", text: t.tournaments.winner.martinQuote },
 ];
 
 /** Trekkes per forespørsel, utenfor render, så React-reglene holdes rene. */
-async function randomQuote() {
-  return QUOTES[Math.floor(Math.random() * QUOTES.length)];
+async function randomQuote(t: Dictionary) {
+  const list = quotes(t);
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 const CONFETTI_COLORS = [
@@ -70,9 +73,9 @@ function Confetti() {
   );
 }
 
-function Trophy() {
+function Trophy({ label }: { label: string }) {
   return (
-    <svg viewBox="0 0 200 250" className="winner-trophy" role="img" aria-label="Pokal">
+    <svg viewBox="0 0 200 250" className="winner-trophy" role="img" aria-label={label}>
       <defs>
         <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#fff3b8" />
@@ -139,7 +142,9 @@ export async function WinnerPage({
   winnerName: string;
   tournamentId: string;
 }) {
-  const quote = await randomQuote();
+  const t = await getT();
+  const text = t.tournaments.winner;
+  const quote = await randomQuote(t);
   const theme = tournamentThemes[type];
 
   return (
@@ -150,17 +155,17 @@ export async function WinnerPage({
 
       <div className="theme-fade grid justify-items-center gap-6 text-center">
         <p className="winner-kicker">
-          {theme.emoji} {tournamentName} · ferdig
+          {theme.emoji} {text.kicker(tournamentName)}
         </p>
 
-        <Trophy />
+        <Trophy label={text.trophy} />
 
         <div className="grid gap-3">
           <h1 className="winner-name">{winnerName}</h1>
           <p className="winner-line">
-            {winnerName} vinner {tournamentName}!
+            {text.line(winnerName, tournamentName)}
           </p>
-          <p className="winner-prize">Premie: Gratis ting i kiosken.</p>
+          <p className="winner-prize">{text.prize}</p>
         </div>
 
         <div className="winner-medals" aria-hidden>
@@ -178,10 +183,10 @@ export async function WinnerPage({
 
         <div className="flex flex-wrap justify-center gap-3">
           <Link href={`/tournaments/${tournamentId}/stats`} className="winner-link">
-            Se statistikk
+            {text.seeStats}
           </Link>
           <Link href="/turneringer" className="winner-link">
-            Alle turneringer
+            {text.allTournaments}
           </Link>
         </div>
       </div>

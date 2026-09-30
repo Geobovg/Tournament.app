@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useT } from "@/i18n/client";
 import { voteAction, type ActionState } from "@/lib/actions";
 import { buttonClass, secondaryButtonClass } from "./ui";
 
@@ -14,6 +15,7 @@ export function VoteButton({
   isMyVote: boolean;
 }) {
   const [state, action, pending] = useActionState(voteAction, initialState);
+  const text = useT().tournaments.voting;
 
   return (
     <form action={action} className="grid gap-2">
@@ -23,7 +25,7 @@ export function VoteButton({
         className={isMyVote ? buttonClass : secondaryButtonClass}
         disabled={pending}
       >
-        {pending ? "Stemmer…" : isMyVote ? "Din stemme ✓" : "Stem på dette målet"}
+        {pending ? text.voting : isMyVote ? text.myVote : text.vote}
       </button>
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
     </form>
