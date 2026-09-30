@@ -18,6 +18,7 @@ import { formationNames, formations, type Formation, canPlayPosition, pickBestLi
 import { playerFlag } from "@/lib/player-nationalities";
 import { playerPhoto } from "@/lib/player-photos";
 import { PitchMarkings, slotPoint } from "./squad-pitch";
+import { ConfirmDialog } from "./confirm-dialog";
 
 const initial: ActionState = {};
 const benchCardClass = "w-[96px] sm:w-[118px]";
@@ -203,9 +204,18 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
 // Hurtigsalg kan ikke angres, så spilleren må bekrefte før kortet forsvinner.
 function QuickSellButton({ card, value }: { card: ManagerCard; value: number }) {
   const [state, action, pending] = useActionState(quickSellManagerCardAction, initial);
+  const [confirming, setConfirming] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const payout = quickSellValue(value);
   const text = useT().career.quickSell;
-  return <form action={action} className="flex flex-wrap items-center gap-2"><input type="hidden" name="card_id" value={card.id} /><button className={secondaryButtonClass} disabled={pending} onClick={(event) => { if (!window.confirm(text.confirm(card.name, payout))) event.preventDefault(); }}>{text.button(payout)}</button>{state.error ? <span className="text-sm text-danger">{state.error}</span> : null}</form>;
+  return <>
+    <form ref={formRef} action={action} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="card_id" value={card.id} />
+      <button type="button" className={secondaryButtonClass} disabled={pending} onClick={() => setConfirming(true)}>{text.button(payout)}</button>
+      {state.error ? <span className="text-sm text-danger">{state.error}</span> : null}
+    </form>
+    {confirming ? <ConfirmDialog message={text.confirm(card.name, payout)} onCancel={() => setConfirming(false)} onConfirm={() => { setConfirming(false); formRef.current?.requestSubmit(); }} /> : null}
+  </>;
 }
 
 function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; squad: ManagerCard[]; listedCardIds: Set<string> }) {
