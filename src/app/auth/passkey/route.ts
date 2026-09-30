@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
   if (!profile) return NextResponse.json({ error: "Fant ikke brukerprofilen" }, { status: 401 });
 
   await setSession(data.user.id);
-  const next = typeof body?.next === "string" && body.next.startsWith("/") ? body.next : "/";
+  // Samme regel som safeNext i auth-actions.ts. Bare «/» ville sluppet gjennom «//annen-side.no».
+  const next = typeof body?.next === "string" && body.next.startsWith("/join/") ? body.next : "/";
   return NextResponse.json({ ok: true, next });
 }

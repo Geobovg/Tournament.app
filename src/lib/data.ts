@@ -88,6 +88,36 @@ export async function getTournamentByInvite(token: string): Promise<Tournament |
   return (data as Tournament) ?? null;
 }
 
+// Ligger her og ikke i actions.ts: alt som eksporteres fra en "use server"-fil kan kalles
+// utenfra av hvem som helst.
+export async function isTournamentOwner(tournamentId: string, userId: string) {
+  const { data } = await supabaseAdmin()
+    .from("tournaments")
+    .select("id")
+    .eq("id", tournamentId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+// Hindrer at noen finner gyldige invitasjonskoder ved å prøve seg fram. Bare koder som ikke fantes teller.
+const FAILED_INVITE_CODES_PER_HOUR = 20;
+
+export async function tooManyFailedInviteCodes(userId: string) {
+  const { count } = await supabaseAdmin()
+    .from("invite_code_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", new Date(Date.now() - 60 * 60_000).toISOString());
+  return (count ?? 0) >= FAILED_INVITE_CODES_PER_HOUR;
+}
+
+export async function recordFailedInviteCode(userId: string) {
+  const db = supabaseAdmin();
+  await db.from("invite_code_attempts").delete().lt("created_at", new Date(Date.now() - 24 * 60 * 60_000).toISOString());
+  await db.from("invite_code_attempts").insert({ user_id: userId });
+}
+
 export async function getTournamentByInviteCode(code: string): Promise<Tournament | null> {
   const { data, error } = await supabaseAdmin().from("tournaments").select("*").eq("invite_code", code.toUpperCase()).maybeSingle();
   if (error) throw new Error(error.message);

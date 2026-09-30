@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "./auth";
-import { isTournamentOwner, type ActionState } from "./actions";
+import type { ActionState } from "./actions";
+import { isTournamentOwner } from "./data";
 import { friendshipId, searchUsers, type ProfileLike } from "./friends";
 import { supabaseAdmin } from "./supabase/server";
 

@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  accountCodeFingerprint,
   clearSession,
   currentUser,
   hashAccountCode,
@@ -21,15 +20,6 @@ import { supabaseAdmin, supabasePublic } from "./supabase/server";
 
 export type AuthActionState = { error?: string; ok?: boolean; message?: string };
 export type PasskeySessionState = AuthActionState & { access_token?: string; refresh_token?: string };
-
-export async function isAccountCodeAvailable(code: string, ignoreUserId?: string) {
-  if (!validAccountCode(code)) return false;
-  const sessionUser = await currentUser();
-  const excludedId = ignoreUserId ?? sessionUser?.id;
-  const query = supabaseAdmin().from("profiles").select("id").eq("code_fingerprint", accountCodeFingerprint(code));
-  const { data } = excludedId ? await query.neq("id", excludedId).maybeSingle() : await query.maybeSingle();
-  return !data;
-}
 
 function formValue(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -93,15 +83,10 @@ export async function registerAction(
     }
   }
 
-  const fingerprint = accountCodeFingerprint(code);
-  const { data: existing } = await db
-    .from("profiles")
-    .select("id")
-    .or(`username_key.eq.${usernameKey},code_fingerprint.eq.${fingerprint}`)
-    .limit(1);
-  if (existing && existing.length > 0) {
-    return { error: "Brukernavnet eller den sekssifrede koden er allerede i bruk" };
-  }
+  // Koden trenger ikke være unik, siden innlogging alltid krever brukernavnet også. Å si ifra om
+  // at en kode er i bruk ville latt hvem som helst finne andres koder ved å prøve seg fram.
+  const { data: existing } = await db.from("profiles").select("id").eq("username_key", usernameKey).maybeSingle();
+  if (existing) return { error: "Brukernavnet er allerede i bruk" };
 
   const email = internalEmail();
   const { data: authData, error: authError } = await db.auth.admin.createUser({
@@ -117,7 +102,6 @@ export async function registerAction(
     username_key: usernameKey,
     email,
     code_hash: hashAccountCode(code),
-    code_fingerprint: fingerprint,
   });
   if (profileError) {
     await db.auth.admin.deleteUser(authData.user.id);
@@ -232,15 +216,10 @@ export async function changeCodeAction(
   if (code !== confirmCode) return { error: "Kodene er ikke like" };
 
   const db = supabaseAdmin();
-  const fingerprint = accountCodeFingerprint(code);
-  const { data: duplicate } = await db.from("profiles").select("id").eq("code_fingerprint", fingerprint).neq("id", user.id).maybeSingle();
-  if (duplicate) return { error: "Denne koden er allerede i bruk av en annen konto" };
-
   const { error } = await db.auth.admin.updateUserById(user.id, { password: code });
   if (error) return { error: error.message };
   await db.from("profiles").update({
     code_hash: hashAccountCode(code),
-    code_fingerprint: fingerprint,
     failed_attempts: 0,
     lockout_count: 0,
     locked_until: null,
@@ -274,8 +253,10 @@ export async function uploadAvatarAction(
   const user = await requireUser();
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) return { error: "Velg et bilde først" };
-  if (!file.type.startsWith("image/") || file.size > 2 * 1024 * 1024) return { error: "Bildet må være et bilde på maksimalt 2 MB" };
-  const extension = file.type === "image/png" ? "png" : "jpg";
+  // Bare vanlige bildeformater. SVG kan inneholde kode som kjører når andre ser bildet.
+  const extensions: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  const extension = extensions[file.type];
+  if (!extension || file.size > 2 * 1024 * 1024) return { error: "Bildet må være JPG, PNG eller WebP på maksimalt 2 MB" };
   const path = `${user.id}/${randomUUID()}.${extension}`;
   const db = supabaseAdmin();
   const upload = await db.storage.from("avatars").upload(path, file, { contentType: file.type, upsert: false });

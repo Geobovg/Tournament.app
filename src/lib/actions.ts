@@ -1,9 +1,10 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getMatch, getTournament, listMatches, listTeams } from "./data";
+import { getMatch, getTournament, isTournamentOwner, listMatches, listTeams } from "./data";
+import { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "./invite-code";
 import { currentUser, requireUser } from "./auth";
 import { supabaseAdmin } from "./supabase/server";
 import {
@@ -31,16 +32,6 @@ async function currentTeam(tournamentId: string) {
     .maybeSingle();
   if (error || !data?.team_id) return { error: "Du må være med på et lag for å gjøre dette" } as const;
   return { user, teamId: data.team_id } as const;
-}
-
-export async function isTournamentOwner(tournamentId: string, userId: string) {
-  const { data } = await supabaseAdmin()
-    .from("tournaments")
-    .select("id")
-    .eq("id", tournamentId)
-    .eq("owner_id", userId)
-    .maybeSingle();
-  return Boolean(data);
 }
 
 function parseScore(value: FormDataEntryValue | null): number | null {
@@ -323,7 +314,8 @@ export async function renewInviteAction(
   const tournamentId = String(formData.get("tournament_id") ?? "");
   const user = await requireUser();
   if (!(await isTournamentOwner(tournamentId, user.id))) return { error: "Bare arrangøren kan fornye lenken" };
-  const { error } = await supabaseAdmin().from("tournaments").update({ invite_token: randomUUID(), invite_code: randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase() }).eq("id", tournamentId);
+  const inviteCode = Array.from({ length: INVITE_CODE_LENGTH }, () => INVITE_CODE_ALPHABET[randomInt(INVITE_CODE_ALPHABET.length)]).join("");
+  const { error } = await supabaseAdmin().from("tournaments").update({ invite_token: randomUUID(), invite_code: inviteCode }).eq("id", tournamentId);
   if (error) return { error: error.message };
   revalidatePath(`/tournaments/${tournamentId}`);
   return { ok: true };
