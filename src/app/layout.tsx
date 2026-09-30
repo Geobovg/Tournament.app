@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AudioPlayer } from "@/components/audio-player";
@@ -20,6 +20,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Send it!",
   description: "Turneringsapp for FIFA og NHL",
+  // Lar appen åpnes i fullskjerm uten Safari-menyer når den er lagt til på hjemskjermen.
+  appleWebApp: {
+    capable: true,
+    title: "Send it!",
+    statusBarStyle: "black-translucent",
+  },
+  // Next.js skriver bare ut mobile-web-app-capable; eldre iOS-versjoner krever Apple-varianten.
+  other: { "apple-mobile-web-app-capable": "yes" },
+};
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: "#0b0f14",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -31,7 +44,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <header className="border-b border-border">
+        <header className="border-b border-border" style={{ paddingTop: "env(safe-area-inset-top)" }}>
           <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-4">
             <span className="text-4xl font-bold tracking-tight">Send it!</span>
             <div className="flex items-center gap-3 text-sm">
