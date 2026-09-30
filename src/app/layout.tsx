@@ -8,6 +8,7 @@ import { currentUser } from "@/lib/auth";
 import { logoutAction } from "@/lib/auth-actions";
 import { SITE_URL } from "@/lib/site";
 import { I18nProvider } from "@/i18n/client";
+import { INTL_LOCALES } from "@/i18n/locales";
 import { getLocale, getT } from "@/i18n/server";
 import "./globals.css";
 
@@ -27,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(SITE_URL),
     title: { default: "Send it!", template: "%s · Send it!" },
     description: t.common.siteDescription,
-    openGraph: { siteName: "Send it!", locale: locale === "no" ? "nb_NO" : "en_GB", type: "website", description: t.common.siteDescription },
+    openGraph: { siteName: "Send it!", locale: INTL_LOCALES[locale].replace("-", "_"), type: "website", description: t.common.siteDescription },
     // Lar appen åpnes i fullskjerm uten Safari-menyer når den er lagt til på hjemskjermen.
     appleWebApp: {
       capable: true,
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={locale}
+      dir={locale === "ar" ? "rtl" : "ltr"}
       // Appen har eget språkvalg, så nettleseren skal ikke maskinoversette siden (f.eks. Chrome engelsk → norsk).
       translate="no"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
@@ -61,7 +63,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-4">
             <span className="text-4xl font-bold tracking-tight">Send it!</span>
             <div className="flex items-center gap-3 text-sm">
-              <LanguageSwitch compact />
+              <LanguageSwitch />
               {user ? <form action={logoutAction}><button className="text-muted hover:text-foreground">{t.common.logOut}</button></form> : <a href="/login" className="text-muted hover:text-foreground">{t.common.logIn}</a>}
             </div>
           </div>

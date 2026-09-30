@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useT } from "@/i18n/client";
+import { useLocale, useT } from "@/i18n/client";
+import { INTL_LOCALES } from "@/i18n/locales";
 import type { ActionState } from "@/lib/actions";
 import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard } from "@/lib/career";
 import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filters";
@@ -36,13 +37,14 @@ function PlayerCard({ player, owned, budget, action, pending }: { player: Catalo
 function Catalog({ initialPage, owned, budget }: { initialPage: { cards: CatalogCard[]; total: number }; owned: Set<string>; budget: number }) {
   const [state, action, pending] = useActionState(buyCatalogCardAction, initial);
   const t = useT(); const text = t.career.catalog; const filterText = t.career.filters; const clubName = t.career.clubName;
+  const locale = useLocale();
   const [search, setSearch] = useState(""); const [sort, setSort] = useState<CatalogFilters["sort"]>("overall"); const [filtersOpen, setFiltersOpen] = useState(false);
   const [position, setPosition] = useState("all"); const [minimum, setMinimum] = useState("0"); const [maximumPrice, setMaximumPrice] = useState(""); const [clubs, setClubs] = useState<string[]>([]); const [clubSearch, setClubSearch] = useState("");
   // Serveren søker og filtrerer, så her ligger bare kortene som er hentet så langt.
   const [page, setPage] = useState(initialPage); const [loading, setLoading] = useState(false); const [loadError, setLoadError] = useState("");
   const [clubOptions, setClubOptions] = useState<string[] | null>(null); const clubsRequested = useRef(false);
   const request = useRef(0); const loadedKey = useRef(JSON.stringify(defaultCatalogFilters));
-  const visibleClubs = useMemo(() => { const options = clubOptions ?? []; const needle = clubSearch.trim().toLocaleLowerCase("nb-NO"); return needle ? options.filter((club) => club.toLocaleLowerCase("nb-NO").includes(needle) || clubName(club).toLocaleLowerCase("nb-NO").includes(needle)) : options; }, [clubName, clubOptions, clubSearch]);
+  const visibleClubs = useMemo(() => { const options = clubOptions ?? []; const intl = INTL_LOCALES[locale]; const needle = clubSearch.trim().toLocaleLowerCase(intl); return needle ? options.filter((club) => club.toLocaleLowerCase(intl).includes(needle) || clubName(club).toLocaleLowerCase(intl).includes(needle)) : options; }, [clubName, clubOptions, clubSearch, locale]);
   const parsedPrice = Number(maximumPrice); const priceLimit = maximumPrice.trim() === "" || !Number.isFinite(parsedPrice) ? null : parsedPrice;
   const activeFilters = (position === "all" ? 0 : 1) + (minimum === "0" ? 0 : 1) + (priceLimit !== null ? 1 : 0) + (clubs.length ? 1 : 0);
   const filters = useMemo<CatalogFilters>(() => ({ search: search.trim(), position, minimum: Number(minimum), maximumPrice: priceLimit, clubs, sort }), [clubs, minimum, position, priceLimit, search, sort]);
@@ -211,18 +213,19 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
   const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
   const roomInSquad = squad.length < squadCapacity;
   const t = useT(); const text = t.career.storage; const filterText = t.career.filters; const clubName = t.career.clubName;
+  const locale = useLocale(); const intl = INTL_LOCALES[locale];
   const message = moveState.error ?? swapState.error;
   // Lageret har ingen grense, så med mange kort trengs søk, posisjonsfilter og sortering.
   const [search, setSearch] = useState(""); const [position, setPosition] = useState("all"); const [sort, setSort] = useState("overall-desc");
   const cards = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase("nb-NO");
-    const matches = storage.filter((card) => (position === "all" || card.position === position) && (!needle || card.name.toLocaleLowerCase("nb-NO").includes(needle) || card.club.toLocaleLowerCase("nb-NO").includes(needle) || clubName(card.club).toLocaleLowerCase("nb-NO").includes(needle)));
-    if (sort === "overall-asc") return matches.sort((first, second) => first.overall - second.overall || first.name.localeCompare(second.name, "nb-NO"));
+    const needle = search.trim().toLocaleLowerCase(intl);
+    const matches = storage.filter((card) => (position === "all" || card.position === position) && (!needle || card.name.toLocaleLowerCase(intl).includes(needle) || card.club.toLocaleLowerCase(intl).includes(needle) || clubName(card.club).toLocaleLowerCase(intl).includes(needle)));
+    if (sort === "overall-asc") return matches.sort((first, second) => first.overall - second.overall || first.name.localeCompare(second.name, intl));
     if (sort === "value-desc") return matches.sort((first, second) => second.value - first.value || second.overall - first.overall);
-    if (sort === "name") return matches.sort((first, second) => first.name.localeCompare(second.name, "nb-NO"));
+    if (sort === "name") return matches.sort((first, second) => first.name.localeCompare(second.name, intl));
     if (sort === "position") return matches.sort((first, second) => positionOrder.indexOf(first.position) - positionOrder.indexOf(second.position) || second.overall - first.overall);
-    return matches.sort((first, second) => second.overall - first.overall || first.name.localeCompare(second.name, "nb-NO"));
-  }, [clubName, position, search, sort, storage]);
+    return matches.sort((first, second) => second.overall - first.overall || first.name.localeCompare(second.name, intl));
+  }, [clubName, intl, position, search, sort, storage]);
   const positions = useMemo(() => positionOrder.filter((item) => storage.some((card) => card.position === item)), [storage]);
   return <section className={`${cardClass} grid gap-4`}>
     <div className="flex flex-wrap items-end justify-between gap-3">
