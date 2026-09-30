@@ -40,7 +40,8 @@ export type ShotResult = { minute: number; kind: ShotKind; side: MatchSide; shoo
 export type ManagerMatchReport = {
   home: { strength: number; possession: number; shots: number; onTarget: number };
   away: { strength: number; possession: number; shots: number; onTarget: number };
-  playerOfMatch: string;
+  /** null når ingen spillere finnes i oppsettet – visningen setter inn en tekst på brukerens språk. */
+  playerOfMatch: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -602,7 +603,9 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
 // Bytteforslag på 70′
 // ---------------------------------------------------------------------------
 
-export type SubstitutionSuggestion = { outId: string; out: ManagerPlayerSnapshot; inId: string; in: ManagerPlayerSnapshot; reason: string };
+/** Hvorfor byttet foreslås. Teksten lages i visningen, på brukerens språk (t.match.subs.reasons). */
+export type SubstitutionReason = "booked" | "stronger" | "fresh" | "samePosition";
+export type SubstitutionSuggestion = { outId: string; out: ManagerPlayerSnapshot; inId: string; in: ManagerPlayerSnapshot; reason: SubstitutionReason };
 
 const positionGroup: Record<string, string> = { GK: "GK", RB: "DEF", CB: "DEF", LB: "DEF", CDM: "MID", CM: "MID", CAM: "MID", RW: "ATT", LW: "ATT", ST: "ATT" };
 
@@ -631,13 +634,13 @@ export function suggestSubstitutions(matchId: string, events: unknown, side: Mat
         if (!exact && !sameGroup) return null;
         const tired = fatigueAt(onPitch.get(starter.id) ?? 0, minute);
         const score = (booked.has(starter.id) ? 25 : 0) + (exact ? 12 : 4) + (replacement.overall - starter.overall) * 2.5 + tired * 3;
-        const reason = booked.has(starter.id)
-          ? "Har gult kort – står i fare for å bli utvist"
+        const reason: SubstitutionReason = booked.has(starter.id)
+          ? "booked"
           : replacement.overall > starter.overall
-            ? `Sterkere alternativ (+${replacement.overall - starter.overall})`
+            ? "stronger"
             : tired >= 3
-              ? "Friske bein inn for en sliten spiller"
-              : "Bytte på samme posisjon";
+              ? "fresh"
+              : "samePosition";
         return { outId: starter.id, out: starter, inId: replacement.id, in: replacement, reason, score };
       }),
     )
@@ -696,7 +699,7 @@ export function getManagerMatchReport(matchId: string, events: unknown, shots: S
     const firstScore = first.overall + (goalCounts.get(first.name) ?? 0) * 20;
     const secondScore = second.overall + (goalCounts.get(second.name) ?? 0) * 20;
     return secondScore - firstScore || first.name.localeCompare(second.name);
-  })[0]?.name ?? "Kampens spiller";
+  })[0]?.name ?? null;
 
   return {
     home: { strength: Math.round(homeStrength), possession: homePossession, shots: shotsFor("home"), onTarget: onTargetFor("home") },

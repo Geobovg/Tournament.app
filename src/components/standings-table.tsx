@@ -1,7 +1,8 @@
+import { getT } from "@/i18n/server";
 import type { StandingRow } from "@/lib/tournament/standings";
 import type { TournamentType } from "@/lib/tournament/types";
 
-export function StandingsTable({
+export async function StandingsTable({
   rows,
   type,
   qualifiedCount,
@@ -11,6 +12,7 @@ export function StandingsTable({
   qualifiedCount?: number;
 }) {
   const isNhl = type === "nhl";
+  const text = (await getT()).tournaments.standings;
 
   return (
     <div className="overflow-x-auto">
@@ -18,21 +20,21 @@ export function StandingsTable({
         <thead>
           <tr className="border-b border-border text-left text-muted">
             <th className="py-2 pr-2 font-medium">#</th>
-            <th className="py-2 pr-2 font-medium">Lag</th>
-            <th className="py-2 pr-2 text-right font-medium">S</th>
-            <th className="py-2 pr-2 text-right font-medium">V</th>
+            <th className="py-2 pr-2 font-medium">{text.team}</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.played}</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.won}</th>
             {isNhl ? null : (
-              <th className="py-2 pr-2 text-right font-medium">U</th>
+              <th className="py-2 pr-2 text-right font-medium">{text.drawn}</th>
             )}
             {isNhl ? (
-              <th className="py-2 pr-2 text-right font-medium">OTT</th>
+              <th className="py-2 pr-2 text-right font-medium">{text.otLosses}</th>
             ) : null}
-            <th className="py-2 pr-2 text-right font-medium">T</th>
-            <th className="py-2 pr-2 text-right font-medium">M+</th>
-            <th className="py-2 pr-2 text-right font-medium">M−</th>
-            <th className="py-2 pr-2 text-right font-medium">MF</th>
-            <th className="py-2 pr-2 text-right font-medium">CS</th>
-            <th className="py-2 pr-2 text-right font-medium">P</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.lost}</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.goalsFor}</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.goalsAgainst}</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.goalDifference}</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.cleanSheets}</th>
+            <th className="py-2 pr-2 text-right font-medium">{text.points}</th>
           </tr>
         </thead>
         <tbody>
@@ -71,12 +73,8 @@ export function StandingsTable({
         </tbody>
       </table>
       <p className="mt-3 text-sm text-muted">
-        S = spilt, V = vunnet, {isNhl ? "OTT = tap i OT/straffer, " : "U = uavgjort, "}
-        T = tap, M+ = scorede mål, M− = innslupne mål, MF = målforskjell, CS = clean
-        sheets, P = poeng.
-        {qualifiedCount !== undefined
-          ? ` Markerte lag ligger an til sluttspillet (topp ${qualifiedCount}).`
-          : ""}
+        {text.legend(isNhl)}
+        {qualifiedCount !== undefined ? text.qualified(qualifiedCount) : ""}
       </p>
     </div>
   );

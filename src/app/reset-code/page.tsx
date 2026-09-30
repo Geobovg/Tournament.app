@@ -1,2 +1,3 @@
 import { ResetCodeForm } from "@/components/auth-forms";
-export default function ResetCodePage() { return <div className="mx-auto grid max-w-md gap-5"><div><h1 className="text-2xl font-semibold">Velg ny kode</h1><p className="text-muted">Den nye koden blir innloggingskoden din.</p></div><ResetCodeForm /></div>; }
+import { getT } from "@/i18n/server";
+export default async function ResetCodePage() { const t = await getT(); return <div className="mx-auto grid max-w-md gap-5"><div><h1 className="text-2xl font-semibold">{t.auth.resetCode.title}</h1><p className="text-muted">{t.auth.resetCode.intro}</p></div><ResetCodeForm /></div>; }

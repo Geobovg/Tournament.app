@@ -5,6 +5,7 @@ import { normalizeUsername, requireUser, sessionUserId } from "./auth";
 import { getMarketChatUnread, listMarketChat, type MarketChatMessage, type MarketChatUnread } from "./market-chat";
 import { mentionCandidates } from "./market-chat-mentions";
 import { supabaseAdmin } from "./supabase/server";
+import { dbErrorMessage, getT } from "@/i18n/server";
 
 // Hentes hvert 3. sekund mens chatten er åpen. markRead er bare sann når chatten faktisk vises.
 export async function loadMarketChatAction(markRead: boolean): Promise<MarketChatMessage[]> {
@@ -22,18 +23,18 @@ export async function marketChatUnreadAction(): Promise<MarketChatUnread> {
 export async function sendMarketChatAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const body = String(formData.get("body") ?? "").trim();
-  if (!body) return { error: "Skriv en melding først" };
-  if (body.length > 300) return { error: "Meldingen kan være maks 300 tegn" };
+  if (!body) return { error: (await getT()).market.errors.emptyMessage };
+  if (body.length > 300) return { error: (await getT()).market.errors.messageTooLong(300) };
   const db = supabaseAdmin();
   const names = mentionCandidates(body).map(normalizeUsername);
   let mentions: string[] = [];
   if (names.length) {
     const { data, error } = await db.from("profiles").select("id").in("username_key", names);
-    if (error) return { error: error.message };
+    if (error) return { error: await dbErrorMessage(error) };
     mentions = (data ?? []).map((row) => row.id);
   }
   const { error } = await db.rpc("post_market_chat_message", { target_author: user.id, next_body: body, next_mentions: mentions });
-  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+  if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
   return { ok: true };
 }
 
@@ -41,7 +42,7 @@ export async function deleteMarketChatMessageAction(messageId: string): Promise<
   const user = await requireUser();
   // author_id i filteret gjør at man bare kan slette sine egne meldinger.
   const { error } = await supabaseAdmin().from("market_chat_messages").delete().eq("id", messageId).eq("author_id", user.id);
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   return { ok: true };
 }
 

@@ -31,9 +31,12 @@ import {
   type ManagerPlayerSnapshot,
   type MatchSide,
   type ShotResult,
+  type SubstitutionSuggestion,
   type TimelineEvent,
   type TimelineShot,
 } from "@/lib/manager-match";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { useT } from "@/i18n/client";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 
 const initial: ActionState = {};
@@ -68,6 +71,7 @@ function shortName(name: string): string {
 
 /** Et lite spillerkort i samme stil som kortene i spillermarkedet. */
 function EventPlayerCard({ player, large = false }: { player: ManagerPlayerSnapshot | undefined; large?: boolean }) {
+  const t = useT();
   const accent = player?.accent ?? "#35d06a";
   const photo = player?.slug ? playerPhoto(player.slug) : null;
   const crest = player?.club ? clubCrest(player.club) : null;
@@ -92,7 +96,7 @@ function EventPlayerCard({ player, large = false }: { player: ManagerPlayerSnaps
         ) : null}
       </div>
       <p className={`absolute inset-x-0 bottom-0 truncate border-t border-white/25 bg-black/45 px-1 py-0.5 text-center font-bold uppercase tracking-wide ${large ? "text-[11px]" : "text-[8px] sm:text-[9px]"}`}>
-        {player ? shortName(player.name) : "Spiller"}
+        {player ? shortName(player.name) : t.match.player}
       </p>
     </div>
   );
@@ -102,16 +106,27 @@ function CardIcon({ card }: { card: "yellow" | "red" }) {
   return <span className={`inline-block h-4 w-3 rounded-[2px] align-middle ${card === "yellow" ? "bg-yellow-400" : "bg-red-500"}`} />;
 }
 
+function suggestionReason(suggestion: SubstitutionSuggestion, t: Dictionary): string {
+  const reasons = t.match.subs.reasons;
+  switch (suggestion.reason) {
+    case "booked": return reasons.booked;
+    case "stronger": return reasons.stronger(suggestion.in.overall - suggestion.out.overall);
+    case "fresh": return reasons.fresh;
+    case "samePosition": return reasons.samePosition;
+  }
+}
+
 type EventCopy = { title: string; detail: string; playerId: string | undefined; playerName: string; icon: React.ReactNode; tone: string };
 
-function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSnapshot>, shots: ShotResult[]): EventCopy {
+function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSnapshot>, shots: ShotResult[], t: Dictionary): EventCopy {
+  const copy = t.match.events;
   switch (event.type) {
     case "goal":
-      return { title: "MÅL", detail: event.assist ? `ASSIST ${shortName(event.assist)}` : "SOLOMÅL", playerId: event.scorerId, playerName: shortName(event.scorer), icon: <span>⚽</span>, tone: "border-success/60 bg-success/10" };
+      return { title: copy.goal, detail: event.assist ? copy.assist(shortName(event.assist)) : copy.soloGoal, playerId: event.scorerId, playerName: shortName(event.scorer), icon: <span>⚽</span>, tone: "border-success/60 bg-success/10" };
     case "card":
       return {
-        title: event.card === "yellow" ? "GULT KORT" : "RØDT KORT",
-        detail: event.card === "yellow" ? "Advarsel" : "Utvist – laget er én mann kort",
+        title: event.card === "yellow" ? copy.yellowCard : copy.redCard,
+        detail: event.card === "yellow" ? copy.yellowDetail : copy.redDetail,
         playerId: event.playerId,
         playerName: shortName(event.player),
         icon: <CardIcon card={event.card} />,
@@ -119,8 +134,8 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
       };
     case "chance":
       return {
-        title: event.outcome === "post" ? "I STOLPEN" : "REDNING",
-        detail: event.outcome === "post" ? "Centimeter fra mål" : event.keeper ? `Reddet av ${shortName(event.keeper)}` : "Keeper fikk en hånd på den",
+        title: event.outcome === "post" ? copy.post : copy.save,
+        detail: event.outcome === "post" ? copy.postDetail : event.keeper ? copy.savedBy(shortName(event.keeper)) : copy.keeperGotHand,
         playerId: event.playerId,
         playerName: shortName(event.player),
         icon: <span>{event.outcome === "post" ? "🎯" : "🧤"}</span>,
@@ -128,11 +143,11 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
       };
     case "shot": {
       const result = shots.find((shot) => shot.minute === event.minute);
-      const label = event.kind === "penalty" ? "STRAFFE" : "STOR SJANSE";
+      const label = event.kind === "penalty" ? copy.penalty : copy.bigChance;
       const scored = result?.outcome === "goal";
       return {
-        title: scored ? `${label} – MÅL` : result?.outcome === "saved" ? `${label} – REDDET` : `${label} – BOM`,
-        detail: scored ? "Satt i mål" : result?.outcome === "saved" ? (event.kind === "penalty" ? "Keeper gikk rett vei" : "Keeper reddet") : "Utenfor",
+        title: scored ? copy.shotGoal(label) : result?.outcome === "saved" ? copy.shotSaved(label) : copy.shotMissed(label),
+        detail: scored ? copy.scoredDetail : result?.outcome === "saved" ? (event.kind === "penalty" ? copy.penaltySavedDetail : copy.savedDetail) : copy.missedDetail,
         playerId: event.takerId,
         playerName: shortName(event.taker),
         icon: <span>{scored ? "⚽" : result?.outcome === "saved" ? "🧤" : "❌"}</span>,
@@ -141,7 +156,7 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
     }
     case "substitution": {
       const out = names.get(event.outId)?.name;
-      return { title: "BYTTE", detail: `${out ? shortName(out) : "Spiller"} ut`, playerId: event.inId, playerName: shortName(names.get(event.inId)?.name ?? "Spiller"), icon: <span>⇄</span>, tone: "border-border bg-surface-raised" };
+      return { title: copy.substitution, detail: copy.playerOff(out ? shortName(out) : t.match.player), playerId: event.inId, playerName: shortName(names.get(event.inId)?.name ?? t.match.player), icon: <span>⇄</span>, tone: "border-border bg-surface-raised" };
     }
   }
 }
@@ -151,7 +166,8 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
  * Spillerkortet står innerst mot midten og teksten ytterst, som i forbildet.
  */
 function EventRow({ event, players, shots, latest }: { event: TimelineEvent; players: Map<string, ManagerPlayerSnapshot>; shots: ShotResult[]; latest: boolean }) {
-  const copy = describeEvent(event, players, shots);
+  const t = useT();
+  const copy = describeEvent(event, players, shots, t);
   const player = copy.playerId ? players.get(copy.playerId) : undefined;
   const home = event.side === "home";
   const content = (
@@ -197,11 +213,12 @@ function GoalStrip({ goals, minute }: { goals: { minute: number; side: MatchSide
 }
 
 function SideName({ side, you }: { side: ManagerSideInfo; you: boolean }) {
+  const t = useT();
   return (
     <div className="min-w-0">
       <b className="block truncate text-lg leading-tight">{side.username}</b>
       {side.clubName ? <p className="truncate text-xs text-muted">{side.clubName}</p> : null}
-      {you ? <span className="mt-1 inline-block rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-bold tracking-wide text-accent">DEG</span> : null}
+      {you ? <span className="mt-1 inline-block rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-bold tracking-wide text-accent">{t.match.you}</span> : null}
     </div>
   );
 }
@@ -231,6 +248,7 @@ function GoalGrid({
   disabled: boolean;
   onPick: (cell: number) => void;
 }) {
+  const t = useT();
   const [hovered, setHovered] = useState<number | null>(null);
   const preview = !disabled && previewZone && hovered !== null ? previewZone(hovered) : [];
   return (
@@ -247,7 +265,7 @@ function GoalGrid({
               disabled={disabled || !available}
               onMouseEnter={() => setHovered(cell)}
               onClick={() => onPick(cell)}
-              aria-label={available ? `Sikt mot rute ${cell + 1}` : `Rute ${cell + 1} er utenfor rekkevidde`}
+              aria-label={available ? t.match.grid.aim(cell + 1) : t.match.grid.outOfReach(cell + 1)}
               className={`relative grid h-14 place-items-center gap-0.5 rounded border transition sm:h-16 ${
                 mine ? "border-success bg-success/40 ring-2 ring-success" : theirs ? "border-accent bg-accent/30 ring-2 ring-accent" : available ? "border-success/40 bg-success/10 hover:bg-success/25" : "border-danger/40 bg-danger/10"
               } ${disabled || !available ? "cursor-default" : "cursor-pointer"}`}
@@ -256,7 +274,7 @@ function GoalGrid({
               {theirs && otherLabel ? (
                 <span className="text-[9px] font-bold leading-none text-accent">{otherLabel}</span>
               ) : myCells.includes(cell) ? (
-                <span className="text-[9px] font-bold leading-none text-success">DITT</span>
+                <span className="text-[9px] font-bold leading-none text-success">{t.match.grid.yours}</span>
               ) : chanceFor && available ? (
                 <span className="text-[10px] font-bold leading-none text-white/75">{Math.round(chanceFor(cell) * 100)}%</span>
               ) : null}
@@ -269,6 +287,7 @@ function GoalGrid({
 }
 
 export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: { match: ManagerMatch; userId: string; returnAfterComplete?: boolean }) {
+  const t = useT();
   const router = useRouter();
   const finishFormRef = useRef<HTMLFormElement>(null);
   const resolveFormRef = useRef<HTMLFormElement>(null);
@@ -335,16 +354,16 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
 
   const seconds = Math.max(0, Math.ceil(clock.remainingMs / 1000));
   const statusLabel = complete
-    ? "Slutt"
+    ? t.match.status.fullTime
     : match.status === "live"
       ? clock.phase === "halftime"
-        ? "Pause · 45′"
+        ? t.match.status.halftime
         : clock.phase === "substitutions"
-          ? "Byttevindu · 70′"
+          ? t.match.status.subWindow
           : clock.phase === "shot"
-            ? `${activeShot?.kind === "penalty" ? "Straffespark" : "Stor sjanse"} · ${clock.minute}′`
-            : `Live · ${clock.minute}′`
-      : "Venter i lobby";
+            ? t.match.status.shot(activeShot?.kind === "penalty" ? t.match.status.penalty : t.match.status.bigChance, clock.minute)
+            : t.match.status.live(clock.minute)
+      : t.match.status.lobby;
 
   // Prøv igjen hvert tredje sekund til serveren har avsluttet kampen. Ett enkelt forsøk ble
   // stående fast hvis serverens klokke eller varighet ikke helt stemte med vår.
@@ -406,8 +425,8 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
   const keeperLine = !activeShot || keeperRating === null
     ? null
     : iAmKeeping
-      ? `Du dekker ${reach === 1 ? "bare ruta du velger" : `${reach} ruter: den du velger og ${reach === 2 ? "naboruta" : "naborutene"}`}`
-      : `Keeper: ${shotKeeper ? `${shortName(shotKeeper.name)} (${keeperRating})` : "ingen – en utespiller står i mål"}${activeShot.kind === "penalty" ? ` · dekker ${reach} ${reach === 1 ? "rute" : "ruter"}` : ""}`;
+      ? t.match.shot.youCover(reach)
+      : `${t.match.shot.keeperLine(shotKeeper ? t.match.shot.keeperNamed(shortName(shotKeeper.name), keeperRating) : t.match.shot.noKeeper)}${activeShot.kind === "penalty" ? t.match.shot.covers(reach) : ""}`;
   const shotSeconds = activeShot ? Math.max(0, Math.ceil((SHOT_CHOICE_MS - clock.shotElapsedMs) / 1000)) : 0;
 
   return (
@@ -415,7 +434,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
       <div className={`${cardClass} grid gap-3 p-4`}>
         <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.2em] text-muted">
           <span>{statusLabel}</span>
-          {kickoff ? <span className="rounded-full bg-accent-soft px-3 py-1 text-[10px] text-accent">XI LÅST</span> : null}
+          {kickoff ? <span className="rounded-full bg-accent-soft px-3 py-1 text-[10px] text-accent">{t.match.xiLocked}</span> : null}
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -431,7 +450,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
         <GoalStrip goals={goalMarkers} minute={shownMinute} />
         {match.status === "live" && clock.phase !== "shot" ? (
           <p className="text-center text-sm font-semibold">
-            {clock.phase === "halftime" ? `Pause · ${seconds} sek` : clock.phase === "substitutions" ? `Byttevindu · ${seconds} sek` : clock.phase === "first_half" ? "1. omgang" : clock.phase === "second_half" ? "2. omgang" : "Full tid"}
+            {clock.phase === "halftime" ? t.match.phase.halftime(seconds) : clock.phase === "substitutions" ? t.match.phase.subWindow(seconds) : clock.phase === "first_half" ? t.match.phase.firstHalf : clock.phase === "second_half" ? t.match.phase.secondHalf : t.match.phase.fullTime}
           </p>
         ) : null}
       </div>
@@ -439,24 +458,24 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
       {activeShot ? (
         <section className="grid gap-3 rounded-xl border border-accent bg-accent-soft p-4 text-center">
           <div>
-            <p className="text-xs font-bold tracking-[.2em] text-accent">{activeShot.kind === "penalty" ? "STRAFFESPARK" : "STOR SJANSE"} · {activeShot.minute}′</p>
+            <p className="text-xs font-bold tracking-[.2em] text-accent">{activeShot.kind === "penalty" ? t.match.shot.penaltyTitle : t.match.shot.bigChanceTitle} · {activeShot.minute}′</p>
             <h2 className="mt-1 text-xl font-bold">
-              {iAmShooting ? `${shortName(activeShot.taker)} skal skyte` : iAmKeeping ? `${shortName(activeShot.taker)} tar straffen mot deg` : `${(activeShot.side === "home" ? match.home : match.away).username} har en stor sjanse`}
+              {iAmShooting ? t.match.shot.youShoot(shortName(activeShot.taker)) : iAmKeeping ? t.match.shot.penaltyAgainstYou(shortName(activeShot.taker)) : t.match.shot.bigChanceFor((activeShot.side === "home" ? match.home : match.away).username)}
             </h2>
             <p className="mt-1 text-sm text-muted">
               {choosingWindow
                 ? iAmShooting
-                  ? `Velg hvor du sikter · ${shotSeconds} sek`
+                  ? t.match.shot.chooseAim(shotSeconds)
                   : iAmKeeping
-                    ? `Velg hvor du kaster deg · ${shotSeconds} sek`
-                    : "Du kan bare se på denne"
+                    ? t.match.shot.chooseDive(shotSeconds)
+                    : t.match.shot.watchOnly
                 : activeResult?.outcome === "goal"
-                  ? "MÅL!"
+                  ? t.match.shot.goal
                   : activeResult?.outcome === "saved"
-                    ? "Reddet!"
+                    ? t.match.shot.saved
                     : activeResult?.outcome === "missed"
-                      ? "Bom!"
-                      : "Avgjøres…"}
+                      ? t.match.shot.missed
+                      : t.match.shot.deciding}
             </p>
           </div>
 
@@ -468,7 +487,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
                 chanceFor={iAmShooting && taker ? (cell) => cellGoalChance(shootingOf(taker), activeShot.kind, cell, activeShot.kind === "chance" ? keeperRating : null) : null}
                 myCells={myCells}
                 otherCells={otherCells}
-                otherLabel={iAmShooting ? "KEEPER" : "SKUDD"}
+                otherLabel={iAmShooting ? t.match.grid.keeper : t.match.grid.shot}
                 previewZone={iAmKeeping && myCell === null ? (cell) => keeperZone(activeShot, cell) : null}
                 disabled={!choosingWindow || picking || myCell !== null || (!iAmShooting && !iAmKeeping)}
                 onPick={(cell) => {
@@ -481,7 +500,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
                 }}
               />
               {keeperLine ? <p className="text-xs font-semibold text-muted">{keeperLine}</p> : null}
-              {myCell !== null && choosingWindow ? <p className="text-xs text-muted">Valgt – venter på {iAmShooting && activeShot.kind === "penalty" ? "keeperen" : "avslutningen"}…</p> : null}
+              {myCell !== null && choosingWindow ? <p className="text-xs text-muted">{iAmShooting && activeShot.kind === "penalty" ? t.match.shot.waitingForKeeper : t.match.shot.waitingForShot}</p> : null}
               {shotState.error ? <p className="text-xs text-danger">{shotState.error}</p> : null}
             </div>
           </div>
@@ -490,12 +509,12 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
 
       {clock.phase === "halftime" && report && yourReport && opponentReport ? (
         <section className="grid gap-2 rounded-xl border border-border bg-surface p-4">
-          <p className="text-center text-xs font-bold tracking-[.2em] text-muted">STATISTIKK FØRSTE OMGANG</p>
+          <p className="text-center text-xs font-bold tracking-[.2em] text-muted">{t.match.stats.firstHalf}</p>
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
-            <b>{yourReport.possession}%</b><span className="text-muted">Ballbesittelse</span><b>{opponentReport.possession}%</b>
-            <b>{yourReport.shots}</b><span className="text-muted">Skudd</span><b>{opponentReport.shots}</b>
-            <b>{yourReport.onTarget}</b><span className="text-muted">På mål</span><b>{opponentReport.onTarget}</b>
-            <b>{yourReport.strength}</b><span className="text-muted">Lagstyrke</span><b>{opponentReport.strength}</b>
+            <b>{yourReport.possession}%</b><span className="text-muted">{t.match.stats.possession}</span><b>{opponentReport.possession}%</b>
+            <b>{yourReport.shots}</b><span className="text-muted">{t.match.stats.shots}</span><b>{opponentReport.shots}</b>
+            <b>{yourReport.onTarget}</b><span className="text-muted">{t.match.stats.onTarget}</span><b>{opponentReport.onTarget}</b>
+            <b>{yourReport.strength}</b><span className="text-muted">{t.match.stats.strength}</span><b>{opponentReport.strength}</b>
           </div>
         </section>
       ) : null}
@@ -503,11 +522,11 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
       {clock.phase === "substitutions" && userSide ? (
         <section className="grid gap-3 rounded-xl border border-accent bg-accent-soft p-4">
           <div className="text-center">
-            <p className="text-xs font-bold tracking-[.2em] text-accent">BYTTEVINDU · {seconds} SEK</p>
-            <p className="mt-1 text-sm text-muted">Bruk så mange av forslagene du vil – eller ingen. {3 - substitutions.length} bytter igjen.</p>
+            <p className="text-xs font-bold tracking-[.2em] text-accent">{t.match.subs.title(seconds)}</p>
+            <p className="mt-1 text-sm text-muted">{t.match.subs.hint(3 - substitutions.length)}</p>
           </div>
           {substitutions.length >= 3 ? (
-            <p className="text-center text-sm text-muted">Du har brukt alle tre byttene.</p>
+            <p className="text-center text-sm text-muted">{t.match.subs.allUsed}</p>
           ) : suggestions.length ? (
             <div className="grid gap-2">
               {suggestions.map((suggestion) => (
@@ -517,14 +536,14 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
                   <input type="hidden" name="in_id" value={suggestion.inId} />
                   <div className="min-w-0 flex-1 text-left">
                     <p className="truncate text-sm"><b>{shortName(suggestion.in.name)}</b> <span className="text-muted">({suggestion.in.position} {suggestion.in.overall})</span></p>
-                    <p className="truncate text-xs text-muted">inn for {shortName(suggestion.out.name)} · {suggestion.reason}</p>
+                    <p className="truncate text-xs text-muted">{t.match.subs.inFor(shortName(suggestion.out.name))} · {suggestionReason(suggestion, t)}</p>
                   </div>
-                  <button className={secondaryButtonClass} disabled={substituting}>Bytt</button>
+                  <button className={secondaryButtonClass} disabled={substituting}>{t.match.subs.swap}</button>
                 </form>
               ))}
             </div>
           ) : (
-            <p className="text-center text-sm text-muted">Ingen bytter å foreslå – benken har ingen som passer bedre.</p>
+            <p className="text-center text-sm text-muted">{t.match.subs.none}</p>
           )}
           {substitutionState.error ? <p className="text-center text-sm text-danger">{substitutionState.error}</p> : null}
         </section>
@@ -543,11 +562,11 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
           ))}
         </ul>
         {visible.length ? null : (
-          <p className="grid h-full place-items-center text-center text-sm text-muted">{match.status === "live" ? "Kampen er i gang – ingen hendelser ennå." : "Kampen har ikke startet."}</p>
+          <p className="grid h-full place-items-center text-center text-sm text-muted">{match.status === "live" ? t.match.feed.noEvents : t.match.feed.notStarted}</p>
         )}
       </div>
 
-      {match.status === "live" && fullTime ? <p className="text-center text-sm text-muted">Sluttresultatet lagres automatisk på serveren…</p> : null}
+      {match.status === "live" && fullTime ? <p className="text-center text-sm text-muted">{t.match.feed.savingAutomatically}</p> : null}
       <form ref={finishFormRef} action={finishAction}><input type="hidden" name="match_id" value={match.id} /></form>
       <form ref={resolveFormRef} action={resolveAction}>
         <input type="hidden" name="match_id" value={match.id} />
@@ -558,27 +577,27 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
         <section className="grid gap-4 rounded-xl border border-accent bg-accent-soft p-4 text-left">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-bold tracking-[.2em] text-accent">KAMPOPPSUMMERING</p>
-              <h2 className="mt-1 text-xl font-bold">Kampens spiller: {report.playerOfMatch}</h2>
+              <p className="text-xs font-bold tracking-[.2em] text-accent">{t.match.summary.title}</p>
+              <h2 className="mt-1 text-xl font-bold">{t.match.summary.playerOfMatch(report.playerOfMatch ?? t.match.summary.playerOfMatchFallback)}</h2>
             </div>
-            <p className="text-sm text-muted">{returnAfterComplete ? "Tilbake til Manager Karriere om et øyeblikk" : "Lagret i karrierehistorikken"}</p>
+            <p className="text-sm text-muted">{returnAfterComplete ? t.match.summary.returning : t.match.summary.savedToHistory}</p>
           </div>
           <div className="flex justify-between px-1 text-xs font-bold tracking-[.16em] text-muted">
             <span>{(userSide === "away" ? match.away : match.home).username.toUpperCase()}</span>
             <span>{(userSide === "away" ? match.home : match.away).username.toUpperCase()}</span>
           </div>
           <div className="grid overflow-hidden rounded-lg border border-border bg-surface-raised text-center sm:grid-cols-4">
-            <div className="border-b border-border p-3 sm:border-b-0 sm:border-r"><p className="text-xs text-muted">LAGSTYRKE</p><p className="mt-1 text-lg font-bold">{yourReport.strength} <span className="text-muted">–</span> {opponentReport.strength}</p></div>
-            <div className="border-b border-border p-3 sm:border-b-0 sm:border-r"><p className="text-xs text-muted">BALLBESITTELSE</p><p className="mt-1 text-lg font-bold">{yourReport.possession}% <span className="text-muted">–</span> {opponentReport.possession}%</p></div>
-            <div className="border-b border-border p-3 sm:border-b-0 sm:border-r"><p className="text-xs text-muted">SKUDD</p><p className="mt-1 text-lg font-bold">{yourReport.shots} <span className="text-muted">–</span> {opponentReport.shots}</p></div>
-            <div className="p-3"><p className="text-xs text-muted">PÅ MÅL</p><p className="mt-1 text-lg font-bold">{yourReport.onTarget} <span className="text-muted">–</span> {opponentReport.onTarget}</p></div>
+            <div className="border-b border-border p-3 sm:border-b-0 sm:border-r"><p className="text-xs text-muted">{t.match.stats.strength.toUpperCase()}</p><p className="mt-1 text-lg font-bold">{yourReport.strength} <span className="text-muted">–</span> {opponentReport.strength}</p></div>
+            <div className="border-b border-border p-3 sm:border-b-0 sm:border-r"><p className="text-xs text-muted">{t.match.stats.possession.toUpperCase()}</p><p className="mt-1 text-lg font-bold">{yourReport.possession}% <span className="text-muted">–</span> {opponentReport.possession}%</p></div>
+            <div className="border-b border-border p-3 sm:border-b-0 sm:border-r"><p className="text-xs text-muted">{t.match.stats.shots.toUpperCase()}</p><p className="mt-1 text-lg font-bold">{yourReport.shots} <span className="text-muted">–</span> {opponentReport.shots}</p></div>
+            <div className="p-3"><p className="text-xs text-muted">{t.match.stats.onTarget.toUpperCase()}</p><p className="mt-1 text-lg font-bold">{yourReport.onTarget} <span className="text-muted">–</span> {opponentReport.onTarget}</p></div>
           </div>
-          {!returnAfterComplete ? <Link href="/managerkarriere" className={buttonClass}>Til Manager Karriere</Link> : null}
+          {!returnAfterComplete ? <Link href="/managerkarriere" className={buttonClass}>{t.match.summary.backButton}</Link> : null}
         </section>
       ) : null}
 
       {/* Mens vi venter på serveren prøves det på nytt, så da holder «lagres automatisk» over. */}
-      {state.error && !(match.status === "live" && fullTime) ? <p className="text-sm text-danger">{state.error}</p> : complete ? <p className="text-sm text-success">Resultatet, V/U/T og belønningen er lagret.</p> : null}
+      {state.error && !(match.status === "live" && fullTime) ? <p className="text-sm text-danger">{state.error}</p> : complete ? <p className="text-sm text-success">{t.match.summary.resultSaved}</p> : null}
     </section>
   );
 }

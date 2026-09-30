@@ -1,3 +1,4 @@
+import type { Dictionary } from "@/i18n/dictionaries";
 import type { Pairing } from "./round-robin";
 
 const ADVANCE_RATIO = 0.7;
@@ -54,19 +55,20 @@ export function pairWinners(winnerTeamIds: string[]): Pairing[] {
   return pairings;
 }
 
-export function roundLabel(teamsInRound: number): string {
+export function roundLabel(teamsInRound: number, t: Dictionary): string {
+  const rounds = t.tournaments.rounds;
   switch (teamsInRound) {
     case 2:
-      return "Finale";
+      return rounds.final;
     case 4:
-      return "Semifinale";
+      return rounds.semiFinal;
     case 8:
-      return "Kvartfinale";
+      return rounds.quarterFinal;
     case 16:
-      return "Åttedelsfinale";
+      return rounds.roundOf16;
     case 32:
-      return "Sekstendelsfinale";
+      return rounds.roundOf32;
     default:
-      return `Sluttspillrunde (${teamsInRound} lag)`;
+      return rounds.other(teamsInRound);
   }
 }

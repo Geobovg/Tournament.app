@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useT } from "@/i18n/client";
 import { createTournamentAction, type ActionState } from "@/lib/actions";
 import { tournamentThemes } from "@/lib/theme";
 import type { TournamentType } from "@/lib/tournament/types";
@@ -20,6 +21,8 @@ export function CreateTournamentForm() {
     initialState,
   );
   const [type, setType] = useState<TournamentType>("fifa");
+  const t = useT();
+  const text = t.tournaments.createForm;
 
   return (
     <div data-theme={type}>
@@ -27,19 +30,19 @@ export function CreateTournamentForm() {
       <form action={action} className={`${cardClass} grid gap-5`}>
         <div>
           <label className={labelClass} htmlFor="name">
-            Navn på turneringen
+            {text.name}
           </label>
           <input
             id="name"
             name="name"
             className="mt-1 w-full"
-            placeholder="F.eks. Vinterserien 2026"
+            placeholder={text.namePlaceholder}
             required
           />
         </div>
 
         <fieldset>
-          <legend className={labelClass}>Spill</legend>
+          <legend className={labelClass}>{text.game}</legend>
           <div className="mt-2 flex gap-3">
             {typeOptions.map((option) => (
               <label
@@ -67,13 +70,13 @@ export function CreateTournamentForm() {
             ))}
           </div>
           <p className="mt-2 text-sm text-muted">
-            {tournamentThemes[type].tagline}
+            {t.tournaments.taglines[type]}
           </p>
         </fieldset>
 
         <div>
           <label className={labelClass} htmlFor="max_teams">
-            Antall lag
+            {text.maxTeams}
           </label>
           <input
             id="max_teams"
@@ -86,41 +89,41 @@ export function CreateTournamentForm() {
             required
           />
           <p className="mt-1 text-sm text-muted">
-            Turneringen kan starte når alle lagplassene er fylt.
+            {text.maxTeamsHint}
           </p>
         </div>
 
         <fieldset>
-          <legend className={labelClass}>Spillere per lag</legend>
+          <legend className={labelClass}>{text.playersPerTeam}</legend>
           <div className="mt-2 flex gap-3">
             <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-border p-3">
               <input type="radio" name="team_size" value="1" defaultChecked className="w-auto" />
-              <span>Solo</span>
+              <span>{text.solo}</span>
             </label>
             <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-border p-3">
               <input type="radio" name="team_size" value="2" className="w-auto" />
-              <span>Double</span>
+              <span>{text.double}</span>
             </label>
           </div>
         </fieldset>
 
         <div>
           <label className={labelClass} htmlFor="legs">
-            Kamper per sluttspillduell
+            {text.legs}
           </label>
           <select id="legs" name="legs" defaultValue="1" className="mt-1 w-full">
-            <option value="1">1 kamp</option>
-            <option value="2">2 kamper</option>
+            <option value="1">{text.oneMatch}</option>
+            <option value="2">{text.twoMatches}</option>
           </select>
           <p className="mt-1 text-sm text-muted">
-            Finalen spilles alltid som én kamp, uansett valg her.
+            {text.legsHint}
           </p>
         </div>
 
         {state.error ? <p className="text-danger">{state.error}</p> : null}
 
         <button type="submit" className={buttonClass} disabled={pending}>
-          {pending ? "Oppretter…" : "Opprett turnering"}
+          {pending ? text.creating : text.submit}
         </button>
       </form>
     </div>

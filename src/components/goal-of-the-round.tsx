@@ -1,8 +1,9 @@
+import { getT } from "@/i18n/server";
 import type { GoalClip, Match, Vote } from "@/lib/tournament/types";
 import { toYouTubeEmbedUrl } from "@/lib/video";
 import { VoteButton } from "./vote-button";
 
-export function GoalOfTheRound({
+export async function GoalOfTheRound({
   clips,
   matches,
   teamNames,
@@ -15,10 +16,11 @@ export function GoalOfTheRound({
   votes: Vote[];
   myVoteClipId: string | null;
 }) {
+  const t = await getT();
   if (clips.length === 0) {
     return (
       <p className="text-sm text-muted">
-        Ingen målvideoer lagt inn for denne runden ennå.
+        {t.tournaments.voting.noClipsRound}
       </p>
     );
   }
@@ -54,12 +56,12 @@ export function GoalOfTheRound({
           >
             <div>
               <p className="font-medium">
-                {teamNames.get(clip.team_id) ?? "Ukjent lag"}
+                {teamNames.get(clip.team_id) ?? t.tournaments.unknownTeam}
                 {leading ? " 🏆" : ""}
               </p>
               {opponentId ? (
                 <p className="text-sm text-muted">
-                  mot {teamNames.get(opponentId) ?? "ukjent"}
+                  {t.tournaments.voting.against(teamNames.get(opponentId) ?? t.tournaments.unknownLower)}
                 </p>
               ) : null}
             </div>
@@ -67,7 +69,7 @@ export function GoalOfTheRound({
             {embedUrl ? (
               <iframe
                 src={embedUrl}
-                title={`Mål fra ${teamNames.get(clip.team_id) ?? "lag"}`}
+                title={t.tournaments.goalFrom(teamNames.get(clip.team_id) ?? t.tournaments.teamFallback)}
                 allowFullScreen
                 className="aspect-video w-full rounded-lg border border-border"
               />
@@ -78,13 +80,13 @@ export function GoalOfTheRound({
                 rel="noopener noreferrer"
                 className="text-accent underline"
               >
-                Se målet ↗
+                {t.tournaments.watchGoal}
               </a>
             )}
 
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm text-muted">
-                {count} {count === 1 ? "stemme" : "stemmer"}
+                {t.tournaments.votes(count)}
               </span>
               <VoteButton clipId={clip.id} isMyVote={myVoteClipId === clip.id} />
             </div>

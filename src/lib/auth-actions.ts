@@ -16,6 +16,7 @@ import {
   validUsername,
   verifyAccountCode,
 } from "./auth";
+import { dbErrorMessage, getT } from "@/i18n/server";
 import { supabaseAdmin, supabasePublic } from "./supabase/server";
 
 export type AuthActionState = { error?: string; ok?: boolean; message?: string };
@@ -62,12 +63,13 @@ export async function registerAction(
   const code = formValue(formData, "code");
   const confirmCode = formValue(formData, "confirm_code");
   const next = formValue(formData, "next");
+  const t = (await getT()).auth.errors;
 
   if (!validUsername(username)) {
-    return { error: "Brukernavn må ha 3–24 tegn og bare bokstaver, tall, punktum, bindestrek eller understrek" };
+    return { error: t.invalidUsername };
   }
-  if (!validAccountCode(code)) return { error: "Koden må være nøyaktig 6 sifre" };
-  if (code !== confirmCode) return { error: "Kodene er ikke like" };
+  if (!validAccountCode(code)) return { error: t.codeSixDigits };
+  if (code !== confirmCode) return { error: t.codesDiffer };
 
   const db = supabaseAdmin();
   const ip = await clientIp();
@@ -79,14 +81,14 @@ export async function registerAction(
       .eq("ip_hash", ipHash)
       .gte("created_at", new Date(Date.now() - 60 * 60_000).toISOString());
     if ((count ?? 0) >= SIGNUPS_PER_IP_PER_HOUR) {
-      return { error: "Det er opprettet for mange brukere fra denne nettverksforbindelsen den siste timen. Prøv igjen senere." };
+      return { error: t.tooManySignups };
     }
   }
 
   // Koden trenger ikke være unik, siden innlogging alltid krever brukernavnet også. Å si ifra om
   // at en kode er i bruk ville latt hvem som helst finne andres koder ved å prøve seg fram.
   const { data: existing } = await db.from("profiles").select("id").eq("username_key", usernameKey).maybeSingle();
-  if (existing) return { error: "Brukernavnet er allerede i bruk" };
+  if (existing) return { error: t.usernameTaken };
 
   const email = internalEmail();
   const { data: authData, error: authError } = await db.auth.admin.createUser({
@@ -94,7 +96,7 @@ export async function registerAction(
     password: code,
     email_confirm: true,
   });
-  if (authError || !authData.user) return { error: authError?.message ?? "Kunne ikke opprette kontoen" };
+  if (authError || !authData.user) return { error: authError ? await dbErrorMessage(authError) : t.createFailed };
 
   const { error: profileError } = await db.from("profiles").insert({
     id: authData.user.id,
@@ -105,7 +107,7 @@ export async function registerAction(
   });
   if (profileError) {
     await db.auth.admin.deleteUser(authData.user.id);
-    return { error: "Kunne ikke lagre kontoen. Prøv en annen kode eller et annet brukernavn." };
+    return { error: t.saveFailed };
   }
 
   if (ipHash) {
@@ -125,7 +127,8 @@ export async function loginAction(
   const usernameKey = normalizeUsername(formValue(formData, "username"));
   const code = formValue(formData, "code");
   const next = formValue(formData, "next");
-  if (!usernameKey || !validAccountCode(code)) return { error: "Skriv inn brukernavn og sekssifret kode" };
+  const t = (await getT()).auth.errors;
+  if (!usernameKey || !validAccountCode(code)) return { error: t.enterUsernameAndCode };
 
   const db = supabaseAdmin();
   const { data: profile } = await db
@@ -133,12 +136,12 @@ export async function loginAction(
     .select("id, email, code_hash, failed_attempts, lockout_count, locked_until")
     .eq("username_key", usernameKey)
     .maybeSingle();
-  if (!profile) return { error: "Feil brukernavn eller kode" };
+  if (!profile) return { error: t.wrongUsernameOrCode };
 
   const now = Date.now();
   if (profile.locked_until && new Date(profile.locked_until).getTime() > now) {
     const minutes = Math.ceil((new Date(profile.locked_until).getTime() - now) / 60_000);
-    return { error: `For mange forsøk. Prøv igjen om ${minutes} minutt${minutes === 1 ? "" : "er"}, eller bruk «Glemt kode?».` };
+    return { error: t.tooManyAttemptsRetry(minutes) };
   }
 
   const valid = verifyAccountCode(code, profile.code_hash);
@@ -156,10 +159,10 @@ export async function loginAction(
         locked_until: new Date(now + minutes * 60_000).toISOString(),
         updated_at: new Date().toISOString(),
       }).eq("id", profile.id);
-      return { error: `For mange forsøk. Kontoen er låst i ${minutes} minutter.` };
+      return { error: t.tooManyAttemptsLocked(minutes) };
     }
     await db.from("profiles").update({ failed_attempts: attempts, updated_at: new Date().toISOString() }).eq("id", profile.id);
-    return { error: valid ? "Bekreft e-posten før du logger inn" : "Feil brukernavn eller kode" };
+    return { error: valid ? t.confirmEmailFirst : t.wrongUsernameOrCode };
   }
 
   await db.from("profiles").update({ failed_attempts: 0, locked_until: null, updated_at: new Date().toISOString() }).eq("id", profile.id);
@@ -174,20 +177,21 @@ export async function passkeyRegistrationSessionAction(
 ): Promise<PasskeySessionState> {
   const user = await requireUser();
   const code = formValue(formData, "code");
-  if (!validAccountCode(code)) return { error: "Skriv inn den sekssifrede koden din" };
+  const t = (await getT()).auth.errors;
+  if (!validAccountCode(code)) return { error: t.enterYourCode };
 
   const { data: profile } = await supabaseAdmin()
     .from("profiles")
     .select("code_hash")
     .eq("id", user.id)
     .single();
-  if (!profile || !verifyAccountCode(code, profile.code_hash)) return { error: "Feil sekssifret kode" };
+  if (!profile || !verifyAccountCode(code, profile.code_hash)) return { error: t.wrongCode };
 
   const { data, error } = await supabasePublic().auth.signInWithPassword({
     email: user.email,
     password: code,
   });
-  if (error || !data.session) return { error: "Kunne ikke klargjøre Face ID. Bekreft e-posten din først." };
+  if (error || !data.session) return { error: t.passkeyPrepareFailed };
   return { ok: true, access_token: data.session.access_token, refresh_token: data.session.refresh_token };
 }
 
@@ -196,12 +200,13 @@ export async function sendRecoveryAction(
   formData: FormData,
 ): Promise<AuthActionState> {
   const email = formValue(formData, "email").toLowerCase();
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Skriv inn e-postadressen din" };
+  const t = (await getT()).auth;
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: t.errors.enterEmail };
   // Do not reveal whether the address is registered.
   await supabasePublic().auth.resetPasswordForEmail(email, {
     redirectTo: `${await siteUrl()}/auth/reset`,
   });
-  return { ok: true, message: "Hvis e-posten er registrert, får du straks en lenke for å endre koden. Lenken er gyldig i 30 minutter." };
+  return { ok: true, message: t.messages.recoverySent };
 }
 
 export async function changeCodeAction(
@@ -209,15 +214,16 @@ export async function changeCodeAction(
   formData: FormData,
 ): Promise<AuthActionState> {
   const user = await currentUser();
-  if (!user) return { error: "Lenken er utløpt. Be om en ny e-post for å endre kode." };
+  const t = (await getT()).auth;
+  if (!user) return { error: t.errors.linkExpired };
   const code = formValue(formData, "code");
   const confirmCode = formValue(formData, "confirm_code");
-  if (!validAccountCode(code)) return { error: "Koden må være nøyaktig 6 sifre" };
-  if (code !== confirmCode) return { error: "Kodene er ikke like" };
+  if (!validAccountCode(code)) return { error: t.errors.codeSixDigits };
+  if (code !== confirmCode) return { error: t.errors.codesDiffer };
 
   const db = supabaseAdmin();
   const { error } = await db.auth.admin.updateUserById(user.id, { password: code });
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   await db.from("profiles").update({
     code_hash: hashAccountCode(code),
     failed_attempts: 0,
@@ -225,7 +231,7 @@ export async function changeCodeAction(
     locked_until: null,
     updated_at: new Date().toISOString(),
   }).eq("id", user.id);
-  return { ok: true, message: "Koden er endret. Du kan nå logge inn med den nye koden." };
+  return { ok: true, message: t.messages.codeChanged };
 }
 
 export async function updateProfileAction(
@@ -236,14 +242,15 @@ export async function updateProfileAction(
   const username = formValue(formData, "username");
   const usernameKey = normalizeUsername(username);
   const currentCode = formValue(formData, "current_code");
-  if (!validUsername(username)) return { error: "Ugyldig brukernavn" };
+  const t = (await getT()).profile;
+  if (!validUsername(username)) return { error: t.errors.invalidUsername };
   if (!verifyAccountCode(currentCode, (await supabaseAdmin().from("profiles").select("code_hash").eq("id", user.id).single()).data?.code_hash ?? "")) {
-    return { error: "Skriv inn riktig sekssifret kode for å endre brukernavn" };
+    return { error: t.errors.wrongCodeForUsername };
   }
   const { error } = await supabaseAdmin().from("profiles").update({ username, username_key: usernameKey, updated_at: new Date().toISOString() }).eq("id", user.id);
-  if (error) return { error: "Brukernavnet er allerede i bruk" };
+  if (error) return { error: t.errors.usernameTaken };
   revalidatePath("/", "layout");
-  return { ok: true, message: "Brukernavnet er oppdatert" };
+  return { ok: true, message: t.messages.usernameUpdated };
 }
 
 export async function uploadAvatarAction(
@@ -252,19 +259,20 @@ export async function uploadAvatarAction(
 ): Promise<AuthActionState> {
   const user = await requireUser();
   const file = formData.get("avatar");
-  if (!(file instanceof File) || file.size === 0) return { error: "Velg et bilde først" };
+  const t = (await getT()).profile;
+  if (!(file instanceof File) || file.size === 0) return { error: t.errors.chooseImage };
   // Bare vanlige bildeformater. SVG kan inneholde kode som kjører når andre ser bildet.
   const extensions: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
   const extension = extensions[file.type];
-  if (!extension || file.size > 2 * 1024 * 1024) return { error: "Bildet må være JPG, PNG eller WebP på maksimalt 2 MB" };
+  if (!extension || file.size > 2 * 1024 * 1024) return { error: t.errors.imageFormat };
   const path = `${user.id}/${randomUUID()}.${extension}`;
   const db = supabaseAdmin();
   const upload = await db.storage.from("avatars").upload(path, file, { contentType: file.type, upsert: false });
-  if (upload.error) return { error: upload.error.message };
+  if (upload.error) return { error: await dbErrorMessage(upload.error) };
   const { data } = db.storage.from("avatars").getPublicUrl(path);
   await db.from("profiles").update({ avatar_url: data.publicUrl, updated_at: new Date().toISOString() }).eq("id", user.id);
   revalidatePath("/", "layout");
-  return { ok: true, message: "Profilbildet er oppdatert" };
+  return { ok: true, message: t.messages.avatarUpdated };
 }
 
 export async function logoutAction() {
@@ -280,13 +288,14 @@ export async function deleteAccountAction(
   const user = await requireUser();
   const code = formValue(formData, "code");
   const db = supabaseAdmin();
+  const t = (await getT()).profile;
   const { data: profile } = await db.from("profiles").select("code_hash").eq("id", user.id).maybeSingle();
-  if (!profile || !verifyAccountCode(code, profile.code_hash)) return { error: "Skriv inn riktig sekssifret kode for å slette kontoen" };
+  if (!profile || !verifyAccountCode(code, profile.code_hash)) return { error: t.errors.wrongCodeForDelete };
   const { data: active } = await db.from("tournaments").select("id").eq("owner_id", user.id).neq("status", "completed").limit(1);
-  if (active && active.length > 0) return { error: "Lukk, slett eller overfør de aktive turneringene dine før du sletter kontoen" };
+  if (active && active.length > 0) return { error: t.errors.activeTournaments };
   await db.storage.from("avatars").remove([`${user.id}`]);
   const { error } = await db.auth.admin.deleteUser(user.id);
-  if (error) return { error: error.message };
+  if (error) return { error: await dbErrorMessage(error) };
   await clearSession();
   redirect("/register");
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/i18n/client";
 import type { Track } from "@/lib/audio";
 
 const PREFERENCE_KEY = "futebol_music";
@@ -16,6 +17,7 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
   const untouched = useRef(true);
   const [playing, setPlaying] = useState(false);
   const [index, setIndex] = useState(0);
+  const t = useT().profile.audio;
 
   useEffect(() => {
     if (tracks.length === 0) return;
@@ -74,13 +76,13 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
       <button
         type="button"
         onClick={toggle}
-        aria-label={playing ? "Skru av musikken" : "Spill turneringsmusikk"}
+        aria-label={playing ? t.turnOff : t.play}
         className="text-lg leading-none"
       >
         {playing ? "🔊" : "🎵"}
       </button>
       <span className="audio-fab__title">
-        {playing ? track.title : "Turneringsmusikk"}
+        {playing ? track.title : t.label}
       </span>
     </div>
   );

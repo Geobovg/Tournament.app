@@ -1,10 +1,12 @@
 import type { MetadataRoute } from "next";
+import { getT } from "@/i18n/server";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const t = await getT();
   return {
     name: "Send it!",
     short_name: "Send it!",
-    description: "Turneringsapp for FIFA og NHL",
+    description: t.common.manifestDescription,
     start_url: "/",
     display: "standalone",
     background_color: "#0b0f14",

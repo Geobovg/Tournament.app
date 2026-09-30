@@ -43,7 +43,6 @@ export type BoardAd = { brand: string; slogan: string };
 
 export type TournamentTheme = {
   emoji: string;
-  tagline: string;
   kits: ShirtSpec[];
   defender: FigureSpec;
   clubs: Crest[];
@@ -99,7 +98,6 @@ const hockeyClubs: Crest[] = [
 export const tournamentThemes: Record<TournamentType, TournamentTheme> = {
   fifa: {
     emoji: "⚽",
-    tagline: "Flomlyset er på og gresset er klippet.",
     kits: [
       { name: "Haaland", number: "9", body: "#ba0c2f", collar: "#ffffff" },
       { name: "Mbappé", number: "9", body: "#f4f4f4", collar: "#1b2a4a" },
@@ -130,7 +128,6 @@ export const tournamentThemes: Record<TournamentType, TournamentTheme> = {
   },
   nhl: {
     emoji: "🏒",
-    tagline: "Isen er lagt og pucken er i spill.",
     kits: [
       { name: "Gretzky", number: "99", body: "#041e42", sleeve: "#ff4c00", collar: "#ff4c00" },
       { name: "McDavid", number: "97", body: "#ff4c00", collar: "#041e42" },

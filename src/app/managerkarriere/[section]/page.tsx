@@ -13,6 +13,7 @@ import { defaultCatalogFilters } from "@/lib/catalog-filters";
 import { listFriends } from "@/lib/friends";
 import { getMarketChatUnread, listMarketChat } from "@/lib/market-chat";
 import { getAiSeason, getFriendSeasons } from "@/lib/seasons";
+import { getT } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -45,9 +46,10 @@ export default async function ManagerCareerSectionPage({ params, searchParams }:
     active === "karrierehistorikk" ? listManagerMatchHistory(userId) : null,
   ]);
   if (!user) redirect("/login");
+  const t = await getT(); const tabs = t.career.subTabs;
   const { rating } = ratingFromSquad(ratingInfo);
-  const squadTabs = <SubTabs tabs={[{ href: "/managerkarriere/lagtropp", label: "Lagtropp", active: active === "lagtropp" }, { href: "/managerkarriere/klubblager", label: "Klubblager", active: active === "klubblager" }]} />;
-  const seasonTabs = (current: string) => <SubTabs tabs={[{ href: "/managerkarriere/sesong", label: "AI-sesong", active: current === "ai" }, { href: "/managerkarriere/sesong?tab=venner", label: "Venner", active: current === "venner" }, { href: "/managerkarriere/karrierehistorikk", label: "Historikk", active: current === "historikk" }]} />;
+  const squadTabs = <SubTabs tabs={[{ href: "/managerkarriere/lagtropp", label: tabs.squad, active: active === "lagtropp" }, { href: "/managerkarriere/klubblager", label: tabs.storage, active: active === "klubblager" }]} />;
+  const seasonTabs = (current: string) => <SubTabs tabs={[{ href: "/managerkarriere/sesong", label: tabs.aiSeason, active: current === "ai" }, { href: "/managerkarriere/sesong?tab=venner", label: tabs.friends, active: current === "venner" }, { href: "/managerkarriere/karrierehistorikk", label: tabs.history, active: current === "historikk" }]} />;
 
   let content: React.ReactNode;
   if (active === "lagtropp") content = <div className="grid gap-4">{squadTabs}<ManagerCareer {...manager!} budget={career.manager_budget} section="squad" /></div>;
@@ -61,7 +63,7 @@ export default async function ManagerCareerSectionPage({ params, searchParams }:
   } else if (active === "karrierehistorikk") {
     content = <div className="grid gap-4">{seasonTabs("historikk")}<ManagerMatchHistory matches={history!} /></div>;
   } else {
-    content = <div className="grid gap-4"><SubTabs tabs={[{ href: "/managerkarriere/spillermarked", label: "Spillerkatalog", active: !marketTab }, { href: "/managerkarriere/spillermarked?tab=marked", label: "Overgangsmarked", active: marketTab }]} />{marketTab ? <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"><TransferMarket cards={manager!.cards} listings={listings} userId={userId} budget={career.manager_budget} /><MarketChat userId={userId} initialMessages={chat![0]} initialUnread={chat![1]} /></div> : <ManagerCareer {...manager!} catalogPage={catalogPage} budget={career.manager_budget} section="catalog" />}</div>;
+    content = <div className="grid gap-4"><SubTabs tabs={[{ href: "/managerkarriere/spillermarked", label: tabs.catalog, active: !marketTab }, { href: "/managerkarriere/spillermarked?tab=marked", label: tabs.transferMarket, active: marketTab }]} />{marketTab ? <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"><TransferMarket cards={manager!.cards} listings={listings} userId={userId} budget={career.manager_budget} /><MarketChat userId={userId} initialMessages={chat![0]} initialUnread={chat![1]} /></div> : <ManagerCareer {...manager!} catalogPage={catalogPage} budget={career.manager_budget} section="catalog" />}</div>;
   }
-  return <div className="mx-auto grid w-full max-w-[1600px] gap-5"><ManagerTopBar clubName={career.club_name} budget={career.manager_budget} rating={rating} clubXp={career.club_xp} title={managerSections.find((item) => item.key === active)?.title} />{content}</div>;
+  return <div className="mx-auto grid w-full max-w-[1600px] gap-5"><ManagerTopBar clubName={career.club_name} budget={career.manager_budget} rating={rating} clubXp={career.club_xp} title={t.career.sections[active]} />{content}</div>;
 }

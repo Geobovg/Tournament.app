@@ -1,5 +1,6 @@
 import "server-only";
 
+import { dbErrorMessage } from "@/i18n/server";
 import type { ManagerPlayerSnapshot, ManagerTeamSnapshot } from "./manager-match";
 import type { supabaseAdmin } from "./supabase/server";
 
@@ -8,11 +9,11 @@ function uniqueIds(value: unknown) { return Array.isArray(value) ? [...new Set(v
 /** Laguttakene slik de står nå. Managere uten gyldig ellever er ikke med i svaret. */
 export async function managerTeamSnapshots(db: ReturnType<typeof supabaseAdmin>, userIds: string[]): Promise<Map<string, ManagerTeamSnapshot> | { error: string }> {
   const { data: lineups, error: lineupsError } = await db.from("manager_lineups").select("user_id, formation, starters, bench").in("user_id", userIds);
-  if (lineupsError) return { error: lineupsError.message };
+  if (lineupsError) return { error: await dbErrorMessage(lineupsError) };
   const allIds = (lineups ?? []).flatMap((lineup) => [...uniqueIds(lineup.starters), ...uniqueIds(lineup.bench)]);
   // Katalogdataene blir med i laguttaket slik at kampbildet kan tegne spillerkortene uten flere oppslag.
   const { data: cards, error: cardsError } = allIds.length ? await db.from("manager_cards").select("id, owner_id, name, position, overall, player_catalog(slug, club, accent)").in("id", allIds) : { data: [], error: null };
-  if (cardsError) return { error: cardsError.message };
+  if (cardsError) return { error: await dbErrorMessage(cardsError) };
   const snapshots = new Map<string, ManagerTeamSnapshot>();
   for (const lineup of lineups ?? []) {
     const starters = uniqueIds(lineup.starters); const bench = uniqueIds(lineup.bench);

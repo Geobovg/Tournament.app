@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getT } from "@/i18n/server";
 import { formationNames, pickBestLineup, type Formation } from "./lineup";
 import { catalogPageSize, type CatalogFilters } from "./catalog-filters";
 import { catalogBuyMaxOverall } from "./manager-limits";
@@ -11,10 +12,12 @@ export async function getCareerProfile(userId: string): Promise<CareerProfile> {
   const db = supabaseAdmin();
   const { data, error } = await db.from("player_profiles").select("*").eq("user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
-  if (data) return data as CareerProfile;
+  // Klubbene heter «My team» fra databasen, så navnet vises på brukerens språk.
+  const { clubName } = (await getT()).career;
+  if (data) return { ...data, club_name: clubName(data.club_name) } as CareerProfile;
   const { data: created, error: createError } = await db.from("player_profiles").insert({ user_id: userId }).select("*").single();
   if (createError) throw new Error(createError.message);
-  return created as CareerProfile;
+  return { ...created, club_name: clubName(created.club_name) } as CareerProfile;
 }
 
 export async function listCareerRewards(userId: string) {
@@ -40,7 +43,8 @@ export async function getCareerChallenges(userId: string): Promise<CareerChallen
   const ids = [...new Set(rows.map((row) => row.challenger_id === userId ? row.opponent_id : row.challenger_id))];
   const { data: profiles } = ids.length ? await db.from("profiles").select("id, username").in("id", ids) : { data: [] as { id: string; username: string }[] };
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
-  return rows.map((row) => { const game = Array.isArray(row.career_matches) ? row.career_matches[0] : row.career_matches; const otherId = row.challenger_id === userId ? row.opponent_id : row.challenger_id; return { id: row.id, challenger_id: row.challenger_id, opponent_id: row.opponent_id, mode: row.mode, status: row.status, expires_at: row.expires_at, match_id: game?.id ?? null, opponent_name: names.get(otherId) ?? "Venn" }; }) as CareerChallenge[];
+  const fallback = (await getT()).career.fallback;
+  return rows.map((row) => { const game = Array.isArray(row.career_matches) ? row.career_matches[0] : row.career_matches; const otherId = row.challenger_id === userId ? row.opponent_id : row.challenger_id; return { id: row.id, challenger_id: row.challenger_id, opponent_id: row.opponent_id, mode: row.mode, status: row.status, expires_at: row.expires_at, match_id: game?.id ?? null, opponent_name: names.get(otherId) ?? fallback.friend }; }) as CareerChallenge[];
 }
 
 export async function getCareerMatch(matchId: string, userId: string) {
@@ -57,9 +61,10 @@ export async function getCareerMatch(matchId: string, userId: string) {
   ]);
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
   const clubs = new Map((careers ?? []).map((career) => [career.user_id, career.club_name]));
-  const sideFor = (id: string) => ({ userId: id, username: names.get(id) ?? "Ukjent", clubName: clubs.get(id) ?? "" });
+  const { fallback, clubName } = (await getT()).career;
+  const sideFor = (id: string) => ({ userId: id, username: names.get(id) ?? fallback.unknown, clubName: clubName(clubs.get(id) ?? "") });
   // AI-klubben har ingen bruker. Den får samme id som i laguttaket, så den aldri blir forvekslet med deg.
-  const aiSide = { userId: "ai", username: data.away_ai_name ?? "AI-klubb", clubName: "AI-motstander" };
+  const aiSide = { userId: "ai", username: data.away_ai_name ?? fallback.aiClub, clubName: fallback.aiOpponent };
   return {
     ...data,
     home: sideFor(data.home_user_id),
@@ -122,9 +127,10 @@ export async function getManagerCareer(userId: string): Promise<{ cards: Manager
   ]);
   if (cardsError || lineupError || packsError || listingsError || inventoryError) throw new Error(cardsError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message ?? inventoryError?.message);
   // Academy-kort er laget for hånd og mangler katalograd, så kortbildet faller tilbake på nøytrale verdier.
+  // «Academy» er en fast verdi her; den oversettes ved visning med t.career.clubName.
   const owned = (cards ?? []).map((row) => {
     const source = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
-    return { ...row, player_catalog: undefined, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Akademiet", value: source?.price ?? 0 };
+    return { ...row, player_catalog: undefined, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Academy", value: source?.price ?? 0 };
   });
   return { cards: owned as unknown as ManagerCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
 }
@@ -166,12 +172,13 @@ export async function listTransferMarket(): Promise<MarketListing[]> {
   const db = supabaseAdmin();
   const { data, error } = await db.from("market_listings").select("id, seller_id, card_id, starting_price, buy_now_price, ends_at, manager_cards(name, position, overall, player_catalog(club)), profiles!market_listings_seller_id_fkey(username), market_bids(amount)").eq("status", "active").gt("ends_at", new Date().toISOString()).order("ends_at", { ascending: true });
   if (error) throw new Error(error.message);
+  const fallback = (await getT()).career.fallback;
   return (data ?? []).map((row) => {
     const card = Array.isArray(row.manager_cards) ? row.manager_cards[0] : row.manager_cards;
     const catalog = card ? (Array.isArray(card.player_catalog) ? card.player_catalog[0] : card.player_catalog) : null;
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     const bids = (row.market_bids ?? []) as { amount: number }[];
-    return { id: row.id, seller_id: row.seller_id, card_id: row.card_id, starting_price: row.starting_price, buy_now_price: row.buy_now_price, ends_at: row.ends_at, card: { name: card?.name ?? "Ukjent", position: card?.position ?? "", overall: card?.overall ?? 0, club: catalog?.club ?? "" }, seller_name: profile?.username ?? "Manager", highest_bid: bids.length ? Math.max(...bids.map((bid) => bid.amount)) : null };
+    return { id: row.id, seller_id: row.seller_id, card_id: row.card_id, starting_price: row.starting_price, buy_now_price: row.buy_now_price, ends_at: row.ends_at, card: { name: card?.name ?? fallback.unknown, position: card?.position ?? "", overall: card?.overall ?? 0, club: catalog?.club ?? "" }, seller_name: profile?.username ?? "Manager", highest_bid: bids.length ? Math.max(...bids.map((bid) => bid.amount)) : null };
   }) as MarketListing[];
 }
 
@@ -185,12 +192,13 @@ export async function listManagerMatchHistory(userId: string): Promise<ManagerMa
   const { data: profiles, error: profilesError } = opponentIds.length ? await db.from("profiles").select("id, username").in("id", opponentIds) : { data: [], error: null };
   if (profilesError) throw new Error(profilesError.message);
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
+  const fallback = (await getT()).career.fallback;
   return matches.map((match) => {
     const home = match.home_user_id === userId;
     const myScore = home ? match.home_score : match.away_score;
     const opponentScore = home ? match.away_score : match.home_score;
     const result = myScore === opponentScore ? "draw" : myScore > opponentScore ? "win" : "loss";
     const opponentId = home ? match.away_user_id : match.home_user_id;
-    return { id: match.id, opponentName: opponentId ? names.get(opponentId) ?? "Venn" : match.away_ai_name ?? "AI-klubb", result, myScore, opponentScore, managerBudget: result === "win" ? 5 : result === "draw" ? 2 : 0, completedAt: match.completed_at };
+    return { id: match.id, opponentName: opponentId ? names.get(opponentId) ?? fallback.friend : match.away_ai_name ?? fallback.aiClub, result, myScore, opponentScore, managerBudget: result === "win" ? 5 : result === "draw" ? 2 : 0, completedAt: match.completed_at };
   });
 }
