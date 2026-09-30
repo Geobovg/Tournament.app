@@ -5,6 +5,7 @@ import { AudioPlayer } from "@/components/audio-player";
 import { listTracks } from "@/lib/audio";
 import { currentUser } from "@/lib/auth";
 import { logoutAction } from "@/lib/auth-actions";
+import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,8 +19,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Send it!",
-  description: "Turneringsapp for FIFA og NHL",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "Send it!", template: "%s · Send it!" },
+  description: SITE_DESCRIPTION,
+  openGraph: { siteName: "Send it!", locale: "nb_NO", type: "website", description: SITE_DESCRIPTION },
   // Lar appen åpnes i fullskjerm uten Safari-menyer når den er lagt til på hjemskjermen.
   appleWebApp: {
     capable: true,
