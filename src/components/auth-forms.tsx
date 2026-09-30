@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useTransition, type FormEvent } from "react";
+import { useActionState, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   changeCodeAction,
-  isAccountCodeAvailable,
   loginAction,
   registerAction,
   passkeyRegistrationSessionAction,
@@ -110,19 +109,13 @@ export function RegisterForm() {
   const next = useSearchParams().get("next") ?? "";
   const [code, setCode] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [available, setAvailable] = useState<boolean | null>(null);
-  const [checking, startCheck] = useTransition();
-  const check = (nextCode: string, nextConfirm: string) => {
-    setAvailable(null);
-    if (nextCode.length === 6 && nextCode === nextConfirm) startCheck(async () => setAvailable(await isAccountCodeAvailable(nextCode)));
-  };
-  const status = confirm.length !== 6 ? "idle" : code !== confirm || available === false ? "bad" : available === true && !checking ? "good" : "idle";
+  const status = confirm.length !== 6 ? "idle" : code === confirm ? "good" : "bad";
   return (
     <form action={action} className={`${cardClass} grid gap-4`}>
       <input type="hidden" name="next" value={next} />
       <div><label className={labelClass} htmlFor="register-username">Brukernavn</label><input id="register-username" name="username" autoComplete="username" minLength={3} maxLength={24} className="mt-1 w-full" required /><p className="mt-1 text-sm text-muted">3–24 tegn. Bokstaver, tall, punktum, bindestrek og understrek.</p></div>
-      <CodeInput id="register-code" name="code" label="Velg sekssifret kode" autoComplete="new-password" onChange={(value) => { setCode(value); check(value, confirm); }} />
-      <div className="relative"><CodeInput id="register-confirm-code" name="confirm_code" label="Tast inn koden en gang til" autoComplete="new-password" onChange={(value) => { setConfirm(value); check(code, value); }} />{status !== "idle" ? <span className={`absolute right-3 top-9 text-lg ${status === "good" ? "text-success" : "text-danger"}`}>{status === "good" ? "✓" : "✕"}</span> : null}{checking ? <span className="absolute right-3 top-9 text-xs text-muted">Sjekker…</span> : null}</div>
+      <CodeInput id="register-code" name="code" label="Velg sekssifret kode" autoComplete="new-password" onChange={setCode} />
+      <div className="relative"><CodeInput id="register-confirm-code" name="confirm_code" label="Tast inn koden en gang til" autoComplete="new-password" onChange={setConfirm} />{status !== "idle" ? <span className={`absolute right-3 top-9 text-lg ${status === "good" ? "text-success" : "text-danger"}`}>{status === "good" ? "✓" : "✕"}</span> : null}</div>
       {state.error ? <p className="text-danger">{state.error}</p> : null}
       {state.message ? <p className="text-success">{state.message}</p> : null}
       <button className={buttonClass} disabled={pending || status === "bad"}>{pending ? "Oppretter…" : "Opprett bruker"}</button>
@@ -140,10 +133,7 @@ export function ResetCodeForm() {
   const [state, action, pending] = useActionState(changeCodeAction, initialState);
   const [code, setCode] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [available, setAvailable] = useState<boolean | null>(null);
-  const [checking, startCheck] = useTransition();
-  const check = (nextCode: string, nextConfirm: string) => { setAvailable(null); if (nextCode.length === 6 && nextCode === nextConfirm) startCheck(async () => setAvailable(await isAccountCodeAvailable(nextCode))); };
-  const matching = confirm.length === 6 && code === confirm && available === true && !checking;
-  const invalid = confirm.length === 6 && (code !== confirm || available === false);
-  return <form action={action} className={`${cardClass} grid gap-4`}><CodeInput id="new-code" name="code" label="Tast inn den nye koden din her" autoComplete="new-password" onChange={(value) => { setCode(value); check(value, confirm); }} /><div className="relative"><CodeInput id="confirm-new-code" name="confirm_code" label="Tast inn den nye koden en gang til" autoComplete="new-password" onChange={(value) => { setConfirm(value); check(code, value); }} />{confirm.length === 6 && !checking ? <span className={`absolute right-3 top-9 text-lg ${matching ? "text-success" : "text-danger"}`}>{matching ? "✓" : "✕"}</span> : null}</div>{state.error ? <p className="text-danger">{state.error}</p> : null}{state.message ? <p className="text-success">{state.message}</p> : null}<button className={buttonClass} disabled={pending || invalid || checking}>{pending ? "Endrer…" : "Bekreft kode"}</button></form>;
+  const matching = confirm.length === 6 && code === confirm;
+  const invalid = confirm.length === 6 && code !== confirm;
+  return <form action={action} className={`${cardClass} grid gap-4`}><CodeInput id="new-code" name="code" label="Tast inn den nye koden din her" autoComplete="new-password" onChange={setCode} /><div className="relative"><CodeInput id="confirm-new-code" name="confirm_code" label="Tast inn den nye koden en gang til" autoComplete="new-password" onChange={setConfirm} />{confirm.length === 6 ? <span className={`absolute right-3 top-9 text-lg ${matching ? "text-success" : "text-danger"}`}>{matching ? "✓" : "✕"}</span> : null}</div>{state.error ? <p className="text-danger">{state.error}</p> : null}{state.message ? <p className="text-success">{state.message}</p> : null}<button className={buttonClass} disabled={pending || invalid}>{pending ? "Endrer…" : "Bekreft kode"}</button></form>;
 }

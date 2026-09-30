@@ -70,8 +70,10 @@ export async function listOutgoingRequests(userId: string): Promise<PendingReque
 }
 
 export async function searchUsers(query: string, excludeUserId: string, limit = 8): Promise<ProfileLike[]> {
-  const key = normalizeUsername(query);
-  if (key.length < 2) return [];
+  // % og _ er jokertegn i ilike. De escapes så «%%» ikke kan liste opp alle brukerne.
+  const typed = normalizeUsername(query);
+  if (typed.length < 2) return [];
+  const key = typed.replace(/[\\%_]/g, "\\$&");
   const { data, error } = await supabaseAdmin()
     .from("profiles")
     .select("id, username, avatar_url")
