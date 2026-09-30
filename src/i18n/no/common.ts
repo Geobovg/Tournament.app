@@ -12,7 +12,9 @@ export const common: CommonDict = {
   language: "Språk",
   languageDescription: "Velg hvilket språk appen skal vises på. Valget lagres på kontoen din.",
   // Navnene på språkene, skrevet på språket appen vises på nå.
-  languageNames: { en: "Engelsk", no: "Norsk" } as Record<Locale, string>,
+  languageNames: {
+    en: "Engelsk", no: "Norsk", sv: "Svensk", da: "Dansk", fi: "Finsk", es: "Spansk", de: "Tysk", fr: "Fransk", zh: "Forenklet kinesisk", it: "Italiensk", ar: "Arabisk",
+  } as Record<Locale, string>,
   chooseLanguage: "Velg språk",
   notLoggedIn: "Du må logge inn først",
 };

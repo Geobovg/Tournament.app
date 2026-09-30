@@ -5,7 +5,8 @@ import type { ActionState } from "@/lib/actions";
 import type { ManagerCard, MarketListing } from "@/lib/career";
 import { marketListingLimit, marketPriceRange } from "@/lib/manager-limits";
 import { buyNowMarketAction, createMarketListingAction, placeMarketBidAction } from "@/lib/market-actions";
-import { useT } from "@/i18n/client";
+import { useLocale, useT } from "@/i18n/client";
+import { INTL_LOCALES } from "@/i18n/locales";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 
@@ -58,6 +59,7 @@ function ListingCard({ listing, budget, own }: { listing: MarketListing; budget:
 
 export function TransferMarket({ cards, listings, userId, budget }: { cards: ManagerCard[]; listings: MarketListing[]; userId: string; budget: number }) {
   const tm = useT().market.transfer;
+  const locale = useLocale(); const intl = INTL_LOCALES[locale];
   const values = useMemo(() => new Map(cards.flatMap((card) => card.catalog_id ? [[card.catalog_id, card.value] as const] : [])), [cards]);
   const own = listings.filter((listing) => listing.seller_id === userId);
   const listedIds = new Set(own.map((listing) => listing.card_id));
@@ -66,16 +68,16 @@ export function TransferMarket({ cards, listings, userId, budget }: { cards: Man
 
   const [search, setSearch] = useState(""); const [position, setPosition] = useState("all"); const [minimum, setMinimum] = useState("0");
   const [club, setClub] = useState("all"); const [maximumPrice, setMaximumPrice] = useState(""); const [sort, setSort] = useState("ending");
-  const clubOptions = useMemo(() => [...new Set(others.map((listing) => listing.card.club).filter(Boolean))].sort((first, second) => first.localeCompare(second, "nb-NO")), [others]);
+  const clubOptions = useMemo(() => [...new Set(others.map((listing) => listing.card.club).filter(Boolean))].sort((first, second) => first.localeCompare(second, intl)), [intl, others]);
   const parsedPrice = Number(maximumPrice); const priceLimit = maximumPrice.trim() === "" || !Number.isFinite(parsedPrice) ? Infinity : parsedPrice;
   const visible = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase("nb-NO");
-    const matches = others.filter((listing) => listing.card.name.toLocaleLowerCase("nb-NO").includes(needle) && (position === "all" || listing.card.position === position) && listing.card.overall >= Number(minimum) && (club === "all" || listing.card.club === club) && listing.buy_now_price <= priceLimit);
+    const needle = search.trim().toLocaleLowerCase(intl);
+    const matches = others.filter((listing) => listing.card.name.toLocaleLowerCase(intl).includes(needle) && (position === "all" || listing.card.position === position) && listing.card.overall >= Number(minimum) && (club === "all" || listing.card.club === club) && listing.buy_now_price <= priceLimit);
     if (sort === "price-asc") return matches.sort((first, second) => first.buy_now_price - second.buy_now_price);
     if (sort === "price-desc") return matches.sort((first, second) => second.buy_now_price - first.buy_now_price);
     if (sort === "overall") return matches.sort((first, second) => second.card.overall - first.card.overall);
     return matches.sort((first, second) => first.ends_at.localeCompare(second.ends_at));
-  }, [club, minimum, others, position, priceLimit, search, sort]);
+  }, [club, intl, minimum, others, position, priceLimit, search, sort]);
 
   return <section className={`${cardClass} grid gap-5`}>
     <div><h2 className="text-lg font-semibold">{tm.title}</h2><p className="text-sm text-muted">{tm.intro}</p></div>
