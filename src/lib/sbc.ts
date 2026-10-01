@@ -163,3 +163,43 @@ export function placeCards(slots: { position: string | null }[], current: (SbcCa
   for (const card of waiting) { const index = next.findIndex((slot) => !slot); if (index >= 0) next[index] = card; }
   return next;
 }
+
+const countRequirements = new Set<SbcRequirement["type"]>(["position_group", "league", "same_club", "same_nation", "cards_with_rating"]);
+
+/**
+ * Brukes når kortene dine ikke strekker til for hele SBC-en: legger inn de kortene som faktisk
+ * bidrar til kravene (så mange som finnes), så fikser brukeren resten selv. Uten tellekrav, f.eks.
+ * bare lagrating, fylles resten av plassene så godt det går.
+ */
+export function autoFillPartial(pool: SbcCard[], requirements: SbcRequirement[], cardCount: number, locked: SbcCard[] = []): SbcCard[] {
+  const minCard = Math.max(0, ...requirements.map((req) => (req.type === "min_card_rating" ? req.value : 0)));
+  const lockedIds = new Set(locked.map((card) => card.id));
+  const candidates = pool.filter((card) => card.overall >= minCard && !lockedIds.has(card.id)).sort(cheapest);
+  let chosen = [...locked];
+  const add = (matches: (card: SbcCard) => boolean, missing: number, order: SbcCard[] = candidates) => {
+    const taken = new Set(chosen.map((card) => card.id));
+    const extra = order.filter((card) => !taken.has(card.id) && matches(card)).slice(0, Math.min(missing, cardCount - chosen.length));
+    chosen = [...chosen, ...extra];
+  };
+  for (const req of requirements) {
+    if (req.type === "position_group") add((card) => positionGroups[req.group].includes(card.position), req.count - requirementStatus(req, chosen, cardCount).current);
+    else if (req.type === "league") add((card) => card.league === req.league, req.count - requirementStatus(req, chosen, cardCount).current);
+    else if (req.type === "cards_with_rating") add((card) => card.overall >= req.rating, req.count - requirementStatus(req, chosen, cardCount).current);
+    else if (req.type === "same_club" || req.type === "same_nation") {
+      const keyOf = (card: SbcCard) => (req.type === "same_club" ? (noClub.has(card.club) ? null : card.club) : card.nation);
+      const have = requirementStatus(req, chosen, cardCount).current;
+      if (have >= req.count) continue;
+      // Velg klubben eller nasjonen der flest kort er innen rekkevidde, og blant dem de billigste.
+      const groups = new Map<string, SbcCard[]>();
+      for (const card of [...chosen, ...candidates]) { const key = keyOf(card); if (key) groups.set(key, [...(groups.get(key) ?? []), card]); }
+      const best = [...groups.entries()].sort(([, a], [, b]) => Math.min(b.length, req.count) - Math.min(a.length, req.count) || a.slice(0, req.count).reduce((sum, card) => sum + card.overall, 0) - b.slice(0, req.count).reduce((sum, card) => sum + card.overall, 0))[0];
+      if (best) add((card) => keyOf(card) === best[0], req.count - chosen.filter((card) => keyOf(card) === best[0]).length);
+    }
+  }
+  if (!requirements.some((req) => countRequirements.has(req.type))) {
+    // Bare lagrating eller ingen krav: fyll opp, med de beste kortene hvis det er rating som teller.
+    const filler = requirements.some((req) => req.type === "team_rating") ? [...candidates].reverse() : candidates;
+    add(() => true, cardCount - chosen.length, filler);
+  }
+  return chosen;
+}
