@@ -6,8 +6,9 @@ import { friends } from "./friends";
 import { market } from "./market";
 import { match } from "./match";
 import { profile } from "./profile";
+import { sbc } from "./sbc";
 import { seasons } from "./seasons";
 import { tournaments } from "./tournaments";
 import type { Dictionary } from "../en";
 
-export const da: Dictionary = { common, auth, profile, friends, tournaments, career, market, match, seasons, dbErrors };
+export const da: Dictionary = { common, auth, profile, friends, tournaments, career, market, match, seasons, sbc, dbErrors };

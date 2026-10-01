@@ -16,6 +16,7 @@ export const career = {
     spillermarked: "Marked",
     kamplobby: "Venlig",
     karrierehistorikk: "Kamphistorie",
+    sbc: "SBC",
   },
   subTabs: {
     squad: "Squad",
@@ -33,6 +34,7 @@ export const career = {
     market: "Marked",
     packs: "Pakker",
     season: "Sæson",
+    sbc: "SBC",
   },
   topBar: {
     menu: "← MENU",

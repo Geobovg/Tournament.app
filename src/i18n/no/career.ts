@@ -20,6 +20,7 @@ export const career: CareerDict = {
     spillermarked: "Marked",
     kamplobby: "Vennskapskamp",
     karrierehistorikk: "Kamphistorikk",
+    sbc: "SBC",
   },
   subTabs: {
     squad: "Lagtropp",
@@ -37,6 +38,7 @@ export const career: CareerDict = {
     market: "Marked",
     packs: "Pakker",
     season: "Sesong",
+    sbc: "SBC",
   },
   topBar: {
     menu: "← MENY",

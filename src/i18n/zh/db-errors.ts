@@ -68,6 +68,11 @@ export const dbErrors = {
   pickElevenStarters: "准确挑选 11 个首发",
   pickTwoDifferentCards: "选择两张不同的卡",
   waitForFriend: "等待你的朋友回复",
+  sbcNotFound: "此 SBC 不存在",
+  sbcNoAttemptsLeft: "本周你在此 SBC 上已没有剩余次数",
+  sbcWrongCardCount: "请为该 SBC 选择正确数量的卡片",
+  sbcCardsNotUsable: "部分卡片无法用于 SBC",
+  sbcRequirementsNotMet: "这些卡片不符合 SBC 的要求",
 };
 
 export type DbErrorsDict = typeof dbErrors;

@@ -68,6 +68,11 @@ export const dbErrors = {
   pickElevenStarters: "Pick exactly 11 starters",
   pickTwoDifferentCards: "Pick two different cards",
   waitForFriend: "Wait for your friend to respond",
+  sbcNotFound: "This SBC doesn't exist",
+  sbcNoAttemptsLeft: "You have no attempts left on this SBC this week",
+  sbcWrongCardCount: "Pick the right number of cards for the SBC",
+  sbcCardsNotUsable: "Some of the cards can't be used in an SBC",
+  sbcRequirementsNotMet: "The cards don't meet the SBC requirements",
 };
 
 export type DbErrorsDict = typeof dbErrors;

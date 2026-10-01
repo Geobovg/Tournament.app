@@ -10,6 +10,7 @@ export const managerSections = [
   { key: "klubblager" },
   { key: "pakker" },
   { key: "spillermarked" },
+  { key: "sbc" },
   { key: "kamplobby" },
   { key: "karrierehistorikk" },
 ] as const;

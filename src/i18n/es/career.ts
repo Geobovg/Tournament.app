@@ -16,6 +16,7 @@ export const career = {
     spillermarked: "Mercado",
     kamplobby: "amigable",
     karrierehistorikk: "Historial de partidos",
+    sbc: "SBC",
   },
   subTabs: {
     squad: "plantilla",
@@ -33,6 +34,7 @@ export const career = {
     market: "Mercado",
     packs: "Paquetes",
     season: "Temporada",
+    sbc: "SBC",
   },
   topBar: {
     menu: "← MENÚ",

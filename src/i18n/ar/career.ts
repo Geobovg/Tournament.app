@@ -16,6 +16,7 @@ export const career = {
     spillermarked: "السوق",
     kamplobby: "ودية",
     karrierehistorikk: "تاريخ المباراة",
+    sbc: "SBC",
   },
   subTabs: {
     squad: "فرقة",
@@ -33,6 +34,7 @@ export const career = {
     market: "السوق",
     packs: "حزم",
     season: "الموسم",
+    sbc: "SBC",
   },
   topBar: {
     menu: "← القائمة",
