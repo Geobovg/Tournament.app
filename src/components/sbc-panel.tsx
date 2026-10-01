@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { canPlayPosition } from "@/lib/lineup";
-import { autoFill, placeCards, requirementStatus, sbcSatisfied, sbcSlots, teamRating, type SbcCard, type SbcChallenge, type SbcRequirement } from "@/lib/sbc";
+import { autoFill, autoFillPartial, placeCards, requirementStatus, sbcSatisfied, sbcSlots, teamRating, type SbcCard, type SbcChallenge, type SbcRequirement } from "@/lib/sbc";
 import { completeSbcAction } from "@/lib/sbc-actions";
 import type { SbcData } from "@/lib/sbc-data";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -84,6 +84,7 @@ function SbcBuilder({ challenge, cards, onBack }: { challenge: SbcChallenge; car
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<{ rewardMb: number; rewardPack: string | null } | null>(null);
   const [pending, startTransition] = useTransition();
   const item = t.sbc.items[challenge.key];
@@ -91,17 +92,20 @@ function SbcBuilder({ challenge, cards, onBack }: { challenge: SbcChallenge; car
   const satisfied = sbcSatisfied(challenge.requirements, placed, challenge.cardCount);
 
   function fill() {
-    setError(null);
+    setError(null); setNotice(null);
     // Kortene du allerede har lagt inn beholdes hvis det går. Ellers prøver vi på nytt fra scratch.
     const kept = autoFill(cards, challenge.requirements, challenge.cardCount, placed);
     if (kept) { setChosen(placeCards(slots, chosen, kept)); return; }
     const fresh = autoFill(cards, challenge.requirements, challenge.cardCount);
-    if (fresh) setChosen(placeCards(slots, slots.map(() => null), fresh));
+    if (fresh) { setChosen(placeCards(slots, slots.map(() => null), fresh)); return; }
+    // Kortene strekker ikke til: legg inn de som oppfyller kravene så langt det går, så fikser brukeren resten.
+    const partial = autoFillPartial(cards, challenge.requirements, challenge.cardCount, placed);
+    if (partial.length > placed.length) { setChosen(placeCards(slots, chosen, partial)); setNotice(text.autoFillPartial); }
     else setError(text.autoFillFailed);
   }
 
   function submit() {
-    setConfirming(false); setError(null);
+    setConfirming(false); setError(null); setNotice(null);
     startTransition(async () => {
       const outcome = await completeSbcAction(challenge.key, placed.map((card) => card.id));
       if (outcome.error) setError(outcome.error);
@@ -148,33 +152,67 @@ function SbcBuilder({ challenge, cards, onBack }: { challenge: SbcChallenge; car
           </ul>
         </div>
         <p className="border-t border-white/10 pt-3 text-sm"><span className="text-white/55">{t.sbc.reward}: </span><b className="text-cyan-300">{rewardText(t, challenge)}</b></p>
+        {notice ? <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 p-2.5 text-sm text-amber-100">{notice}</p> : null}
         {error ? <p role="alert" className="rounded-lg border border-red-400/40 bg-red-500/10 p-2.5 text-sm text-red-200">{error}</p> : null}
         <div className="grid gap-2">
           <button type="button" onClick={fill} title={text.autoFillHint} disabled={pending || cards.length === 0} className="rounded-lg border border-lime-300/60 px-4 py-2.5 font-black text-lime-300 hover:bg-lime-300/10 disabled:opacity-40">{text.autoFill}</button>
-          <button type="button" onClick={() => { setChosen(slots.map(() => null)); setError(null); }} disabled={pending || placed.length === 0} className="rounded-lg border border-white/15 px-4 py-2 text-sm font-bold text-white/70 hover:text-white disabled:opacity-40">{text.clear}</button>
+          <button type="button" onClick={() => { setChosen(slots.map(() => null)); setError(null); setNotice(null); }} disabled={pending || placed.length === 0} className="rounded-lg border border-white/15 px-4 py-2 text-sm font-bold text-white/70 hover:text-white disabled:opacity-40">{text.clear}</button>
           <button type="button" onClick={() => setConfirming(true)} disabled={!satisfied || pending} className="rounded-lg bg-lime-300 px-4 py-3 font-black text-slate-950 hover:opacity-90 disabled:opacity-40">{pending ? text.submitting : text.submit}</button>
         </div>
       </aside>
     </div>
     {confirming ? <ConfirmDialog message={text.confirm(challenge.cardCount, rewardText(t, challenge))} onCancel={() => setConfirming(false)} onConfirm={submit} /> : null}
-    {picking ? <CardPicker position={picking.position} cards={cards.filter((card) => !usedElsewhere.has(card.id))} current={chosen[picking.index]} onClose={() => setPickingSlot(null)} onPick={(card) => { setChosen((prev) => prev.map((slot, index) => (index === picking.index ? card : slot))); setPickingSlot(null); setError(null); }} /> : null}
+    {picking ? <CardPicker position={picking.position} cards={cards.filter((card) => !usedElsewhere.has(card.id))} current={chosen[picking.index]} onClose={() => setPickingSlot(null)} onPick={(card) => { setChosen((prev) => prev.map((slot, index) => (index === picking.index ? card : slot))); setPickingSlot(null); setError(null); setNotice(null); }} /> : null}
   </div>;
 }
 
+const britishNations: Record<string, string> = { "gb-eng": "England", "gb-sct": "Scotland", "gb-wls": "Wales", "gb-nir": "Northern Ireland" };
+function nationName(locale: string, code: string) {
+  if (britishNations[code]) return britishNations[code];
+  try { return new Intl.DisplayNames([locale], { type: "region" }).of(code.toUpperCase()) ?? code.toUpperCase(); } catch { return code.toUpperCase(); }
+}
+
+type PickerSort = "high" | "low" | "name";
+const selectClass = "min-w-0 rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-xs font-bold";
+
 function CardPicker({ position, cards, current, onPick, onClose }: { position: string | null; cards: SbcCard[]; current: SbcCard | null; onPick: (card: SbcCard | null) => void; onClose: () => void }) {
-  const t = useT(); const text = t.sbc.picker;
+  const t = useT(); const text = t.sbc.picker; const locale = useLocale();
   const [search, setSearch] = useState("");
   const [onlyPosition, setOnlyPosition] = useState(Boolean(position));
+  const [sort, setSort] = useState<PickerSort>("low");
+  const [league, setLeague] = useState(""); const [club, setClub] = useState(""); const [nation, setNation] = useState("");
+  const [minRating, setMinRating] = useState(""); const [maxRating, setMaxRating] = useState("");
   const needle = search.trim().toLowerCase();
-  const list = cards.filter((card) => (!onlyPosition || !position || canPlayPosition(card.position, position)) && (!needle || card.name.toLowerCase().includes(needle)));
+  // Valgene i nedtrekkslistene kommer fra kortene du faktisk har.
+  const leagues = [...new Set(cards.map((card) => card.league))].sort((a, b) => (t.sbc.leagues[a] ?? a).localeCompare(t.sbc.leagues[b] ?? b, locale));
+  const clubs = [...new Set(cards.map((card) => card.club).filter(Boolean))].sort((a, b) => a.localeCompare(b, locale));
+  const nations = [...new Set(cards.map((card) => card.nation).filter((code): code is string => Boolean(code)))].sort((a, b) => nationName(locale, a).localeCompare(nationName(locale, b), locale));
+  const min = minRating === "" ? null : Number(minRating); const max = maxRating === "" ? null : Number(maxRating);
+  const list = cards
+    .filter((card) => (!onlyPosition || !position || canPlayPosition(card.position, position)) && (!needle || card.name.toLowerCase().includes(needle))
+      && (!league || card.league === league) && (!club || card.club === club) && (!nation || card.nation === nation)
+      && (min === null || card.overall >= min) && (max === null || card.overall <= max))
+    .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name, locale) : sort === "high" ? b.overall - a.overall : a.overall - b.overall) || a.name.localeCompare(b.name, locale));
+  const filtered = Boolean(league || club || nation || minRating || maxRating);
+  const reset = () => { setLeague(""); setClub(""); setNation(""); setMinRating(""); setMaxRating(""); };
   return <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={text.title(position)}>
     <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-2xl border border-white/15 bg-[#08101b] shadow-2xl sm:rounded-2xl">
       <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4"><b className="text-lg font-black">{text.title(position)}</b><button type="button" onClick={onClose} className="text-sm font-bold text-white/60 hover:text-white">{text.close}</button></div>
       <div className="grid gap-2 border-b border-white/10 p-3">
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={text.search} className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          <select value={sort} onChange={(event) => setSort(event.target.value as PickerSort)} aria-label={text.sort} className={selectClass}><option value="low">{text.sortLow}</option><option value="high">{text.sortHigh}</option><option value="name">{text.sortName}</option></select>
+          <select value={league} onChange={(event) => setLeague(event.target.value)} aria-label={text.allLeagues} className={selectClass}><option value="">{text.allLeagues}</option>{leagues.map((key) => <option key={key} value={key}>{t.sbc.leagues[key] ?? key}</option>)}</select>
+          <select value={club} onChange={(event) => setClub(event.target.value)} aria-label={text.allClubs} className={selectClass}><option value="">{text.allClubs}</option>{clubs.map((name) => <option key={name} value={name}>{t.career.clubName(name)}</option>)}</select>
+          <select value={nation} onChange={(event) => setNation(event.target.value)} aria-label={text.allNations} className={selectClass}><option value="">{text.allNations}</option>{nations.map((code) => <option key={code} value={code}>{nationName(locale, code)}</option>)}</select>
+          <input type="number" inputMode="numeric" min={40} max={99} value={minRating} onChange={(event) => setMinRating(event.target.value)} placeholder={text.minRating} aria-label={text.minRating} className={selectClass} />
+          <input type="number" inputMode="numeric" min={40} max={99} value={maxRating} onChange={(event) => setMaxRating(event.target.value)} placeholder={text.maxRating} aria-label={text.maxRating} className={selectClass} />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           {position ? <button type="button" onClick={() => setOnlyPosition((value) => !value)} className={`rounded-full px-3 py-1 text-xs font-black ${onlyPosition ? "bg-lime-300 text-slate-950" : "bg-white/10 text-white/70"}`}>{onlyPosition ? text.onlyPosition(position) : text.allPositions}</button> : null}
           {current ? <button type="button" onClick={() => onPick(null)} className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/70 hover:text-white">{text.remove}</button> : null}
+          {filtered ? <button type="button" onClick={reset} className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/70 hover:text-white">{text.resetFilters}</button> : null}
+          <span className="ml-auto text-xs font-bold text-white/45">{text.count(list.length)}</span>
         </div>
       </div>
       <ul className="grid gap-1.5 overflow-y-auto p-3">
