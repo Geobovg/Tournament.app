@@ -4,7 +4,7 @@ import { secondaryButtonClass } from "./ui";
 
 export async function ModeMenuLink() {
   const t = await getT();
-  return <Link href="/managerkarriere" className={secondaryButtonClass}>← {t.career.bottomNav.home}</Link>;
+  return <Link href="/meny" className={secondaryButtonClass}>{t.profile.modeMenu.back}</Link>;
 }
 
 export function ModePageHeading({ title, description }: { title: string; description: string }) {
