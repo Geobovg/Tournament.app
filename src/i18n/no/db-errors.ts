@@ -3,6 +3,13 @@ import type { DbErrorsDict } from "../en/db-errors";
 // Feilmeldinger fra databasefunksjonene (raise exception i supabase/migrations). Norsk tekst er
 // nøyaktig den som står i SQL-en. Reglene som kobler meldingene hit ligger i src/i18n/db-errors.ts.
 export const dbErrors: DbErrorsDict = {
+  fantasyTeamSize: "Fantasy-laget må ha 15 spillere fra denne sesongen",
+  fantasyTooExpensive: "Laget er for dyrt",
+  fantasyFreeHitActive: "Laget kan ikke endres før Free Hit-runden er ferdig",
+  fantasyNoTeam: "Du har ikke noe fantasy-lag ennå",
+  fantasyUnknownChip: "Ukjent chip",
+  fantasyChipTooEarly: "Wildcard og Free Hit kan brukes fra andre runde laget er med",
+  fantasyChipUsed: "Denne chipen er allerede brukt i denne halvdelen av sesongen",
   academyCannotDiscard: "Academy-kort kan ikke kastes",
   academyCannotSell: "Academy-kort kan ikke selges",
   listingNotActive: "Annonsen er ikke aktiv",

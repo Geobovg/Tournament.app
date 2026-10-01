@@ -1,4 +1,11 @@
 export const dbErrors = {
+  fantasyTeamSize: "梦幻球队需要 15 名本赛季的球员",
+  fantasyTooExpensive: "你的球队超出了你能负担的金额",
+  fantasyFreeHitActive: "自由转会轮次结束前无法修改球队",
+  fantasyNoTeam: "你还没有梦幻球队",
+  fantasyUnknownChip: "未知道具",
+  fantasyChipTooEarly: "外卡和自由转会从球队的第二轮起可用",
+  fantasyChipUsed: "你在本半程已经使用过这个道具",
   academyCannotDiscard: "学院卡无法丢弃",
   academyCannotSell: "学院卡无法出售",
   listingNotActive: "此列表未激活",

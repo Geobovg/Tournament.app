@@ -36,3 +36,23 @@ _Avoid_: Nivå (brukes om klubbnivå/XP, som er noe annet), Liga
 **SBC**:
 En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som oppfyller kravene (f.eks. snitt-rating eller antall fra én liga) og får en premie i MB eller pakker. Kortene du leverer er borte for alltid. SBC-er med begrenset antall forsøk nullstilles hver fredag kl. 18:00 norsk tid. Heter «SBC» på alle språk.
 _Avoid_: Oppdrag, Utfordring alene (tvetydig med vennekamp-utfordringer), Kjemi (finnes ikke i appen)
+
+**Fantasy**:
+En egen modus utenfor Managerkarrieren, som Premier League Fantasy, men for spillere fra alle de fem store ligaene. Du velger et lag av ekte spillere innenfor et budsjett og får poeng etter hva de gjør i ekte kamper. Kampdataene hentes fra API-Football; appen simulerer ingenting her.
+_Avoid_: Managerkarriere, Draft
+
+**Liga** (i Fantasy):
+En av de fem ekte ligaene spillerne hentes fra: Premier League, La Liga, Serie A, Bundesliga og Ligue 1. Hvilken liga en klubb spiller i står i `football_clubs`.
+_Avoid_: Divisjon (det er AI-sesongens nivåer)
+
+**Fantasy-liga**:
+En tabell der du og venner sammenligner fantasy-poengene deres. Du blir med via invitasjonskode eller -lenke, som i turneringer.
+_Avoid_: Liga alene (det er de ekte ligaene), Vennesesong
+
+**Runde**:
+Én uke i Fantasy, fra tirsdag til og med mandag (norsk tid), på tvers av alle fem ligaene, så mandagskampene avslutter helgerunden. Fristen er 90 minutter før rundens første kamp; da låses laget, og poengene for runden kommer fra alle ligakampene den uka.
+_Avoid_: Gameweek, Kamp, Kalenderuke (uka starter tirsdag, ikke mandag)
+
+**Chip**:
+Et engangsvalg i Fantasy som gjelder én runde: Wildcard, Free Hit, Bench Boost eller Triple Captain. Hver kan brukes én gang i hver halvdel av sesongen.
+_Avoid_: Kort (det er spillerkortene i Managerkarrieren), Bonus

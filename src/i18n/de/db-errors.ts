@@ -1,4 +1,11 @@
 export const dbErrors = {
+  fantasyTeamSize: "Dein Fantasy-Team braucht 15 Spieler aus dieser Saison",
+  fantasyTooExpensive: "Dein Team kostet mehr, als du dir leisten kannst",
+  fantasyFreeHitActive: "Dein Team kann erst nach dem Free-Hit-Spieltag geändert werden",
+  fantasyNoTeam: "Du hast noch kein Fantasy-Team",
+  fantasyUnknownChip: "Unbekannter Chip",
+  fantasyChipTooEarly: "Wildcard und Free Hit können ab dem zweiten Spieltag deines Teams eingesetzt werden",
+  fantasyChipUsed: "Du hast diesen Chip in dieser Saisonhälfte schon eingesetzt",
   academyCannotDiscard: "Akademiekarten können nicht abgeworfen werden",
   academyCannotSell: "Academy-Karten können nicht verkauft werden",
   listingNotActive: "Dieser Eintrag ist nicht aktiv",

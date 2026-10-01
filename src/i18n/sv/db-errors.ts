@@ -1,4 +1,11 @@
 export const dbErrors = {
+  fantasyTeamSize: "Fantasylaget måste ha 15 spelare från den här säsongen",
+  fantasyTooExpensive: "Laget kostar mer än du har råd med",
+  fantasyFreeHitActive: "Laget kan inte ändras förrän Free Hit-omgången är slut",
+  fantasyNoTeam: "Du har inget fantasylag än",
+  fantasyUnknownChip: "Okänt chip",
+  fantasyChipTooEarly: "Wildcard och Free Hit kan användas från lagets andra omgång",
+  fantasyChipUsed: "Du har redan använt det här chipet i den här halvan av säsongen",
   academyCannotDiscard: "Akademikort kan inte kasseras",
   academyCannotSell: "Akademikort kan inte säljas",
   listingNotActive: "Den här annonsen är inte aktiv",

@@ -1,4 +1,11 @@
 export const dbErrors = {
+  fantasyTeamSize: "يجب أن يضم فريق فانتازي 15 لاعبًا من هذا الموسم",
+  fantasyTooExpensive: "تكلفة فريقك أكبر مما يمكنك تحمله",
+  fantasyFreeHitActive: "لا يمكن تعديل فريقك قبل انتهاء جولة الفري هيت",
+  fantasyNoTeam: "ليس لديك فريق فانتازي بعد",
+  fantasyUnknownChip: "رقاقة غير معروفة",
+  fantasyChipTooEarly: "يمكن استخدام الوايلد كارد والفري هيت من الجولة الثانية لفريقك",
+  fantasyChipUsed: "لقد استخدمت هذه الرقاقة بالفعل في هذا النصف من الموسم",
   academyCannotDiscard: "لا يمكن التخلص من بطاقات الأكاديمية",
   academyCannotSell: "لا يمكن بيع بطاقات الأكاديمية",
   listingNotActive: "هذه القائمة غير نشطة",

@@ -67,6 +67,12 @@ export const profile: ProfileDict = {
       description: "Opprett, bli med i og følg FIFA- og NHL-turneringene deres.",
       action: "Se turneringer",
     },
+    fantasy: {
+      kicker: "EKTE KAMPER",
+      title: "Fantasy",
+      description: "Velg ekte spillere fra de fem store ligaene og få poeng etter hva de gjør i ekte kamper.",
+      action: "Åpne Fantasy",
+    },
     historyTitle: "To moduser, én historie",
     historyText: "Resultater og belønninger lagres på profilen din.",
     historyLink: "Se statistikk og belønninger",

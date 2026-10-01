@@ -64,6 +64,12 @@ export const profile = {
       description: "Opret, deltag og følg dine FIFA- og NHL-turneringer.",
       action: "Se turneringer",
     },
+    fantasy: {
+      kicker: "RIGTIGE KAMPE",
+      title: "Fantasy",
+      description: "Vælg rigtige spillere fra de fem største ligaer, og få point for det, de gør i rigtige kampe.",
+      action: "Åbn Fantasy",
+    },
     historyTitle: "To tilstande, én historie",
     historyText: "Resultater og belønninger gemmes på din profil.",
     historyLink: "Se statistik og belønninger",
