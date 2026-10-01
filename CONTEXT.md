@@ -31,3 +31,8 @@ _Avoid_: Liga, Turnering (Turnering er noe annet, se over)
 **Divisjon** (kommer):
 Et av 10 vanskelighetsnivåer i AI-sesongen (Divisjon 10 lavest, Divisjon 1 høyest), der AI-troppenes samlede rating skaleres opp jo høyere divisjon. Topp 3 i tabellen etter en AI-sesong rykker opp én divisjon, sist rykker ned. Belønningen for opprykk øker jo høyere divisjonen du rykker opp til er.
 _Avoid_: Nivå (brukes om klubbnivå/XP, som er noe annet), Liga
+
+
+**SBC**:
+En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som oppfyller kravene (f.eks. snitt-rating eller antall fra én liga) og får en premie i MB eller pakker. Kortene du leverer er borte for alltid. SBC-er med begrenset antall forsøk nullstilles hver fredag kl. 18:00 norsk tid. Heter «SBC» på alle språk.
+_Avoid_: Oppdrag, Utfordring alene (tvetydig med vennekamp-utfordringer), Kjemi (finnes ikke i appen)

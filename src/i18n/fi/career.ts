@@ -16,6 +16,7 @@ export const career = {
     spillermarked: "Markkinat",
     kamplobby: "Ystävällinen",
     karrierehistorikk: "Otteluhistoria",
+    sbc: "SBC",
   },
   subTabs: {
     squad: "Ryhmä",
@@ -33,6 +34,7 @@ export const career = {
     market: "Markkinat",
     packs: "Pakkaukset",
     season: "Kausi",
+    sbc: "SBC",
   },
   topBar: {
     menu: "← VALIKKO",

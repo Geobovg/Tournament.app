@@ -68,6 +68,11 @@ export const dbErrors = {
   pickElevenStarters: "Elige exactamente 11 entrantes",
   pickTwoDifferentCards: "Elige dos cartas diferentes",
   waitForFriend: "Espera a que tu amigo responda",
+  sbcNotFound: "Este SBC no existe",
+  sbcNoAttemptsLeft: "No te quedan intentos en este SBC esta semana",
+  sbcWrongCardCount: "Elige el número correcto de tarjetas para el SBC",
+  sbcCardsNotUsable: "Algunas de las tarjetas no se pueden usar en un SBC",
+  sbcRequirementsNotMet: "Las tarjetas no cumplen los requisitos del SBC",
 };
 
 export type DbErrorsDict = typeof dbErrors;

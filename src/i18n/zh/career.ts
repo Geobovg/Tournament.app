@@ -16,6 +16,7 @@ export const career = {
     spillermarked: "市场",
     kamplobby: "友善",
     karrierehistorikk: "比赛历史",
+    sbc: "SBC",
   },
   subTabs: {
     squad: "小队",
@@ -33,6 +34,7 @@ export const career = {
     market: "市场",
     packs: "包",
     season: "季节",
+    sbc: "SBC",
   },
   topBar: {
     menu: "← 菜单",
