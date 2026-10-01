@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:db-errors": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-db-errors.ts"
+    "check:db-errors": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-db-errors.ts",
+    "fantasy:sync": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fantasy-sync.ts",
+    "fantasy:clock": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fantasy-clock.ts",
+    "fantasy:tick": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fantasy-tick.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

@@ -64,6 +64,12 @@ export const profile = {
       description: "创建、加入并关注您的 FIFA 和 NHL 锦标赛。",
       action: "查看锦标赛",
     },
+    fantasy: {
+      kicker: "真实比赛",
+      title: "梦幻足球",
+      description: "从五大联赛挑选真实球员，根据他们在真实比赛中的表现得分。",
+      action: "打开梦幻足球",
+    },
     historyTitle: "两种模式，一个故事",
     historyText: "结果和奖励将保存到您的个人资料中。",
     historyLink: "查看统计数据和奖励",

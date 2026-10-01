@@ -64,6 +64,12 @@ export const profile = {
       description: "Erstellen Sie Ihre FIFA- und NHL-Turniere, nehmen Sie daran teil und verfolgen Sie sie.",
       action: "Siehe Turniere",
     },
+    fantasy: {
+      kicker: "ECHTE SPIELE",
+      title: "Fantasy",
+      description: "Wähle echte Spieler aus den fünf großen Ligen und sammle Punkte mit ihren echten Spielen.",
+      action: "Fantasy öffnen",
+    },
     historyTitle: "Zwei Modi, eine Geschichte",
     historyText: "Ergebnisse und Belohnungen werden in Ihrem Profil gespeichert.",
     historyLink: "Statistiken und Belohnungen ansehen",

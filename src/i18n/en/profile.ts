@@ -64,6 +64,12 @@ export const profile = {
       description: "Create, join and follow your FIFA and NHL tournaments.",
       action: "See tournaments",
     },
+    fantasy: {
+      kicker: "REAL MATCHES",
+      title: "Fantasy",
+      description: "Pick real players from the top five leagues and score points from their real matches.",
+      action: "Open Fantasy",
+    },
     historyTitle: "Two modes, one story",
     historyText: "Results and rewards are saved to your profile.",
     historyLink: "See stats and rewards",

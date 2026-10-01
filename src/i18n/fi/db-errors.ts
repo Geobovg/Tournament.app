@@ -1,4 +1,11 @@
 export const dbErrors = {
+  fantasyTeamSize: "Fantasyjoukkueessa on oltava 15 pelaajaa tältä kaudelta",
+  fantasyTooExpensive: "Joukkue maksaa enemmän kuin sinulla on varaa",
+  fantasyFreeHitActive: "Joukkuetta ei voi muuttaa ennen kuin Free Hit -kierros on ohi",
+  fantasyNoTeam: "Sinulla ei ole vielä fantasyjoukkuetta",
+  fantasyUnknownChip: "Tuntematon chip",
+  fantasyChipTooEarly: "Wildcardia ja Free Hitiä voi käyttää joukkueen toisesta kierroksesta alkaen",
+  fantasyChipUsed: "Olet jo käyttänyt tämän chipin tällä kauden puoliskolla",
   academyCannotDiscard: "Akatemiakortteja ei voi hävittää",
   academyCannotSell: "Akatemiakortteja ei voi myydä",
   listingNotActive: "Tämä ilmoitus ei ole aktiivinen",

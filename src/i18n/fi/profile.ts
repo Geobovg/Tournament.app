@@ -64,6 +64,12 @@ export const profile = {
       description: "Luo, liity ja seuraa FIFA- ja NHL-turnauksiasi.",
       action: "Katso turnaukset",
     },
+    fantasy: {
+      kicker: "OIKEAT OTTELUT",
+      title: "Fantasy",
+      description: "Valitse oikeita pelaajia viidestä suurimmasta liigasta ja saa pisteitä heidän oikeista otteluistaan.",
+      action: "Avaa Fantasy",
+    },
     historyTitle: "Kaksi tilaa, yksi tarina",
     historyText: "Tulokset ja palkinnot tallennetaan profiiliisi.",
     historyLink: "Katso tilastot ja palkinnot",

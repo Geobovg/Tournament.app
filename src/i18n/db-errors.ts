@@ -9,6 +9,13 @@ type DbErrorRule = { pattern: RegExp; message: (t: Dictionary, ...values: string
 // Ingen av meldingene inneholder kolon, så de overlever også `stripPrefix` i dbErrorMessage uendret.
 export const DB_ERROR_RULES: DbErrorRule[] = [
   { pattern: /^Fant ikke denne SBC-en$/, message: (t) => t.dbErrors.sbcNotFound },
+  { pattern: /^Fantasy-laget må ha 15 spillere fra denne sesongen$/, message: (t) => t.dbErrors.fantasyTeamSize },
+  { pattern: /^Laget er for dyrt$/, message: (t) => t.dbErrors.fantasyTooExpensive },
+  { pattern: /^Laget kan ikke endres før Free Hit-runden er ferdig$/, message: (t) => t.dbErrors.fantasyFreeHitActive },
+  { pattern: /^Du har ikke noe fantasy-lag ennå$/, message: (t) => t.dbErrors.fantasyNoTeam },
+  { pattern: /^Ukjent chip$/, message: (t) => t.dbErrors.fantasyUnknownChip },
+  { pattern: /^Wildcard og Free Hit kan brukes fra andre runde laget er med$/, message: (t) => t.dbErrors.fantasyChipTooEarly },
+  { pattern: /^Denne chipen er allerede brukt i denne halvdelen av sesongen$/, message: (t) => t.dbErrors.fantasyChipUsed },
   { pattern: /^Du har ikke flere forsøk igjen på denne SBC-en denne uken$/, message: (t) => t.dbErrors.sbcNoAttemptsLeft },
   { pattern: /^Velg riktig antall kort til SBC-en$/, message: (t) => t.dbErrors.sbcWrongCardCount },
   { pattern: /^Noen av kortene kan ikke brukes i en SBC$/, message: (t) => t.dbErrors.sbcCardsNotUsable },

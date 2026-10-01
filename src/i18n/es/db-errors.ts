@@ -1,4 +1,11 @@
 export const dbErrors = {
+  fantasyTeamSize: "Tu equipo fantasy necesita 15 jugadores de esta temporada",
+  fantasyTooExpensive: "Tu equipo cuesta más de lo que puedes pagar",
+  fantasyFreeHitActive: "No puedes cambiar tu equipo hasta que termine la jornada del Free Hit",
+  fantasyNoTeam: "Aún no tienes un equipo fantasy",
+  fantasyUnknownChip: "Chip desconocido",
+  fantasyChipTooEarly: "El Wildcard y el Free Hit se pueden usar desde la segunda jornada de tu equipo",
+  fantasyChipUsed: "Ya has usado este chip en esta mitad de la temporada",
   academyCannotDiscard: "Las cartas de la Academia no se pueden descartar.",
   academyCannotSell: "Las tarjetas de la Academia no se pueden vender",
   listingNotActive: "Este listado no está activo",
