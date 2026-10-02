@@ -309,6 +309,8 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
           </div>
         </div>
 
+        {team && !team.freeHitActive && round !== null ? <FantasyChips chips={team.chips} /> : null}
+
         {switchingPlayer && !drag ? (
           <div className={`${cardClass} flex flex-wrap items-center gap-2 border-yellow-400`}>
             <p className="mr-auto text-sm font-semibold">{text.playerInfo.switching(switchingPlayer.name)}</p>
@@ -351,7 +353,6 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
           </div>
         ) : null}
 
-        {team && !team.freeHitActive && round !== null ? <FantasyChips chips={team.chips} /> : null}
       </section>
 
       <section className={`${cardClass} flex h-[75dvh] min-w-0 flex-col gap-3 lg:sticky lg:top-4 lg:h-[calc(100dvh-2rem)] lg:self-start`}>
@@ -428,6 +429,9 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
   );
 }
 
+const CHIP_ICONS: Record<Chip, string> = { wildcard: "WC", free_hit: "FH", bench_boost: "BB", triple_captain: "3×" };
+
+// Chipsene på en rad over banen, som i FPL. Forklaringen ligger i tooltipen og nederst.
 function FantasyChips({ chips }: { chips: ChipState[] }) {
   const text = useT().fantasy.chips;
   const [pending, startTransition] = useTransition();
@@ -435,23 +439,24 @@ function FantasyChips({ chips }: { chips: ChipState[] }) {
   const active = chips.some((chip) => chip.state === "active");
   const set = (chip: Chip | null) => startTransition(async () => { const result = await setFantasyChipAction(chip); setError(result.error ?? null); });
   return (
-    <div className={`${cardClass} grid gap-3`}>
-      <div><h2 className="font-semibold">{text.title}</h2><p className="text-sm text-muted">{text.intro}</p></div>
-      <div className="grid gap-2 sm:grid-cols-2">
+    <div className={`${cardClass} grid gap-2 p-2 sm:p-3`}>
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {chips.map(({ chip, state }) => (
-          <div key={chip} className={`grid gap-2 rounded-lg border p-3 ${state === "active" ? "border-accent" : "border-border"}`}>
-            <div><p className="font-medium">{text.names[chip]}</p><p className="text-xs text-muted">{text.descriptions[chip]}</p></div>
+          <div key={chip} title={text.descriptions[chip]} className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-center ${state === "active" ? "border-accent bg-accent/10" : "border-border"} ${state === "used" || state === "tooEarly" ? "opacity-60" : ""}`}>
+            <span className={`grid h-9 w-9 place-items-center rounded-full text-xs font-black ${state === "active" ? "bg-accent text-accent-contrast" : "bg-surface-raised"}`}>{CHIP_ICONS[chip]}</span>
+            <p className="text-[11px] font-semibold leading-tight sm:text-xs">{text.names[chip]}</p>
             {state === "active" ? (
-              <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-accent">{text.active}</span><button type="button" disabled={pending} onClick={() => set(null)} className={secondaryButtonClass}>{text.cancel}</button></div>
+              <button type="button" disabled={pending} onClick={() => set(null)} className="w-full rounded-md border border-accent px-1 py-1 text-[11px] font-semibold text-accent sm:text-xs">{text.cancel}</button>
             ) : state === "available" ? (
-              <button type="button" disabled={pending || active} onClick={() => set(chip)} className={secondaryButtonClass}>{text.use}</button>
+              <button type="button" disabled={pending || active} onClick={() => set(chip)} className="w-full rounded-md bg-accent px-1 py-1 text-[11px] font-semibold text-accent-contrast disabled:opacity-40 sm:text-xs">{text.use}</button>
             ) : (
-              <span className="text-xs text-muted">{state === "used" ? text.used : text.tooEarly}</span>
+              <span className="py-1 text-[10px] leading-tight text-muted sm:text-[11px]">{state === "used" ? text.used : text.tooEarly}</span>
             )}
           </div>
         ))}
       </div>
-      {error ? <p className="text-sm font-medium text-red-500">{error}</p> : null}
+      {active ? <p className="text-center text-xs font-semibold text-accent">{text.names[chips.find((chip) => chip.state === "active")!.chip]}: {text.active}</p> : <p className="text-center text-xs text-muted">{text.intro}</p>}
+      {error ? <p className="text-center text-sm font-medium text-red-500">{error}</p> : null}
     </div>
   );
 }
