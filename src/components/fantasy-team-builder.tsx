@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type PointerEvent } from "react";
 import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { clubCode } from "@/lib/fantasy/club-codes";
@@ -26,6 +25,7 @@ import {
 } from "@/lib/fantasy/squad-rules";
 import { saveFantasyTeamAction, setFantasyChipAction } from "@/lib/fantasy-actions";
 import { BenchSlot, EmptyPitchSlot, FantasyPitch, FantasyPlayerCard, FantasyPlayerPhoto, PitchRow } from "./fantasy-pitch";
+import { Crest, PlayerInfoDialog } from "./fantasy-player-info";
 import { buttonClass, cardClass, labelClass, secondaryButtonClass } from "./ui";
 
 const PAGE_SIZE = 40;
@@ -92,6 +92,10 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
   const [league, setLeague] = useState<CompetitionCode | "all">("all");
   const [sort, setSort] = useState<Sort>("price");
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [drag, setDrag] = useState<{ id: number; x: number; y: number } | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const suppressTap = useRef(false);
   const [result, setResult] = useState<{ error?: string; ok?: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
   const locked = Boolean(team?.freeHitActive) || round === null;
@@ -126,6 +130,14 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
     return list;
   }, [players, search, position, league, sort]);
 
+  // Spillerlista scroller inni seg selv, og flere spillere lastes inn når man nærmer seg bunnen.
+  const listRef = useRef<HTMLDivElement>(null);
+  function loadMoreNearBottom() {
+    const list = listRef.current;
+    if (list && filtered.length > visible && list.scrollTop + list.clientHeight > list.scrollHeight - 300) setVisible(visible + PAGE_SIZE);
+  }
+  useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [search, position, league, sort]);
+
   function changeSquad(next: number[]) {
     // Den gjeldende oppstillingen tas vare på, så den kan repareres når troppen er full igjen.
     if (activeLineup) setLineup(activeLineup);
@@ -141,23 +153,92 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
     return text.cantAdd.tooExpensive;
   }
 
-  // Trykk på en spiller for å åpne infovinduet. Etter «Bytt» der bytter neste trykk plass på
-  // de to (startellever/benk, eller rekkefølgen på benken).
+  // Oppstillingen når from og to bytter plass (startellever/benk, eller rekkefølgen på benken),
+  // eller null hvis formasjonen da blir ugyldig. To i startelleveren bytter ikke, det endrer ingenting.
+  function switched(from: number, to: number): Lineup | null {
+    if (!activeLineup || from === to || (activeLineup.starters.includes(from) && activeLineup.starters.includes(to))) return null;
+    const swap = (list: number[]) => list.map((item) => (item === from ? to : item === to ? from : item));
+    const next = { ...activeLineup, starters: swap(activeLineup.starters), bench: swap(activeLineup.bench) };
+    // En kaptein som havner på benken gir bindet videre til spilleren som kom inn.
+    if (!next.starters.includes(next.captainId)) next.captainId = next.starters.includes(to) ? to : from;
+    if (!next.starters.includes(next.viceCaptainId)) next.viceCaptainId = next.starters.includes(to) ? to : from;
+    return lineupProblems(squad, next).every((problem) => problem.type !== "formation") ? next : null;
+  }
+
+  // Trykk på en spiller for å åpne infovinduet. Etter «Bytt» der bytter neste trykk plass på de to.
   function tapPlayer(id: number) {
+    if (suppressTap.current) return;
     setResult(null);
     if (!activeLineup || selected === null || selected === id) {
       setSelected(null);
       setInfoId(id);
       return;
     }
-    const swap = (list: number[]) => list.map((item) => (item === selected ? id : item === id ? selected : item));
-    const next = { ...activeLineup, starters: swap(activeLineup.starters), bench: swap(activeLineup.bench) };
-    // En kaptein som havner på benken gir bindet videre til spilleren som kom inn.
-    if (!next.starters.includes(next.captainId)) next.captainId = next.starters.includes(id) ? id : selected;
-    if (!next.starters.includes(next.viceCaptainId)) next.viceCaptainId = next.starters.includes(id) ? id : selected;
-    const formationOk = lineupProblems(squad, next).every((problem) => problem.type !== "formation");
-    if (formationOk) setLineup(next);
+    const next = switched(selected, id);
+    if (next) setLineup(next);
     setSelected(null);
+  }
+
+  // Dra og slipp som i FPL: dra en spiller over en annen for å bytte plass. Med mus starter
+  // dragingen når man flytter musa, med fingeren etter at man har holdt den inne litt (ellers
+  // scroller siden som vanlig).
+  function startDrag(id: number, event: PointerEvent<HTMLButtonElement>) {
+    if (!activeLineup || locked || (event.pointerType === "mouse" && event.button !== 0)) return;
+    const start = { x: event.clientX, y: event.clientY };
+    const touch = event.pointerType !== "mouse";
+    let active = false;
+    let target: number | null = null;
+    const holdTimer = touch ? window.setTimeout(() => begin(), 300) : undefined;
+
+    function begin() {
+      active = true;
+      setSelected(null);
+      setDrag({ id, ...start });
+      navigator.vibrate?.(10);
+    }
+    function targetAt(x: number, y: number) {
+      const card = document.elementFromPoint(x, y)?.closest("[data-player-id]");
+      const over = card ? Number(card.getAttribute("data-player-id")) : null;
+      return over !== null && switched(id, over) ? over : null;
+    }
+    function move(moveEvent: globalThis.PointerEvent) {
+      if (!active) {
+        const moved = Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y);
+        if (touch && moved > 8) return stop();
+        if (touch || moved <= 5) return;
+        begin();
+      }
+      if (ghostRef.current) ghostRef.current.style.transform = `translate(${moveEvent.clientX - start.x}px, ${moveEvent.clientY - start.y}px)`;
+      const over = targetAt(moveEvent.clientX, moveEvent.clientY);
+      if (over !== target) setDropTarget((target = over));
+    }
+    function preventScroll(touchEvent: TouchEvent) {
+      if (active) touchEvent.preventDefault();
+    }
+    function drop() {
+      if (active) {
+        const next = target === null ? null : switched(id, target);
+        if (next) setLineup(next);
+        setResult(null);
+        // Klikket som kommer etter at man slipper skal ikke åpne infovinduet.
+        suppressTap.current = true;
+        window.setTimeout(() => { suppressTap.current = false; });
+      }
+      stop();
+    }
+    function stop() {
+      window.clearTimeout(holdTimer);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", drop);
+      window.removeEventListener("pointercancel", stop);
+      window.removeEventListener("touchmove", preventScroll);
+      setDrag(null);
+      setDropTarget(null);
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", drop);
+    window.addEventListener("pointercancel", stop);
+    window.addEventListener("touchmove", preventScroll, { passive: false });
   }
 
   function setCaptain(id: number, role: "captain" | "vice") {
@@ -181,12 +262,9 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
     setInfoId(null);
   }
 
-  // Om spilleren man bytter fra kan bytte plass med id uten at formasjonen blir ugyldig.
-  function canSwitchWith(id: number) {
-    if (!activeLineup || selected === null) return false;
-    const swap = (list: number[]) => list.map((item) => (item === selected ? id : item === id ? selected : item));
-    return lineupProblems(squad, { ...activeLineup, starters: swap(activeLineup.starters), bench: swap(activeLineup.bench) }).every((problem) => problem.type !== "formation");
-  }
+  // Spilleren som byttes fra (med «Bytt» eller ved å dra), og om han kan bytte plass med id.
+  const switchingFrom = drag?.id ?? selected;
+  const canSwitchWith = (id: number) => switchingFrom !== null && switched(switchingFrom, id) !== null;
 
   function save() {
     if (!activeLineup) return;
@@ -199,12 +277,16 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
       key={player.id}
       player={player}
       info={activeLineup ? fixtureText(t, fixtures[player.clubId]) : text.money(formatPrice(player.price, locale))}
-      selected={selected === player.id}
-      dimmed={selected !== null && selected !== player.id && !canSwitchWith(player.id)}
+      selected={switchingFrom === player.id}
+      dimmed={switchingFrom !== null && switchingFrom !== player.id && !canSwitchWith(player.id)}
+      dropTarget={dropTarget === player.id}
       badge={activeLineup?.captainId === player.id ? text.captainShort : activeLineup?.viceCaptainId === player.id ? text.viceCaptainShort : null}
       onTap={() => tapPlayer(player.id)}
+      onDragStart={activeLineup && !locked ? (event) => startDrag(player.id, event) : undefined}
+      dragId={player.id}
     />
   );
+  const draggedPlayer = drag === null ? null : byId.get(drag.id) ?? null;
   const switchingPlayer = selected === null ? null : byId.get(selected) ?? null;
   const infoPlayer = infoId === null ? null : byId.get(infoId) ?? null;
 
@@ -227,7 +309,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
           </div>
         </div>
 
-        {switchingPlayer ? (
+        {switchingPlayer && !drag ? (
           <div className={`${cardClass} flex flex-wrap items-center gap-2 border-yellow-400`}>
             <p className="mr-auto text-sm font-semibold">{text.playerInfo.switching(switchingPlayer.name)}</p>
             <button type="button" onClick={() => setSelected(null)} className={secondaryButtonClass}>{text.playerInfo.cancelSwitch}</button>
@@ -272,7 +354,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
         {team && !team.freeHitActive && round !== null ? <FantasyChips chips={team.chips} /> : null}
       </section>
 
-      <section className={`${cardClass} grid min-w-0 grid-cols-1 content-start gap-3`}>
+      <section className={`${cardClass} flex h-[75dvh] min-w-0 flex-col gap-3 lg:sticky lg:top-4 lg:h-[calc(100dvh-2rem)] lg:self-start`}>
         <input value={search} onChange={(event) => { setSearch(event.target.value); setVisible(PAGE_SIZE); }} placeholder={text.search} className={inputClass} />
         <div className="grid grid-cols-2 gap-2">
           <select value={position} onChange={(event) => { setPosition(event.target.value as FantasyPosition | "all"); setVisible(PAGE_SIZE); }} className={inputClass}>
@@ -289,6 +371,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
             <option value="cheapest">{text.sort.cheapest}</option>
           </select>
         </div>
+        <div ref={listRef} onScroll={loadMoreNearBottom} className="-mx-2 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
         {filtered.length === 0 ? <p className="text-sm text-muted">{text.noPlayers}</p> : null}
         <ul className="grid grid-cols-1 gap-1">
           {filtered.slice(0, visible).map((player) => {
@@ -316,11 +399,19 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
             );
           })}
         </ul>
-        {filtered.length > visible ? <button type="button" onClick={() => setVisible(visible + PAGE_SIZE)} className={secondaryButtonClass}>{text.showMore}</button> : null}
+        </div>
       </section>
 
+      {drag && draggedPlayer ? (
+        <div ref={ghostRef} aria-hidden className="pointer-events-none fixed z-[150]" style={{ left: drag.x, top: drag.y }}>
+          <div className="-translate-x-1/2 -translate-y-1/2 rotate-3 scale-105 text-white drop-shadow-2xl">
+            <FantasyPlayerCard player={draggedPlayer} info={fixtureText(t, fixtures[draggedPlayer.clubId])} />
+          </div>
+        </div>
+      ) : null}
+
       {infoPlayer ? (
-        <PlayerInfoDialog player={infoPlayer} fixtures={fixtures[infoPlayer.clubId] ?? []} sellingPrice={purchasePrices[infoPlayer.id] === undefined ? null : costOf(infoPlayer)} onClose={() => setInfoId(null)}>
+        <PlayerInfoDialog key={infoPlayer.id} player={infoPlayer} onClose={() => setInfoId(null)}>
           {locked ? null : squadIds.includes(infoPlayer.id) ? (
             <>
               {activeLineup ? <button type="button" onClick={() => startSwitch(infoPlayer.id)} className={buttonClass}>{text.playerInfo.switch}</button> : null}
@@ -333,62 +424,6 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
           ) : <p className="text-sm text-muted">{cantAddReason(infoPlayer)}</p>}
         </PlayerInfoDialog>
       ) : null}
-    </div>
-  );
-}
-
-// Infovinduet når man trykker på en spiller, som i FPL: stort bilde, klubb, pris, poeng og rundens kamper.
-function PlayerInfoDialog({ player, fixtures, sellingPrice, onClose, children }: { player: FantasyPlayerOption; fixtures: ClubFixture[]; sellingPrice: number | null; onClose: () => void; children: ReactNode }) {
-  const t = useT();
-  const text = t.fantasy;
-  const locale = useLocale();
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  const competition = FANTASY_COMPETITIONS.find((item) => item.code === player.competition)?.name;
-  const time = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo" });
-  return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={player.name} onClick={onClose}>
-      <div className="w-full max-w-md overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl sm:rounded-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-end gap-4 bg-gradient-to-br from-emerald-700 to-emerald-950 px-4 pt-4 text-white">
-          <FantasyPlayerPhoto photo={player.photo} photoCutout={player.photoCutout} className="h-28 w-28 shrink-0 sm:h-32 sm:w-32" />
-          <div className="min-w-0 flex-1 pb-3">
-            <p className="text-xs font-bold tracking-widest text-white/70">{text.positions[player.position].toUpperCase()}</p>
-            <p className="text-xl font-black leading-tight">{player.name}</p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/85"><Crest src={player.crest} small />{player.clubName}</p>
-            {competition ? <p className="text-xs text-white/60">{competition}</p> : null}
-          </div>
-          <button type="button" onClick={onClose} aria-label={text.playerInfo.close} className="mb-auto rounded-full bg-black/30 px-2.5 py-1 text-sm font-bold hover:bg-black/50">✕</button>
-        </div>
-        <div className="grid grid-cols-3 divide-x divide-border border-b border-border text-center">
-          <div className="p-3">
-            <p className="text-xs text-muted">{text.playerInfo.price}</p>
-            <p className="font-bold tabular-nums">
-              {player.priceChange > 0 ? <span className="mr-1 text-emerald-500" title={text.priceUp}>▲</span> : player.priceChange < 0 ? <span className="mr-1 text-red-500" title={text.priceDown}>▼</span> : null}
-              {text.money(formatPrice(player.price, locale))}
-            </p>
-          </div>
-          <div className="p-3"><p className="text-xs text-muted">{text.playerInfo.sellingPrice}</p><p className="font-bold tabular-nums">{sellingPrice === null ? "–" : text.money(formatPrice(sellingPrice, locale))}</p></div>
-          <div className="p-3"><p className="text-xs text-muted">{text.playerInfo.totalPoints}</p><p className="font-bold tabular-nums">{player.points}</p></div>
-        </div>
-        <div className="grid gap-2 p-4">
-          <p className={labelClass}>{text.playerInfo.thisRound}</p>
-          {fixtures.length ? (
-            <ul className="grid gap-1.5 text-sm">
-              {fixtures.map((fixture) => (
-                <li key={fixture.kickoffAt + fixture.opponent} className="flex items-center gap-2">
-                  <Crest src={fixture.opponentCrest} />
-                  <span className="font-medium">{text.playerInfo.fixture(fixture.opponent, fixture.home)}</span>
-                  <span className="ml-auto text-xs text-muted">{time.format(new Date(fixture.kickoffAt))}</span>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="text-sm text-muted">{text.playerInfo.noMatch}</p>}
-        </div>
-        {children ? <div className="flex flex-wrap items-center gap-2 border-t border-border p-4">{children}</div> : null}
-      </div>
     </div>
   );
 }
@@ -419,9 +454,4 @@ function FantasyChips({ chips }: { chips: ChipState[] }) {
       {error ? <p className="text-sm font-medium text-red-500">{error}</p> : null}
     </div>
   );
-}
-
-function Crest({ src, small = false }: { src: string | null; small?: boolean }) {
-  const size = small ? "h-4 w-4 text-xs" : "h-6 w-6 text-sm";
-  return src ? <Image src={src} alt="" width={24} height={24} className={`${size} shrink-0 object-contain`} /> : <span className={`grid ${size} shrink-0 place-items-center`}>⚽</span>;
 }

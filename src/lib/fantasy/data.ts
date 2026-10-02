@@ -71,10 +71,15 @@ export type FantasyPlayerOption = {
   competition: CompetitionCode;
   crest: string | null;
   kit: string | null;
+  // Snittpoeng per kamp de siste 30 dagene, som «Form» i FPL.
+  form: number;
+  // Plassering blant spillerne på samme posisjon (1 er best/dyrest), og hvor mange de er.
+  ranks: { price: number; form: number; points: number; of: number };
 } & FantasyPhoto;
 
-// Et utklipp uten bakgrunn når vi har et: fra managerkarrieren, ellers hentet til fantasy med
-// scripts/fantasy-cutouts.ts. Uten utklipp brukes ansiktsbildet fra API-Football (hvit bakgrunn).
+// Et utklipp uten bakgrunn når vi har et: hentet til fantasy med scripts/fantasy-cutouts.ts (som
+// også bytter til nyere bilder med --refresh), ellers fra managerkarrieren. Uten utklipp brukes
+// ansiktsbildet fra API-Football (hvit bakgrunn).
 export type FantasyPhoto = { photo: string | null; photoCutout: boolean };
 
 // Drakten som vises på banen (som i FPL): keeperdrakten for keepere når den finnes, ellers
@@ -86,12 +91,13 @@ function clubKit(clubName: string, position: FantasyPosition) {
 }
 
 function fantasyPhoto(apiPlayerId: number, slug: string | undefined, apiPhoto: string | null): FantasyPhoto {
-  const cutout = (slug ? playerPhoto(slug) : null) ?? (FANTASY_CUTOUT_IDS.has(apiPlayerId) ? `/fantasy-players/${apiPlayerId}.png` : null);
+  const cutout = (FANTASY_CUTOUT_IDS.has(apiPlayerId) ? `/fantasy-players/${apiPlayerId}.png` : null) ?? (slug ? playerPhoto(slug) : null);
   return cutout ? { photo: cutout, photoCutout: true } : { photo: apiPhoto, photoCutout: false };
 }
 
 type SeasonPlayerRow = {
   api_player_id: number;
+  api_team_id: number;
   position: FantasyPosition;
   price: number;
   price_change: number;
@@ -99,28 +105,66 @@ type SeasonPlayerRow = {
   football_season_teams: { club_id: number; competition_code: CompetitionCode; football_clubs: { name: string } };
 };
 
-// Poeng hver spiller har tatt i sesongen så langt.
-async function seasonPoints(db: Db, season: number) {
-  const rows = await loadAll<{ api_player_id: number; points: number }>((from, to) =>
-    db.from("football_fixture_players").select("api_player_id, points, football_fixtures!inner (api_season)").eq("football_fixtures.api_season", season).order("api_fixture_id").order("api_player_id").range(from, to));
+const FORM_DAYS = 30;
+
+// Poeng hver spiller har tatt i sesongen så langt, og formen: snittpoeng per kamp laget hans
+// har spilt de siste 30 dagene (som i FPL). Kamper han ikke spilte i teller som 0.
+async function seasonPoints(db: Db, season: number, now: string) {
+  const since = new Date(new Date(now).getTime() - FORM_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const [rows, recent] = await Promise.all([
+    loadAll<{ api_fixture_id: number; api_player_id: number; points: number }>((from, to) =>
+      db.from("football_fixture_players").select("api_fixture_id, api_player_id, points, football_fixtures!inner (api_season)").eq("football_fixtures.api_season", season).order("api_fixture_id").order("api_player_id").range(from, to)),
+    // Ferdige kamper med poeng (details_synced_at) som startet før «nå» (testklokka i testsesongen).
+    loadAll<{ api_fixture_id: number; home_team_id: number; away_team_id: number }>((from, to) =>
+      db.from("football_fixtures").select("api_fixture_id, home_team_id, away_team_id").eq("api_season", season).in("status", FINISHED_STATUSES).not("details_synced_at", "is", null).gte("kickoff_at", since).lte("kickoff_at", now).order("api_fixture_id").range(from, to)),
+  ]);
   const totals = new Map<number, number>();
-  for (const row of rows) totals.set(row.api_player_id, (totals.get(row.api_player_id) ?? 0) + row.points);
-  return totals;
+  const recentIds = new Set(recent.map((fixture) => fixture.api_fixture_id));
+  const recentPoints = new Map<number, number>();
+  for (const row of rows) {
+    totals.set(row.api_player_id, (totals.get(row.api_player_id) ?? 0) + row.points);
+    if (recentIds.has(row.api_fixture_id)) recentPoints.set(row.api_player_id, (recentPoints.get(row.api_player_id) ?? 0) + row.points);
+  }
+  const teamMatches = new Map<number, number>();
+  for (const fixture of recent) for (const team of [fixture.home_team_id, fixture.away_team_id]) teamMatches.set(team, (teamMatches.get(team) ?? 0) + 1);
+  const form = (playerId: number, teamId: number) => {
+    const matches = teamMatches.get(teamId) ?? 0;
+    return matches ? Math.round(((recentPoints.get(playerId) ?? 0) / matches) * 10) / 10 : 0;
+  };
+  return { totals, form };
 }
 
-// Alle spillerne i sesongen, de dyreste først.
-export const listFantasyPlayers = cache(async (season: number): Promise<FantasyPlayerOption[]> => {
+// Plassering etter value (høyest først) innen hver posisjon. Like verdier gir lik plassering.
+function rankWithinPosition(players: { id: number; position: FantasyPosition }[], value: (id: number) => number) {
+  const ranks = new Map<number, number>();
+  for (const position of new Set(players.map((player) => player.position))) {
+    const sorted = players.filter((player) => player.position === position).sort((a, b) => value(b.id) - value(a.id));
+    sorted.forEach((player, index) => ranks.set(player.id, index > 0 && value(sorted[index - 1].id) === value(player.id) ? ranks.get(sorted[index - 1].id)! : index + 1));
+  }
+  return ranks;
+}
+
+// Alle spillerne i sesongen, de dyreste først. now er «nå» for formen (testklokka i testsesongen).
+export const listFantasyPlayers = cache(async (season: number, now: string): Promise<FantasyPlayerOption[]> => {
   const db = supabaseAdmin();
-  const [rows, points] = await Promise.all([
+  const [rows, { totals: points, form }] = await Promise.all([
     loadAll<SeasonPlayerRow>((from, to) => db
       .from("football_season_players")
-      .select("api_player_id, position, price, price_change, football_players (name, photo_url, player_catalog (name, slug)), football_season_teams (club_id, competition_code, football_clubs (name))")
+      .select("api_player_id, api_team_id, position, price, price_change, football_players (name, photo_url, player_catalog (name, slug)), football_season_teams (club_id, competition_code, football_clubs (name))")
       .eq("api_season", season)
       .order("price", { ascending: false })
       .order("api_player_id")
       .range(from, to)),
-    seasonPoints(db, season),
+    seasonPoints(db, season, now),
   ]);
+  const forms = new Map(rows.map((row) => [row.api_player_id, form(row.api_player_id, row.api_team_id)]));
+  const prices = new Map(rows.map((row) => [row.api_player_id, row.price]));
+  const ranked = rows.map((row) => ({ id: row.api_player_id, position: row.position }));
+  const priceRanks = rankWithinPosition(ranked, (id) => prices.get(id)!);
+  const formRanks = rankWithinPosition(ranked, (id) => forms.get(id)!);
+  const pointsRanks = rankWithinPosition(ranked, (id) => points.get(id) ?? 0);
+  const perPosition = new Map<FantasyPosition, number>();
+  for (const row of rows) perPosition.set(row.position, (perPosition.get(row.position) ?? 0) + 1);
   return rows.map((row) => {
     // Navnet fra katalogen er det kjente navnet («Erling Haaland» i stedet for «E. Haaland»).
     const catalog = row.football_players.player_catalog;
@@ -137,10 +181,145 @@ export const listFantasyPlayers = cache(async (season: number): Promise<FantasyP
       competition: row.football_season_teams.competition_code,
       crest: clubCrest(clubName),
       kit: clubKit(clubName, row.position),
+      form: forms.get(row.api_player_id)!,
+      ranks: { price: priceRanks.get(row.api_player_id)!, form: formRanks.get(row.api_player_id)!, points: pointsRanks.get(row.api_player_id)!, of: perPosition.get(row.position)! },
       ...fantasyPhoto(row.api_player_id, catalog?.slug, row.football_players.photo_url),
     };
   });
 });
+
+// Om en kamp er kommende, pågår eller er ferdig sett fra season.now (testklokka i testsesongen).
+// En kamp regnes som ferdig først 115 minutter etter avspark, som i den automatiske jobben.
+function fixtureState(status: string, kickoffAt: string, now: number): FixtureView["state"] {
+  const kickoff = new Date(kickoffAt).getTime();
+  if (CANCELLED_STATUSES.includes(status)) return "cancelled";
+  if (kickoff > now) return "upcoming";
+  if (FINISHED_STATUSES.includes(status) && kickoff + 115 * 60_000 <= now) return "finished";
+  return LIVE_STATUSES.includes(status) || FINISHED_STATUSES.includes(status) ? "live" : "upcoming";
+}
+
+// En kommende kamp i spillervinduet (fanen «Kamper»).
+export type PlayerFixture = { id: number; round: number | null; kickoffAt: string; opponent: string; opponentCrest: string | null; home: boolean; live: boolean };
+
+// En spilt kamp i spillervinduet (fanen «Resultater»), med tallene som i FPL. price er prisen
+// ved rundens frist, eller null for runder fra før prisene ble lagret.
+export type PlayerResult = {
+  id: number;
+  round: number | null;
+  opponent: string;
+  opponentCrest: string | null;
+  home: boolean;
+  goalsFor: number | null;
+  goalsAgainst: number | null;
+  points: number;
+  minutes: number;
+  goals: number;
+  assists: number;
+  cleanSheet: number;
+  goalsConceded: number;
+  ownGoals: number;
+  penaltiesSaved: number;
+  penaltiesMissed: number;
+  yellowCards: number;
+  redCards: number;
+  saves: number;
+  bonus: number;
+  price: number | null;
+};
+
+export type PlayerPreviousSeason = { label: string; appearances: number; minutes: number; goals: number; assists: number };
+
+export type FantasyPlayerDetails = { fixtures: PlayerFixture[]; results: PlayerResult[]; previousSeason: PlayerPreviousSeason | null };
+
+type FixtureLineRow = {
+  api_fixture_id: number;
+  api_team_id: number;
+  points: number;
+  minutes: number;
+  goals: number;
+  assists: number;
+  saves: number;
+  penalties_saved: number;
+  penalties_missed: number;
+  yellow_cards: number;
+  red_cards: number;
+  own_goals: number;
+  goals_conceded: number;
+  bonus: number;
+};
+
+type PlayerFixtureRow = { api_fixture_id: number; kickoff_at: string; status: string; round_number: number | null; home_team_id: number; away_team_id: number; home_goals: number | null; away_goals: number | null };
+const PLAYER_FIXTURE_COLUMNS = "api_fixture_id, kickoff_at, status, round_number, home_team_id, away_team_id, home_goals, away_goals";
+
+// Kampene til en spiller i sesongen: kommende kamper for laget han er i nå, og alle spilte kamper
+// for laget hans (også de han ikke var med i, med 0 minutter) og kamper han spilte for et annet lag.
+export async function getFantasyPlayerDetails(season: FantasySeason, playerId: number): Promise<FantasyPlayerDetails | null> {
+  const db = supabaseAdmin();
+  const player = check(await db.from("football_season_players").select("api_team_id").eq("api_season", season.apiSeason).eq("api_player_id", playerId).maybeSingle());
+  if (!player) return null;
+  const teamId: number = player.api_team_id;
+  const [teamFixtures, lines, teams, prices, previous, previousSeason] = await Promise.all([
+    check(await db.from("football_fixtures").select(PLAYER_FIXTURE_COLUMNS).eq("api_season", season.apiSeason).or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`).order("kickoff_at")) as PlayerFixtureRow[],
+    check(await db.from("football_fixture_players").select("api_fixture_id, api_team_id, points, minutes, goals, assists, saves, penalties_saved, penalties_missed, yellow_cards, red_cards, own_goals, goals_conceded, bonus, football_fixtures!inner (api_season)").eq("api_player_id", playerId).eq("football_fixtures.api_season", season.apiSeason)) as unknown as FixtureLineRow[],
+    check(await db.from("football_season_teams").select("api_team_id, football_clubs (name)").eq("api_season", season.apiSeason)) as unknown as { api_team_id: number; football_clubs: { name: string } }[],
+    // Tabellen kommer med migrering 0050. Finnes den ikke ennå, vises prisen som «–».
+    db.from("fantasy_player_round_prices").select("round_number, price").eq("api_season", season.apiSeason).eq("api_player_id", playerId),
+    check(await db.from("football_player_season_stats").select("appearances, minutes, goals, assists").eq("api_season", season.apiSeason - 1).eq("api_player_id", playerId)),
+    check(await db.from("fantasy_seasons").select("label").eq("api_season", season.apiSeason - 1).maybeSingle()),
+  ]);
+  const names = new Map(teams.map((team) => [team.api_team_id, team.football_clubs.name]));
+  const priceByRound = new Map((prices.data ?? []).map((row) => [row.round_number, row.price]));
+  const lineByFixture = new Map(lines.map((line) => [line.api_fixture_id, line]));
+  // Kamper han spilte for et annet lag tidligere i sesongen.
+  const otherIds = lines.map((line) => line.api_fixture_id).filter((id) => !teamFixtures.some((fixture) => fixture.api_fixture_id === id));
+  const otherFixtures = otherIds.length ? check(await db.from("football_fixtures").select(PLAYER_FIXTURE_COLUMNS).in("api_fixture_id", otherIds)) as PlayerFixtureRow[] : [];
+  const now = new Date(season.now).getTime();
+  const all = [...teamFixtures, ...otherFixtures].sort((a, b) => a.kickoff_at.localeCompare(b.kickoff_at));
+
+  const fixtures: PlayerFixture[] = [];
+  const results: PlayerResult[] = [];
+  for (const fixture of all) {
+    const state = fixtureState(fixture.status, fixture.kickoff_at, now);
+    const line = lineByFixture.get(fixture.api_fixture_id);
+    const side = line?.api_team_id ?? teamId;
+    const home = fixture.home_team_id === side;
+    const opponent = names.get(home ? fixture.away_team_id : fixture.home_team_id) ?? "?";
+    const base = { id: fixture.api_fixture_id, round: fixture.round_number, opponent, opponentCrest: clubCrest(opponent), home };
+    if (state === "upcoming" || state === "live") {
+      if (side === teamId) fixtures.push({ ...base, kickoffAt: fixture.kickoff_at, live: state === "live" });
+      continue;
+    }
+    if (state !== "finished") continue;
+    results.push({
+      ...base,
+      goalsFor: home ? fixture.home_goals : fixture.away_goals,
+      goalsAgainst: home ? fixture.away_goals : fixture.home_goals,
+      points: line?.points ?? 0,
+      minutes: line?.minutes ?? 0,
+      goals: line?.goals ?? 0,
+      assists: line?.assists ?? 0,
+      // Som i poengreglene: minst 60 minutter uten baklengsmål mens han var på banen.
+      cleanSheet: line && line.minutes >= 60 && line.goals_conceded === 0 ? 1 : 0,
+      goalsConceded: line?.goals_conceded ?? 0,
+      ownGoals: line?.own_goals ?? 0,
+      penaltiesSaved: line?.penalties_saved ?? 0,
+      penaltiesMissed: line?.penalties_missed ?? 0,
+      yellowCards: line?.yellow_cards ?? 0,
+      redCards: line?.red_cards ?? 0,
+      saves: line?.saves ?? 0,
+      bonus: line?.bonus ?? 0,
+      price: fixture.round_number === null ? null : priceByRound.get(fixture.round_number) ?? null,
+    });
+  }
+  const sum = (key: "appearances" | "minutes" | "goals" | "assists") => previous.reduce((total, row) => total + row[key], 0);
+  const previousLabel = (previousSeason as { label: string } | null)?.label ?? `${season.apiSeason - 1}/${String(season.apiSeason % 100).padStart(2, "0")}`;
+  return {
+    fixtures,
+    // Nyeste kamp først, som i FPL.
+    results: results.reverse(),
+    previousSeason: previous.length ? { label: previousLabel, appearances: sum("appearances"), minutes: sum("minutes"), goals: sum("goals"), assists: sum("assists") } : null,
+  };
+}
 
 // Kampene hver klubb (club_id) har i en runde, som på kortene vises som «ARS (H)».
 export type ClubFixture = { opponent: string; opponentCrest: string | null; home: boolean; kickoffAt: string };
@@ -334,11 +513,7 @@ export async function listRoundFixtures(season: FantasySeason, round: number): P
   const names = new Map(teams.map((team) => [team.api_team_id, team.football_clubs.name]));
   const now = new Date(season.now).getTime();
   return fixtures.map((fixture) => {
-    const started = new Date(fixture.kickoff_at).getTime() <= now;
-    const state: FixtureView["state"] = CANCELLED_STATUSES.includes(fixture.status) ? "cancelled"
-      : !started ? "upcoming"
-      : FINISHED_STATUSES.includes(fixture.status) && new Date(fixture.kickoff_at).getTime() + 115 * 60_000 <= now ? "finished"
-      : LIVE_STATUSES.includes(fixture.status) || FINISHED_STATUSES.includes(fixture.status) ? "live" : "upcoming";
+    const state = fixtureState(fixture.status, fixture.kickoff_at, now);
     const side = (teamId: number, goals: number | null) => ({ name: names.get(teamId) ?? "?", crest: clubCrest(names.get(teamId) ?? ""), goals: state === "upcoming" || state === "cancelled" ? null : goals });
     return { id: fixture.api_fixture_id, competition: fixture.competition_code, kickoffAt: fixture.kickoff_at, state, home: side(fixture.home_team_id, fixture.home_goals), away: side(fixture.away_team_id, fixture.away_goals) };
   });

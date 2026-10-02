@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { dbErrorMessage, getT } from "@/i18n/server";
 import { requireUser } from "./auth";
 import { recordFailedInviteCode, tooManyFailedInviteCodes } from "./data";
-import { currentRound, getCurrentFantasySeason, getFantasyTeam, getLeague, getLeagueByCode, nextRound } from "./fantasy/data";
+import { currentRound, getCurrentFantasySeason, getFantasyPlayerDetails, getFantasyTeam, getLeague, getLeagueByCode, nextRound, type FantasyPlayerDetails } from "./fantasy/data";
 import { CHIPS, type Chip } from "./fantasy/points";
 import { availableMoney, lineupProblems, sellingPrice, squadProblems, type FantasyPosition, type Lineup, type SquadPlayer } from "./fantasy/squad-rules";
 import { validInviteCode } from "./invite-code";
@@ -15,6 +15,14 @@ export type SaveFantasyTeamInput = Lineup & { name: string };
 export type FantasyActionResult = { error?: string; ok?: boolean };
 
 const ids = (value: unknown) => (Array.isArray(value) ? value.map(Number).filter(Number.isInteger).slice(0, 15) : []);
+
+/** Kampene i spillervinduet: kommende kamper, spilte kamper med poeng og forrige sesong. */
+export async function getFantasyPlayerDetailsAction(playerId: number): Promise<FantasyPlayerDetails | null> {
+  await requireUser();
+  const season = await getCurrentFantasySeason();
+  if (!season || !Number.isInteger(playerId)) return null;
+  return getFantasyPlayerDetails(season, playerId);
+}
 
 /** Lagrer hele fantasy-laget for neste runde. Posisjon, pris og klubb hentes fra databasen. */
 export async function saveFantasyTeamAction(input: SaveFantasyTeamInput): Promise<FantasyActionResult> {

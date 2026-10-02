@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FantasyPitch, FantasyPlayerCard, PitchRow } from "@/components/fantasy-pitch";
+import { FantasyPitch, PitchRow } from "@/components/fantasy-pitch";
+import { FantasyPlayerInfoProvider, InfoPlayerCard } from "@/components/fantasy-player-info";
 import { cardClass, secondaryButtonClass } from "@/components/ui";
 import { getT } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { currentUser } from "@/lib/auth";
-import { currentRound, getCurrentFantasySeason, getTeamRound, type RoundPick } from "@/lib/fantasy/data";
+import { currentRound, getCurrentFantasySeason, getTeamRound, listFantasyPlayers, type RoundPick } from "@/lib/fantasy/data";
 import type { PointsBreakdown } from "@/lib/fantasy/points";
 import { FANTASY_POSITIONS } from "@/lib/fantasy/squad-rules";
 import { supabaseAdmin } from "@/lib/supabase/server";
@@ -16,7 +17,8 @@ function PointsChip({ pick, t, captain }: { pick: RoundPick; t: Dictionary; capt
   const text = t.fantasy;
   const shown = pick.multiplier > 0 ? pick.points * pick.multiplier : pick.points;
   return (
-    <FantasyPlayerCard
+    <InfoPlayerCard
+      playerId={pick.playerId}
       player={pick}
       info={<span className="font-black">{shown}</span>}
       badge={captain ? (captain === "C" ? text.captainShort : text.viceCaptainShort) : null}
@@ -72,7 +74,10 @@ export default async function FantasyPointsPage({ searchParams }: PageProps<"/fa
     const { data } = await supabaseAdmin().from("fantasy_teams").select("id").eq("user_id", user.id).eq("api_season", season.apiSeason).maybeSingle();
     teamId = data?.id ?? null;
   }
-  const view = teamId ? await getTeamRound(teamId, round.number, season.apiSeason) : null;
+  const [view, players] = await Promise.all([teamId ? getTeamRound(teamId, round.number, season.apiSeason) : null, listFantasyPlayers(season.apiSeason, season.now)]);
+  // Spillervinduet (trykk på et kort) trenger bare spillerne i laget.
+  const pickIds = new Set(view?.picks.map((pick) => pick.playerId));
+  const pickPlayers = players.filter((player) => pickIds.has(player.id));
   const locked = season.rounds.filter((item) => item.locked).map((item) => item.number);
   const previous = locked.filter((number) => number < round.number).at(-1);
   const next = locked.find((number) => number > round.number);
@@ -104,6 +109,7 @@ export default async function FantasyPointsPage({ searchParams }: PageProps<"/fa
               {view.chip ? <span>{text.chip(t.fantasy.chips.names[view.chip])}</span> : null}
             </div>
           </div>
+          <FantasyPlayerInfoProvider players={pickPlayers}>
           <FantasyPitch bench={<>
             <p className="text-center text-xs font-bold tracking-widest text-white/70">{t.fantasy.bench.toUpperCase()}</p>
             <PitchRow>{bench.map((pick) => <PointsChip key={pick.playerId} pick={pick} t={t} captain={captainOf(pick)} />)}</PitchRow>
@@ -114,6 +120,7 @@ export default async function FantasyPointsPage({ searchParams }: PageProps<"/fa
               </PitchRow>
             ))}
           </FantasyPitch>
+          </FantasyPlayerInfoProvider>
           <BreakdownList picks={[...playing, ...bench]} t={t} />
         </>
       )}

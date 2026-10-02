@@ -16,7 +16,7 @@ export default async function FantasyPage() {
   if (!season) return <div className={cardClass}><p className="text-muted">{t.fantasy.noSeason}</p></div>;
   const upcoming = nextRound(season);
   const [players, team, fixtures] = await Promise.all([
-    listFantasyPlayers(season.apiSeason),
+    listFantasyPlayers(season.apiSeason, season.now),
     getFantasyTeam(user.id, season),
     upcoming ? roundFixturesByClub(season.apiSeason, upcoming.number) : {},
   ]);

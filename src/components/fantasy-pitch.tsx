@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 import type { FantasyPhoto } from "@/lib/fantasy/data";
 
 // Banen og spillerkortene i fantasy, i samme stil som Premier League Fantasy. Brukes både
@@ -47,14 +47,18 @@ export function FantasyPlayerPhoto({ photo, photoCutout, crest, avatar = false, 
 
 // Et kort på banen som i FPL: drakten (eller bildet, for klubber uten drakt) står over en hvit
 // navnelapp, med en mørk lapp under (rundens kamper, pris eller poeng).
-export function FantasyPlayerCard({ player, info, badge, marker, selected = false, dimmed = false, onTap, title }: {
+// Med onDragStart kan kortet dras og slippes på et annet kort (data-player-id viser hvilket).
+export function FantasyPlayerCard({ player, info, badge, marker, selected = false, dimmed = false, dropTarget = false, onTap, onDragStart, dragId, title }: {
   player: FantasyPhoto & { name: string; crest: string | null; kit?: string | null };
   info: ReactNode;
   badge?: string | null;
   marker?: ReactNode;
   selected?: boolean;
   dimmed?: boolean;
+  dropTarget?: boolean;
   onTap?: () => void;
+  onDragStart?: (event: PointerEvent<HTMLButtonElement>) => void;
+  dragId?: number;
   title?: string;
 }) {
   const body = (
@@ -72,9 +76,21 @@ export function FantasyPlayerCard({ player, info, badge, marker, selected = fals
       </span>
     </>
   );
-  const className = `relative block w-[3.5rem] rounded-lg text-center transition sm:w-24 ${selected ? "bg-yellow-300/25 ring-2 ring-yellow-300" : ""} ${dimmed ? "opacity-40" : ""}`;
+  const className = `relative block w-[3.5rem] rounded-lg text-center transition sm:w-24 ${selected ? "bg-yellow-300/25 ring-2 ring-yellow-300" : ""} ${dimmed ? "opacity-40" : ""} ${dropTarget ? "bg-white/25 ring-2 ring-white" : ""}`;
   return onTap
-    ? <button type="button" onClick={onTap} title={title ?? player.name} className={`${className} hover:-translate-y-0.5`}>{body}</button>
+    ? (
+      <button
+        type="button"
+        onClick={onTap}
+        onPointerDown={onDragStart}
+        // Hindrer nettleserens egen bildedraging og menyen som kommer når man holder fingeren inne.
+        onDragStart={onDragStart ? (event) => event.preventDefault() : undefined}
+        onContextMenu={onDragStart ? (event) => event.preventDefault() : undefined}
+        data-player-id={dragId}
+        title={title ?? player.name}
+        className={`${className} hover:-translate-y-0.5 ${onDragStart ? "select-none [-webkit-touch-callout:none]" : ""}`}
+      >{body}</button>
+    )
     : <div title={title ?? player.name} className={className}>{body}</div>;
 }
 

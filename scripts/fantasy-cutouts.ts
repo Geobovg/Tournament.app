@@ -5,6 +5,13 @@
 //   --limit 200   bare så mange spillere denne gangen (de dyreste først). Standard: alle.
 //   --retry       prøv også spillere som ikke ble funnet sist (lønner seg med premium-nøkkel,
 //                 som gir alle søketreff i stedet for bare to).
+//   --refresh     se etter nyere bilder for alle spillerne, også de som har bilde fra før.
+//                 Kjør den f.eks. en gang i måneden: TheSportsDB får nye bilder utover sesongen.
+//
+// Når et bilde ble lastet opp til TheSportsDB står i filnavnet (et tidsstempel). Hvilken dag vi
+// sist hentet bilde av hver spiller står i scripts/fantasy-cutouts-fetched.json, så --refresh
+// bare laster ned bilder som er nyere enn det vi har. I Fantasy vises et hentet bilde foran
+// bildet fra managerkarrieren (se fantasyPhoto i src/lib/fantasy/data.ts).
 //
 // Bildene lagres som public/fantasy-players/<api_player_id>.png (256 × 256), og lista over
 // hvem som har bilde skrives til src/lib/fantasy/fantasy-cutouts.ts. Et treff godtas bare når
@@ -19,6 +26,11 @@ import { decodeApiText, normalizeName } from "../src/lib/fantasy/matching.ts";
 const OUT_DIR = "public/fantasy-players";
 const LIST_FILE = "src/lib/fantasy/fantasy-cutouts.ts";
 const NOT_FOUND_FILE = join(tmpdir(), "fantasy-cutouts-not-found.json");
+const FETCHED_FILE = "scripts/fantasy-cutouts-fetched.json";
+// Dagene bildene som fantes før fantasy-cutouts-fetched.json ble hentet: managerkarrierens
+// bilder 22. september 2026 og de første fantasy-utklippene 1. oktober 2026.
+const CATALOG_FETCHED = "2026-09-22";
+const FANTASY_FETCHED = "2026-10-01";
 const CATALOG_DIR = "public/players";
 // Med THESPORTSDB_API_KEY (premium) tåles 100 forespørsler i minuttet, med gratisnøkkelen rundt 30.
 const API_KEY = process.env.THESPORTSDB_API_KEY ?? "123";
@@ -87,6 +99,12 @@ async function search(query: string): Promise<Candidate[]> {
   }
 }
 
+// Dagen bildet ble lastet opp til TheSportsDB, fra tidsstempelet i filnavnet («…nvp3jz1788606720.png»).
+function uploadedOn(url: string) {
+  const stamp = url.match(/(\d{10})\.(png|jpg|jpeg|webp)$/i);
+  return stamp ? new Date(Number(stamp[1]) * 1000).toISOString().slice(0, 10) : null;
+}
+
 async function saveCutout(url: string, file: string) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Klarte ikke å hente ${url} (${response.status})`);
@@ -140,14 +158,17 @@ for (let offset = 0; ; offset += 1000) {
 
 mkdirSync(OUT_DIR, { recursive: true });
 const catalogPhotos = new Set(readdirSync(CATALOG_DIR).map((file) => file.replace(".png", "")));
-const notFound = new Set<number>(existsSync(NOT_FOUND_FILE) && !process.argv.includes("--retry") ? JSON.parse(readFileSync(NOT_FOUND_FILE, "utf8")) : []);
-const todo = rows.filter((row) => {
-  const slug = row.football_players.player_catalog?.slug;
-  return !(slug && catalogPhotos.has(slug)) && !existsSync(join(OUT_DIR, `${row.api_player_id}.png`)) && !notFound.has(row.api_player_id);
-}).slice(0, Number(option("limit") ?? Infinity));
+const refresh = process.argv.includes("--refresh");
+const notFound = new Set<number>(existsSync(NOT_FOUND_FILE) && !process.argv.includes("--retry") && !refresh ? JSON.parse(readFileSync(NOT_FOUND_FILE, "utf8")) : []);
+const fetched: Record<string, string> = existsSync(FETCHED_FILE) ? JSON.parse(readFileSync(FETCHED_FILE, "utf8")) : {};
+const hasCatalogPhoto = (row: Row) => Boolean(row.football_players.player_catalog?.slug && catalogPhotos.has(row.football_players.player_catalog.slug));
+// Dagen vi sist hentet bilde av spilleren, eller null når han ikke har bilde.
+const lastFetched = (row: Row) => fetched[row.api_player_id] ?? (existsSync(join(OUT_DIR, `${row.api_player_id}.png`)) ? FANTASY_FETCHED : hasCatalogPhoto(row) ? CATALOG_FETCHED : null);
+const todo = rows.filter((row) => refresh || (lastFetched(row) === null && !notFound.has(row.api_player_id))).slice(0, Number(option("limit") ?? Infinity));
 
-console.log(`${todo.length} spillere å lete etter (sesong ${season}).`);
+console.log(`${todo.length} spillere å ${refresh ? "se etter nyere bilder for" : "lete etter"} (sesong ${season}).`);
 let found = 0;
+let unchanged = 0;
 for (const [index, row] of todo.entries()) {
   const player = row.football_players;
   const name = decodeApiText(player.name);
@@ -175,18 +196,29 @@ for (const [index, row] of todo.entries()) {
   }
   const label = `[${index + 1}/${todo.length}] ${name} (${clubs[0]})`;
   if (!match) {
-    notFound.add(row.api_player_id);
-    writeFileSync(NOT_FOUND_FILE, JSON.stringify([...notFound]));
+    if (!refresh) {
+      notFound.add(row.api_player_id);
+      writeFileSync(NOT_FOUND_FILE, JSON.stringify([...notFound]));
+    }
     console.log(`${label}: ikke funnet`);
+    continue;
+  }
+  // Bildet er ikke nyere enn det vi har (samme dag eller før vi sist hentet).
+  const uploaded = uploadedOn(match.strCutout!);
+  const previous = lastFetched(row);
+  if (previous && (!uploaded || uploaded <= previous)) {
+    unchanged++;
     continue;
   }
   try {
     await saveCutout(match.strCutout!, join(OUT_DIR, `${row.api_player_id}.png`));
+    fetched[row.api_player_id] = new Date().toISOString().slice(0, 10);
+    writeFileSync(FETCHED_FILE, `${JSON.stringify(fetched, null, 2)}\n`);
     found++;
-    console.log(`${label}: ${match.strPlayer} – ${match.strTeam} (${row.api_player_id})`);
+    console.log(`${label}: ${match.strPlayer} – ${match.strTeam} (${row.api_player_id})${previous ? `, nytt bilde fra ${uploaded}` : ""}`);
   } catch (error) {
     console.log(`${label}: ${(error as Error).message}`);
   }
 }
 
-console.log(`Ferdig: ${found} nye utklipp. ${writeList()} spillere har nå utklipp i ${OUT_DIR}.`);
+console.log(`Ferdig: ${found} nye utklipp${refresh ? `, ${unchanged} hadde allerede det nyeste bildet` : ""}. ${writeList()} spillere har nå utklipp i ${OUT_DIR}.`);
