@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { clubCode } from "@/lib/fantasy/club-codes";
 import { FANTASY_COMPETITIONS, type CompetitionCode } from "@/lib/fantasy/competitions";
-import type { ChipState, FantasyPlayerOption, FantasyTeam } from "@/lib/fantasy/data";
+import type { ChipState, ClubFixture, FantasyPlayerOption, FantasyTeam } from "@/lib/fantasy/data";
 import type { Chip } from "@/lib/fantasy/points";
 import { formatPrice } from "@/lib/fantasy/pricing";
 import {
@@ -24,6 +25,7 @@ import {
   type Lineup,
 } from "@/lib/fantasy/squad-rules";
 import { saveFantasyTeamAction, setFantasyChipAction } from "@/lib/fantasy-actions";
+import { BenchSlot, EmptyPitchSlot, FantasyPitch, FantasyPlayerCard, FantasyPlayerPhoto, PitchRow } from "./fantasy-pitch";
 import { buttonClass, cardClass, labelClass, secondaryButtonClass } from "./ui";
 
 const PAGE_SIZE = 40;
@@ -69,7 +71,12 @@ function problemTexts(t: Dictionary, squad: FantasyPlayerOption[], budget: numbe
   })];
 }
 
-export function FantasyTeamBuilder({ players, team, round }: { players: FantasyPlayerOption[]; team: FantasyTeam | null; round: number | null }) {
+// «ARS (H), CHE (B)» – kampene klubben har i runden, som under kortene i FPL.
+function fixtureText(t: Dictionary, fixtures: ClubFixture[] | undefined) {
+  return fixtures?.length ? fixtures.map((fixture) => t.fantasy.playerInfo.fixture(clubCode(fixture.opponent), fixture.home)).join(", ") : "–";
+}
+
+export function FantasyTeamBuilder({ players, team, round, fixtures }: { players: FantasyPlayerOption[]; team: FantasyTeam | null; round: number | null; fixtures: Record<number, ClubFixture[]> }) {
   const t = useT();
   const text = t.fantasy;
   const locale = useLocale();
@@ -77,7 +84,9 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
   const [name, setName] = useState(team?.name ?? "");
   const [squadIds, setSquadIds] = useState<number[]>(() => (team ? [...team.starters, ...team.bench].filter((id) => byId.has(id)) : []));
   const [lineup, setLineup] = useState<Lineup | null>(team);
+  // selected er spilleren man bytter fra (etter «Bytt»), infoId spilleren i infovinduet.
   const [selected, setSelected] = useState<number | null>(null);
+  const [infoId, setInfoId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState<FantasyPosition | "all">("all");
   const [league, setLeague] = useState<CompetitionCode | "all">("all");
@@ -122,6 +131,7 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
     if (activeLineup) setLineup(activeLineup);
     setSquadIds(next);
     setSelected(null);
+    setInfoId(null);
     setResult(null);
   }
 
@@ -131,11 +141,13 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
     return text.cantAdd.tooExpensive;
   }
 
-  // Trykk på én spiller og så en annen for å bytte dem (startellever/benk, eller rekkefølgen på benken).
+  // Trykk på en spiller for å åpne infovinduet. Etter «Bytt» der bytter neste trykk plass på
+  // de to (startellever/benk, eller rekkefølgen på benken).
   function tapPlayer(id: number) {
     setResult(null);
     if (!activeLineup || selected === null || selected === id) {
-      setSelected(selected === id ? null : id);
+      setSelected(null);
+      setInfoId(id);
       return;
     }
     const swap = (list: number[]) => list.map((item) => (item === selected ? id : item === id ? selected : item));
@@ -160,7 +172,20 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
     }
     setLineup(next);
     setSelected(null);
+    setInfoId(null);
     setResult(null);
+  }
+
+  function startSwitch(id: number) {
+    setSelected(id);
+    setInfoId(null);
+  }
+
+  // Om spilleren man bytter fra kan bytte plass med id uten at formasjonen blir ugyldig.
+  function canSwitchWith(id: number) {
+    if (!activeLineup || selected === null) return false;
+    const swap = (list: number[]) => list.map((item) => (item === selected ? id : item === id ? selected : item));
+    return lineupProblems(squad, { ...activeLineup, starters: swap(activeLineup.starters), bench: swap(activeLineup.bench) }).every((problem) => problem.type !== "formation");
   }
 
   function save() {
@@ -168,23 +193,24 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
     startTransition(async () => setResult(await saveFantasyTeamAction({ name, ...activeLineup })));
   }
 
+  // Med full tropp viser kortet rundens kamper (som «Velg lag» i FPL), ellers prisen (som «Bytter»).
   const chip = (player: FantasyPlayerOption) => (
-    <PlayerChip
+    <FantasyPlayerCard
       key={player.id}
       player={player}
-      price={text.money(formatPrice(player.price, locale))}
+      info={activeLineup ? fixtureText(t, fixtures[player.clubId]) : text.money(formatPrice(player.price, locale))}
       selected={selected === player.id}
+      dimmed={selected !== null && selected !== player.id && !canSwitchWith(player.id)}
       badge={activeLineup?.captainId === player.id ? text.captainShort : activeLineup?.viceCaptainId === player.id ? text.viceCaptainShort : null}
-      onTap={() => (locked ? undefined : tapPlayer(player.id))}
+      onTap={() => tapPlayer(player.id)}
     />
   );
-  const emptySlot = (key: string) => <span key={key} className="grid h-20 w-[3.75rem] place-items-center rounded-xl border border-dashed border-white/30 text-[10px] text-white/50 sm:h-24 sm:w-24 sm:text-xs">{text.emptySlot}</span>;
-  const selectedPlayer = selected === null ? null : byId.get(selected) ?? null;
-  const selectedIsStarter = selected !== null && Boolean(activeLineup?.starters.includes(selected));
+  const switchingPlayer = selected === null ? null : byId.get(selected) ?? null;
+  const infoPlayer = infoId === null ? null : byId.get(infoId) ?? null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-      <section className="grid content-start gap-4">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+      <section className="grid min-w-0 content-start gap-4">
         {team?.freeHitActive ? <p className={`${cardClass} text-sm`}>{text.freeHitActive}</p> : null}
         <div className={`${cardClass} grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end`}>
           <label className="grid gap-1">
@@ -201,44 +227,38 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-2xl border border-emerald-900/40 bg-gradient-to-b from-emerald-700 to-emerald-900 p-2 text-white sm:p-4">
-          {activeLineup ? (
-            <>
-              {FANTASY_POSITIONS.map((row) => (
-                <div key={row} className="flex flex-wrap justify-center gap-1 sm:gap-2">
-                  {activeLineup.starters.flatMap((id) => (positionOf(id) === row ? [chip(byId.get(id)!)] : []))}
-                </div>
-              ))}
-              <div className="mt-2 grid gap-2 rounded-xl bg-black/25 p-2 sm:p-3">
-                <p className="text-xs font-bold tracking-widest text-white/70">{text.bench.toUpperCase()}</p>
-                <div className="flex flex-wrap justify-center gap-1 sm:gap-2">{activeLineup.bench.map((id) => chip(byId.get(id)!))}</div>
-              </div>
-              {!locked ? <p className="text-center text-xs text-white/70">{text.swapHint}</p> : null}
-            </>
-          ) : (
-            FANTASY_POSITIONS.map((row) => {
-              const inRow = squad.filter((player) => player.position === row);
-              return (
-                <div key={row} className="grid gap-2">
-                  <p className="text-xs font-bold tracking-widest text-white/70">{text.positions[row].toUpperCase()}</p>
-                  <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
-                    {inRow.map(chip)}
-                    {Array.from({ length: SQUAD_SHAPE[row] - inRow.length }, (_, index) => emptySlot(`${row}-${index}`))}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {selectedPlayer && !locked ? (
-          <div className={`${cardClass} flex flex-wrap items-center gap-2`}>
-            <p className="mr-auto font-semibold">{selectedPlayer.name}</p>
-            {selectedIsStarter ? <button type="button" onClick={() => setCaptain(selectedPlayer.id, "captain")} className={secondaryButtonClass}>{text.captain}</button> : null}
-            {selectedIsStarter ? <button type="button" onClick={() => setCaptain(selectedPlayer.id, "vice")} className={secondaryButtonClass}>{text.viceCaptain}</button> : null}
-            <button type="button" onClick={() => changeSquad(squadIds.filter((id) => id !== selectedPlayer.id))} className={secondaryButtonClass}>{text.remove(selectedPlayer.name)}</button>
+        {switchingPlayer ? (
+          <div className={`${cardClass} flex flex-wrap items-center gap-2 border-yellow-400`}>
+            <p className="mr-auto text-sm font-semibold">{text.playerInfo.switching(switchingPlayer.name)}</p>
+            <button type="button" onClick={() => setSelected(null)} className={secondaryButtonClass}>{text.playerInfo.cancelSwitch}</button>
           </div>
         ) : null}
+
+        {activeLineup ? (
+          <FantasyPitch bench={<>
+            <p className="text-center text-xs font-bold tracking-widest text-white/70">{text.bench.toUpperCase()}</p>
+            <PitchRow>{activeLineup.bench.map((id, index) => {
+              const benchPosition = positionOf(id)!;
+              const order = activeLineup.bench.slice(0, index + 1).filter((other) => positionOf(other) !== "GK").length;
+              return <BenchSlot key={id} label={benchPosition === "GK" ? text.positionShort.GK : `${order}. ${text.positionShort[benchPosition]}`}>{chip(byId.get(id)!)}</BenchSlot>;
+            })}</PitchRow>
+          </>}>
+            {FANTASY_POSITIONS.map((row) => <PitchRow key={row}>{activeLineup.starters.flatMap((id) => (positionOf(id) === row ? [chip(byId.get(id)!)] : []))}</PitchRow>)}
+          </FantasyPitch>
+        ) : (
+          <FantasyPitch>
+            {FANTASY_POSITIONS.map((row) => {
+              const inRow = squad.filter((player) => player.position === row);
+              return (
+                <PitchRow key={row}>
+                  {inRow.map(chip)}
+                  {Array.from({ length: SQUAD_SHAPE[row] - inRow.length }, (_, index) => <EmptyPitchSlot key={`${row}-${index}`} label={text.positionShort[row]} />)}
+                </PitchRow>
+              );
+            })}
+          </FantasyPitch>
+        )}
+        {activeLineup && !locked ? <p className="text-center text-xs text-muted">{text.swapHint}</p> : null}
 
         {problems.length ? <ul className="grid gap-1 text-sm text-muted">{problems.map((problem) => <li key={problem}>• {problem}</li>)}</ul> : null}
         {!locked ? (
@@ -252,7 +272,7 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
         {team && !team.freeHitActive && round !== null ? <FantasyChips chips={team.chips} /> : null}
       </section>
 
-      <section className={`${cardClass} grid content-start gap-3`}>
+      <section className={`${cardClass} grid min-w-0 grid-cols-1 content-start gap-3`}>
         <input value={search} onChange={(event) => { setSearch(event.target.value); setVisible(PAGE_SIZE); }} placeholder={text.search} className={inputClass} />
         <div className="grid grid-cols-2 gap-2">
           <select value={position} onChange={(event) => { setPosition(event.target.value as FantasyPosition | "all"); setVisible(PAGE_SIZE); }} className={inputClass}>
@@ -270,25 +290,27 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
           </select>
         </div>
         {filtered.length === 0 ? <p className="text-sm text-muted">{text.noPlayers}</p> : null}
-        <ul className="grid gap-1">
+        <ul className="grid grid-cols-1 gap-1">
           {filtered.slice(0, visible).map((player) => {
             const picked = squadIds.includes(player.id);
             const addable = canAddPlayer(squad, { ...player, price: costOf(player) }, budget);
             return (
-              <li key={player.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-surface-raised">
-                <Crest src={player.crest} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{player.name}</p>
-                  <p className="truncate text-xs text-muted">{text.positionShort[player.position]} · {player.clubName} · {text.pointsShort(player.points)}</p>
-                </div>
+              <li key={player.id} className="flex items-center gap-2 rounded-lg px-1 py-1.5 sm:gap-3 sm:px-2 hover:bg-surface-raised">
+                <button type="button" onClick={() => { setSelected(null); setInfoId(player.id); }} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                  <FantasyPlayerPhoto photo={player.photo} photoCutout={player.photoCutout} avatar className="h-10 w-10 shrink-0 border border-border" />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5"><Crest src={player.crest} small /><span className="truncate font-medium">{player.name}</span></span>
+                    <span className="block truncate text-xs text-muted">{text.positionShort[player.position]} · {player.clubName} · {text.pointsShort(player.points)}</span>
+                  </span>
+                </button>
                 <span className="text-sm font-semibold tabular-nums">
                   {player.priceChange > 0 ? <span className="mr-1 text-emerald-500" title={text.priceUp}>▲</span> : player.priceChange < 0 ? <span className="mr-1 text-red-500" title={text.priceDown}>▼</span> : null}
                   {text.money(formatPrice(player.price, locale))}
                 </span>
                 {locked ? null : picked ? (
-                  <button type="button" onClick={() => changeSquad(squadIds.filter((id) => id !== player.id))} aria-label={text.remove(player.name)} className="w-16 rounded-lg border border-border px-2 py-1 text-sm">✕</button>
+                  <button type="button" onClick={() => changeSquad(squadIds.filter((id) => id !== player.id))} aria-label={text.remove(player.name)} className="w-12 rounded-lg border border-border px-2 py-1 text-sm sm:w-16">✕</button>
                 ) : (
-                  <button type="button" onClick={() => changeSquad([...squadIds, player.id])} disabled={!addable} title={addable ? undefined : cantAddReason(player)} className="w-16 rounded-lg bg-accent px-2 py-1 text-sm font-medium text-accent-contrast disabled:opacity-40">{text.add}</button>
+                  <button type="button" onClick={() => changeSquad([...squadIds, player.id])} disabled={!addable} title={addable ? undefined : cantAddReason(player)} className="w-12 rounded-lg bg-accent px-1 py-1 text-sm font-medium text-accent-contrast disabled:opacity-40 sm:w-16 sm:px-2">{text.add}</button>
                 )}
               </li>
             );
@@ -296,6 +318,77 @@ export function FantasyTeamBuilder({ players, team, round }: { players: FantasyP
         </ul>
         {filtered.length > visible ? <button type="button" onClick={() => setVisible(visible + PAGE_SIZE)} className={secondaryButtonClass}>{text.showMore}</button> : null}
       </section>
+
+      {infoPlayer ? (
+        <PlayerInfoDialog player={infoPlayer} fixtures={fixtures[infoPlayer.clubId] ?? []} sellingPrice={purchasePrices[infoPlayer.id] === undefined ? null : costOf(infoPlayer)} onClose={() => setInfoId(null)}>
+          {locked ? null : squadIds.includes(infoPlayer.id) ? (
+            <>
+              {activeLineup ? <button type="button" onClick={() => startSwitch(infoPlayer.id)} className={buttonClass}>{text.playerInfo.switch}</button> : null}
+              {activeLineup?.starters.includes(infoPlayer.id) && activeLineup.captainId !== infoPlayer.id ? <button type="button" onClick={() => setCaptain(infoPlayer.id, "captain")} className={secondaryButtonClass}>{text.captain}</button> : null}
+              {activeLineup?.starters.includes(infoPlayer.id) && activeLineup.viceCaptainId !== infoPlayer.id ? <button type="button" onClick={() => setCaptain(infoPlayer.id, "vice")} className={secondaryButtonClass}>{text.viceCaptain}</button> : null}
+              <button type="button" onClick={() => changeSquad(squadIds.filter((id) => id !== infoPlayer.id))} className={secondaryButtonClass}>{text.remove(infoPlayer.name)}</button>
+            </>
+          ) : canAddPlayer(squad, { ...infoPlayer, price: costOf(infoPlayer) }, budget) ? (
+            <button type="button" onClick={() => changeSquad([...squadIds, infoPlayer.id])} className={buttonClass}>{text.add}</button>
+          ) : <p className="text-sm text-muted">{cantAddReason(infoPlayer)}</p>}
+        </PlayerInfoDialog>
+      ) : null}
+    </div>
+  );
+}
+
+// Infovinduet når man trykker på en spiller, som i FPL: stort bilde, klubb, pris, poeng og rundens kamper.
+function PlayerInfoDialog({ player, fixtures, sellingPrice, onClose, children }: { player: FantasyPlayerOption; fixtures: ClubFixture[]; sellingPrice: number | null; onClose: () => void; children: ReactNode }) {
+  const t = useT();
+  const text = t.fantasy;
+  const locale = useLocale();
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const competition = FANTASY_COMPETITIONS.find((item) => item.code === player.competition)?.name;
+  const time = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo" });
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={player.name} onClick={onClose}>
+      <div className="w-full max-w-md overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl sm:rounded-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-end gap-4 bg-gradient-to-br from-emerald-700 to-emerald-950 px-4 pt-4 text-white">
+          <FantasyPlayerPhoto photo={player.photo} photoCutout={player.photoCutout} className="h-28 w-28 shrink-0 sm:h-32 sm:w-32" />
+          <div className="min-w-0 flex-1 pb-3">
+            <p className="text-xs font-bold tracking-widest text-white/70">{text.positions[player.position].toUpperCase()}</p>
+            <p className="text-xl font-black leading-tight">{player.name}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/85"><Crest src={player.crest} small />{player.clubName}</p>
+            {competition ? <p className="text-xs text-white/60">{competition}</p> : null}
+          </div>
+          <button type="button" onClick={onClose} aria-label={text.playerInfo.close} className="mb-auto rounded-full bg-black/30 px-2.5 py-1 text-sm font-bold hover:bg-black/50">✕</button>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-border border-b border-border text-center">
+          <div className="p-3">
+            <p className="text-xs text-muted">{text.playerInfo.price}</p>
+            <p className="font-bold tabular-nums">
+              {player.priceChange > 0 ? <span className="mr-1 text-emerald-500" title={text.priceUp}>▲</span> : player.priceChange < 0 ? <span className="mr-1 text-red-500" title={text.priceDown}>▼</span> : null}
+              {text.money(formatPrice(player.price, locale))}
+            </p>
+          </div>
+          <div className="p-3"><p className="text-xs text-muted">{text.playerInfo.sellingPrice}</p><p className="font-bold tabular-nums">{sellingPrice === null ? "–" : text.money(formatPrice(sellingPrice, locale))}</p></div>
+          <div className="p-3"><p className="text-xs text-muted">{text.playerInfo.totalPoints}</p><p className="font-bold tabular-nums">{player.points}</p></div>
+        </div>
+        <div className="grid gap-2 p-4">
+          <p className={labelClass}>{text.playerInfo.thisRound}</p>
+          {fixtures.length ? (
+            <ul className="grid gap-1.5 text-sm">
+              {fixtures.map((fixture) => (
+                <li key={fixture.kickoffAt + fixture.opponent} className="flex items-center gap-2">
+                  <Crest src={fixture.opponentCrest} />
+                  <span className="font-medium">{text.playerInfo.fixture(fixture.opponent, fixture.home)}</span>
+                  <span className="ml-auto text-xs text-muted">{time.format(new Date(fixture.kickoffAt))}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-sm text-muted">{text.playerInfo.noMatch}</p>}
+        </div>
+        {children ? <div className="flex flex-wrap items-center gap-2 border-t border-border p-4">{children}</div> : null}
+      </div>
     </div>
   );
 }
@@ -328,17 +421,7 @@ function FantasyChips({ chips }: { chips: ChipState[] }) {
   );
 }
 
-function Crest({ src }: { src: string | null }) {
-  return src ? <Image src={src} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" /> : <span className="grid h-6 w-6 shrink-0 place-items-center text-sm">⚽</span>;
-}
-
-function PlayerChip({ player, price, selected, badge, onTap }: { player: FantasyPlayerOption; price: string; selected: boolean; badge: string | null; onTap: () => void }) {
-  return (
-    <button type="button" onClick={onTap} className={`relative grid h-20 w-[3.75rem] content-center justify-items-center gap-1 rounded-xl border bg-black/25 px-0.5 text-center transition sm:h-24 sm:w-24 sm:px-1 ${selected ? "border-yellow-300 ring-2 ring-yellow-300" : "border-white/25 hover:border-white/60"}`}>
-      {badge ? <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-yellow-300 text-[10px] font-black text-slate-950">{badge}</span> : null}
-      <Crest src={player.crest} />
-      <span className="w-full truncate text-[10px] font-bold sm:text-xs">{player.name}</span>
-      <span className="text-[10px] text-white/75 sm:text-[11px]">{price}</span>
-    </button>
-  );
+function Crest({ src, small = false }: { src: string | null; small?: boolean }) {
+  const size = small ? "h-4 w-4 text-xs" : "h-6 w-6 text-sm";
+  return src ? <Image src={src} alt="" width={24} height={24} className={`${size} shrink-0 object-contain`} /> : <span className={`grid ${size} shrink-0 place-items-center`}>⚽</span>;
 }

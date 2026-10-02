@@ -4,6 +4,9 @@ import { clubCrest } from "@/lib/club-crests";
 import { playerPhoto } from "@/lib/player-photos";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import type { CompetitionCode } from "./competitions";
+import { FANTASY_CUTOUT_IDS } from "./fantasy-cutouts";
+import { FANTASY_KIT_FILES } from "./fantasy-kit-files";
+import { kitSlug } from "./kits";
 import { CANCELLED_STATUSES, FINISHED_STATUSES, LIVE_STATUSES } from "./fixture-lines";
 import { CHIPS, type Chip, type PointsBreakdown } from "./points";
 import type { FantasyPosition, Lineup } from "./squad-rules";
@@ -67,15 +70,32 @@ export type FantasyPlayerOption = {
   clubName: string;
   competition: CompetitionCode;
   crest: string | null;
-  photo: string | null;
-};
+  kit: string | null;
+} & FantasyPhoto;
+
+// Et utklipp uten bakgrunn når vi har et: fra managerkarrieren, ellers hentet til fantasy med
+// scripts/fantasy-cutouts.ts. Uten utklipp brukes ansiktsbildet fra API-Football (hvit bakgrunn).
+export type FantasyPhoto = { photo: string | null; photoCutout: boolean };
+
+// Drakten som vises på banen (som i FPL): keeperdrakten for keepere når den finnes, ellers
+// hjemmedrakten. Klubber uten drakt i public/fantasy-kits får null, og kortet viser bildet.
+function clubKit(clubName: string, position: FantasyPosition) {
+  const slug = kitSlug(clubName);
+  const file = [position === "GK" ? `${slug}-gk.png` : null, `${slug}-home.png`].find((name) => name && FANTASY_KIT_FILES.has(name));
+  return file ? `/fantasy-kits/${file}` : null;
+}
+
+function fantasyPhoto(apiPlayerId: number, slug: string | undefined, apiPhoto: string | null): FantasyPhoto {
+  const cutout = (slug ? playerPhoto(slug) : null) ?? (FANTASY_CUTOUT_IDS.has(apiPlayerId) ? `/fantasy-players/${apiPlayerId}.png` : null);
+  return cutout ? { photo: cutout, photoCutout: true } : { photo: apiPhoto, photoCutout: false };
+}
 
 type SeasonPlayerRow = {
   api_player_id: number;
   position: FantasyPosition;
   price: number;
   price_change: number;
-  football_players: { name: string; player_catalog: { name: string; slug: string } | null };
+  football_players: { name: string; photo_url: string | null; player_catalog: { name: string; slug: string } | null };
   football_season_teams: { club_id: number; competition_code: CompetitionCode; football_clubs: { name: string } };
 };
 
@@ -94,7 +114,7 @@ export const listFantasyPlayers = cache(async (season: number): Promise<FantasyP
   const [rows, points] = await Promise.all([
     loadAll<SeasonPlayerRow>((from, to) => db
       .from("football_season_players")
-      .select("api_player_id, position, price, price_change, football_players (name, player_catalog (name, slug)), football_season_teams (club_id, competition_code, football_clubs (name))")
+      .select("api_player_id, position, price, price_change, football_players (name, photo_url, player_catalog (name, slug)), football_season_teams (club_id, competition_code, football_clubs (name))")
       .eq("api_season", season)
       .order("price", { ascending: false })
       .order("api_player_id")
@@ -116,10 +136,33 @@ export const listFantasyPlayers = cache(async (season: number): Promise<FantasyP
       clubName,
       competition: row.football_season_teams.competition_code,
       crest: clubCrest(clubName),
-      photo: catalog ? playerPhoto(catalog.slug) : null,
+      kit: clubKit(clubName, row.position),
+      ...fantasyPhoto(row.api_player_id, catalog?.slug, row.football_players.photo_url),
     };
   });
 });
+
+// Kampene hver klubb (club_id) har i en runde, som på kortene vises som «ARS (H)».
+export type ClubFixture = { opponent: string; opponentCrest: string | null; home: boolean; kickoffAt: string };
+
+export async function roundFixturesByClub(season: number, round: number): Promise<Record<number, ClubFixture[]>> {
+  const db = supabaseAdmin();
+  const [fixtures, teams] = await Promise.all([
+    check(await db.from("football_fixtures").select("home_team_id, away_team_id, kickoff_at, status").eq("api_season", season).eq("round_number", round).order("kickoff_at")),
+    check(await db.from("football_season_teams").select("api_team_id, club_id, football_clubs (name)").eq("api_season", season)) as unknown as { api_team_id: number; club_id: number; football_clubs: { name: string } }[],
+  ]);
+  const byTeam = new Map(teams.map((team) => [team.api_team_id, team]));
+  const result: Record<number, ClubFixture[]> = {};
+  for (const fixture of fixtures) {
+    if (CANCELLED_STATUSES.includes(fixture.status)) continue;
+    const home = byTeam.get(fixture.home_team_id);
+    const away = byTeam.get(fixture.away_team_id);
+    if (!home || !away) continue;
+    (result[home.club_id] ??= []).push({ opponent: away.football_clubs.name, opponentCrest: clubCrest(away.football_clubs.name), home: true, kickoffAt: fixture.kickoff_at });
+    (result[away.club_id] ??= []).push({ opponent: home.football_clubs.name, opponentCrest: clubCrest(home.football_clubs.name), home: false, kickoffAt: fixture.kickoff_at });
+  }
+  return result;
+}
 
 export type ChipState = { chip: Chip; state: "available" | "used" | "active" | "tooEarly" };
 
@@ -184,13 +227,14 @@ export type RoundPick = {
   position: FantasyPosition;
   clubName: string;
   crest: string | null;
+  kit: string | null;
   slot: number;
   points: number;
   multiplier: number;
   subbedIn: boolean;
   subbedOut: boolean;
   breakdown: PointsBreakdown | null;
-};
+} & FantasyPhoto;
 
 export type TeamRoundView = {
   teamId: string;
@@ -227,7 +271,7 @@ export async function getTeamRound(teamId: string, round: number, season: number
   ]);
   const ids = picks.map((pick) => pick.api_player_id);
   const [players, lines] = await Promise.all([
-    check(await db.from("football_season_players").select("api_player_id, position, football_players (name, player_catalog (name)), football_season_teams (football_clubs (name))").eq("api_season", season).in("api_player_id", ids)) as unknown as { api_player_id: number; position: FantasyPosition; football_players: { name: string; player_catalog: { name: string } | null }; football_season_teams: { football_clubs: { name: string } } }[],
+    check(await db.from("football_season_players").select("api_player_id, position, football_players (name, photo_url, player_catalog (name, slug)), football_season_teams (football_clubs (name))").eq("api_season", season).in("api_player_id", ids)) as unknown as { api_player_id: number; position: FantasyPosition; football_players: { name: string; photo_url: string | null; player_catalog: { name: string; slug: string } | null }; football_season_teams: { football_clubs: { name: string } } }[],
     fixtures.length ? check(await db.from("football_fixture_players").select("api_player_id, breakdown").in("api_fixture_id", fixtures.map((fixture) => fixture.api_fixture_id)).in("api_player_id", ids)) : [],
   ]);
   const byId = new Map(players.map((player) => [player.api_player_id, player]));
@@ -261,12 +305,14 @@ export async function getTeamRound(teamId: string, round: number, season: number
         position: player?.position ?? "MID",
         clubName,
         crest: clubCrest(clubName),
+        kit: clubKit(clubName, player?.position ?? "MID"),
         slot: pick.slot,
         points: pick.points,
         multiplier: pick.multiplier,
         subbedIn: pick.subbed_in,
         subbedOut: pick.subbed_out,
         breakdown: breakdowns.get(pick.api_player_id) ?? null,
+        ...fantasyPhoto(pick.api_player_id, player?.football_players.player_catalog?.slug, player?.football_players.photo_url ?? null),
       };
     }),
   };

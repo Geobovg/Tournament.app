@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FantasyPitch, FantasyPlayerCard, PitchRow } from "@/components/fantasy-pitch";
 import { cardClass, secondaryButtonClass } from "@/components/ui";
 import { getT } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -16,14 +16,13 @@ function PointsChip({ pick, t, captain }: { pick: RoundPick; t: Dictionary; capt
   const text = t.fantasy;
   const shown = pick.multiplier > 0 ? pick.points * pick.multiplier : pick.points;
   return (
-    <div className={`relative grid h-24 w-[3.75rem] content-center justify-items-center gap-1 rounded-xl border bg-black/25 px-0.5 text-center sm:w-24 sm:px-1 ${pick.subbedOut ? "border-white/10 opacity-50" : "border-white/25"}`}>
-      {captain ? <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-yellow-300 text-[10px] font-black text-slate-950">{captain === "C" ? text.captainShort : text.viceCaptainShort}</span> : null}
-      {pick.subbedIn ? <span className="absolute left-1 top-1 text-xs text-emerald-300" title={text.pointsPage.subbedIn}>▲</span> : null}
-      {pick.subbedOut ? <span className="absolute left-1 top-1 text-xs text-red-300" title={text.pointsPage.subbedOut}>▼</span> : null}
-      {pick.crest ? <Image src={pick.crest} alt="" width={24} height={24} className="h-6 w-6 object-contain" /> : <span>⚽</span>}
-      <span className="w-full truncate text-[10px] font-bold sm:text-xs">{pick.name}</span>
-      <span className="rounded bg-white/90 px-1.5 text-xs font-black text-slate-950">{shown}</span>
-    </div>
+    <FantasyPlayerCard
+      player={pick}
+      info={<span className="font-black">{shown}</span>}
+      badge={captain ? (captain === "C" ? text.captainShort : text.viceCaptainShort) : null}
+      marker={pick.subbedIn ? <span className="text-emerald-600" title={text.pointsPage.subbedIn}>▲</span> : pick.subbedOut ? <span className="text-red-600" title={text.pointsPage.subbedOut}>▼</span> : null}
+      dimmed={pick.subbedOut}
+    />
   );
 }
 
@@ -105,17 +104,16 @@ export default async function FantasyPointsPage({ searchParams }: PageProps<"/fa
               {view.chip ? <span>{text.chip(t.fantasy.chips.names[view.chip])}</span> : null}
             </div>
           </div>
-          <div className="grid gap-3 rounded-2xl border border-emerald-900/40 bg-gradient-to-b from-emerald-700 to-emerald-900 p-2 text-white sm:p-4">
+          <FantasyPitch bench={<>
+            <p className="text-center text-xs font-bold tracking-widest text-white/70">{t.fantasy.bench.toUpperCase()}</p>
+            <PitchRow>{bench.map((pick) => <PointsChip key={pick.playerId} pick={pick} t={t} captain={captainOf(pick)} />)}</PitchRow>
+          </>}>
             {FANTASY_POSITIONS.map((position) => (
-              <div key={position} className="flex flex-wrap justify-center gap-1 sm:gap-2">
+              <PitchRow key={position}>
                 {playing.filter((pick) => pick.position === position).map((pick) => <PointsChip key={pick.playerId} pick={pick} t={t} captain={captainOf(pick)} />)}
-              </div>
+              </PitchRow>
             ))}
-            <div className="mt-2 grid gap-2 rounded-xl bg-black/25 p-2 sm:p-3">
-              <p className="text-xs font-bold tracking-widest text-white/70">{t.fantasy.bench.toUpperCase()}</p>
-              <div className="flex flex-wrap justify-center gap-1 sm:gap-2">{bench.map((pick) => <PointsChip key={pick.playerId} pick={pick} t={t} captain={captainOf(pick)} />)}</div>
-            </div>
-          </div>
+          </FantasyPitch>
           <BreakdownList picks={[...playing, ...bench]} t={t} />
         </>
       )}
