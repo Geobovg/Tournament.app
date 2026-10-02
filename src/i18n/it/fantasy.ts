@@ -204,7 +204,7 @@ export const fantasy: FantasyDict = {
         title: "La tua rosa",
         items: [
           "Scegli 15 giocatori: 2 portieri, 5 difensori, 5 centrocampisti e 3 attaccanti.",
-          "Hai 100,0 mln da spendere e puoi avere al massimo 3 giocatori dello stesso club.",
+          "Hai 120,0 mln da spendere e puoi avere al massimo 3 giocatori dello stesso club.",
           "I giocatori vengono da Premier League, Liga, Serie A, Bundesliga e Ligue 1.",
         ],
       },

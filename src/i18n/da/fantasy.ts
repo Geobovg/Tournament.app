@@ -204,7 +204,7 @@ export const fantasy: FantasyDict = {
         title: "Din trup",
         items: [
           "Vælg 15 spillere: 2 målmænd, 5 forsvarsspillere, 5 midtbanespillere og 3 angribere.",
-          "Du har 100,0 mio. at bruge, og du kan højst have 3 spillere fra samme klub.",
+          "Du har 120,0 mio. at bruge, og du kan højst have 3 spillere fra samme klub.",
           "Spillerne kommer fra Premier League, La Liga, Serie A, Bundesliga og Ligue 1.",
         ],
       },

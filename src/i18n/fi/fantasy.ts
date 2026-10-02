@@ -204,7 +204,7 @@ export const fantasy: FantasyDict = {
         title: "Joukkueesi",
         items: [
           "Valitse 15 pelaajaa: 2 maalivahtia, 5 puolustajaa, 5 keskikenttäpelaajaa ja 3 hyökkääjää.",
-          "Käytössäsi on 100,0 milj., ja samasta seurasta voi olla enintään 3 pelaajaa.",
+          "Käytössäsi on 120,0 milj., ja samasta seurasta voi olla enintään 3 pelaajaa.",
           "Pelaajat tulevat Valioliigasta, La Ligasta, Serie A:sta, Bundesligasta ja Ligue 1:stä.",
         ],
       },
