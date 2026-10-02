@@ -92,6 +92,9 @@ export async function runFantasyTick(options: { forceFixtures?: boolean } = {}):
   for (const round of due) {
     const includeTeams = now.getTime() - new Date(round.deadline_at).getTime() < CATCH_UP_LIMIT_MS;
     const locked = check(await db.rpc("lock_fantasy_round", { target_season: season, target_round: round.number, include_teams: includeTeams }));
+    // Prisen ved fristen, som vises ved kampene i runden i spillervinduet. Feiler den, går resten av jobben videre.
+    const { error: priceError } = await db.rpc("snapshot_fantasy_round_prices", { target_season: season, target_round: round.number });
+    if (priceError) steps.push(`Runde ${round.number}: prisene ble ikke lagret (${priceError.message})`);
     steps.push(`Runde ${round.number} låst (${includeTeams ? `${locked} lag` : "uten lag, fristen var for lenge siden"})`);
   }
 

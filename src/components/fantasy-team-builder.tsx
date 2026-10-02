@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useMemo, useRef, useState, useTransition, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type PointerEvent } from "react";
 import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { clubCode } from "@/lib/fantasy/club-codes";
@@ -26,6 +25,7 @@ import {
 } from "@/lib/fantasy/squad-rules";
 import { saveFantasyTeamAction, setFantasyChipAction } from "@/lib/fantasy-actions";
 import { BenchSlot, EmptyPitchSlot, FantasyPitch, FantasyPlayerCard, FantasyPlayerPhoto, PitchRow } from "./fantasy-pitch";
+import { Crest, PlayerInfoDialog } from "./fantasy-player-info";
 import { buttonClass, cardClass, labelClass, secondaryButtonClass } from "./ui";
 
 const PAGE_SIZE = 40;
@@ -411,7 +411,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
       ) : null}
 
       {infoPlayer ? (
-        <PlayerInfoDialog player={infoPlayer} fixtures={fixtures[infoPlayer.clubId] ?? []} sellingPrice={purchasePrices[infoPlayer.id] === undefined ? null : costOf(infoPlayer)} onClose={() => setInfoId(null)}>
+        <PlayerInfoDialog key={infoPlayer.id} player={infoPlayer} onClose={() => setInfoId(null)}>
           {locked ? null : squadIds.includes(infoPlayer.id) ? (
             <>
               {activeLineup ? <button type="button" onClick={() => startSwitch(infoPlayer.id)} className={buttonClass}>{text.playerInfo.switch}</button> : null}
@@ -424,62 +424,6 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
           ) : <p className="text-sm text-muted">{cantAddReason(infoPlayer)}</p>}
         </PlayerInfoDialog>
       ) : null}
-    </div>
-  );
-}
-
-// Infovinduet når man trykker på en spiller, som i FPL: stort bilde, klubb, pris, poeng og rundens kamper.
-function PlayerInfoDialog({ player, fixtures, sellingPrice, onClose, children }: { player: FantasyPlayerOption; fixtures: ClubFixture[]; sellingPrice: number | null; onClose: () => void; children: ReactNode }) {
-  const t = useT();
-  const text = t.fantasy;
-  const locale = useLocale();
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  const competition = FANTASY_COMPETITIONS.find((item) => item.code === player.competition)?.name;
-  const time = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo" });
-  return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={player.name} onClick={onClose}>
-      <div className="w-full max-w-md overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl sm:rounded-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-end gap-4 bg-gradient-to-br from-emerald-700 to-emerald-950 px-4 pt-4 text-white">
-          <FantasyPlayerPhoto photo={player.photo} photoCutout={player.photoCutout} className="h-28 w-28 shrink-0 sm:h-32 sm:w-32" />
-          <div className="min-w-0 flex-1 pb-3">
-            <p className="text-xs font-bold tracking-widest text-white/70">{text.positions[player.position].toUpperCase()}</p>
-            <p className="text-xl font-black leading-tight">{player.name}</p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/85"><Crest src={player.crest} small />{player.clubName}</p>
-            {competition ? <p className="text-xs text-white/60">{competition}</p> : null}
-          </div>
-          <button type="button" onClick={onClose} aria-label={text.playerInfo.close} className="mb-auto rounded-full bg-black/30 px-2.5 py-1 text-sm font-bold hover:bg-black/50">✕</button>
-        </div>
-        <div className="grid grid-cols-3 divide-x divide-border border-b border-border text-center">
-          <div className="p-3">
-            <p className="text-xs text-muted">{text.playerInfo.price}</p>
-            <p className="font-bold tabular-nums">
-              {player.priceChange > 0 ? <span className="mr-1 text-emerald-500" title={text.priceUp}>▲</span> : player.priceChange < 0 ? <span className="mr-1 text-red-500" title={text.priceDown}>▼</span> : null}
-              {text.money(formatPrice(player.price, locale))}
-            </p>
-          </div>
-          <div className="p-3"><p className="text-xs text-muted">{text.playerInfo.sellingPrice}</p><p className="font-bold tabular-nums">{sellingPrice === null ? "–" : text.money(formatPrice(sellingPrice, locale))}</p></div>
-          <div className="p-3"><p className="text-xs text-muted">{text.playerInfo.totalPoints}</p><p className="font-bold tabular-nums">{player.points}</p></div>
-        </div>
-        <div className="grid gap-2 p-4">
-          <p className={labelClass}>{text.playerInfo.thisRound}</p>
-          {fixtures.length ? (
-            <ul className="grid gap-1.5 text-sm">
-              {fixtures.map((fixture) => (
-                <li key={fixture.kickoffAt + fixture.opponent} className="flex items-center gap-2">
-                  <Crest src={fixture.opponentCrest} />
-                  <span className="font-medium">{text.playerInfo.fixture(fixture.opponent, fixture.home)}</span>
-                  <span className="ml-auto text-xs text-muted">{time.format(new Date(fixture.kickoffAt))}</span>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="text-sm text-muted">{text.playerInfo.noMatch}</p>}
-        </div>
-        {children ? <div className="flex flex-wrap items-center gap-2 border-t border-border p-4">{children}</div> : null}
-      </div>
     </div>
   );
 }
@@ -510,9 +454,4 @@ function FantasyChips({ chips }: { chips: ChipState[] }) {
       {error ? <p className="text-sm font-medium text-red-500">{error}</p> : null}
     </div>
   );
-}
-
-function Crest({ src, small = false }: { src: string | null; small?: boolean }) {
-  const size = small ? "h-4 w-4 text-xs" : "h-6 w-6 text-sm";
-  return src ? <Image src={src} alt="" width={24} height={24} className={`${size} shrink-0 object-contain`} /> : <span className={`grid ${size} shrink-0 place-items-center`}>⚽</span>;
 }
