@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { clubCode } from "@/lib/fantasy/club-codes";
@@ -125,6 +125,14 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
     if (sort === "cheapest") return [...list].sort((a, b) => a.price - b.price || b.points - a.points);
     return list;
   }, [players, search, position, league, sort]);
+
+  // Spillerlista scroller inni seg selv, og flere spillere lastes inn når man nærmer seg bunnen.
+  const listRef = useRef<HTMLDivElement>(null);
+  function loadMoreNearBottom() {
+    const list = listRef.current;
+    if (list && filtered.length > visible && list.scrollTop + list.clientHeight > list.scrollHeight - 300) setVisible(visible + PAGE_SIZE);
+  }
+  useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [search, position, league, sort]);
 
   function changeSquad(next: number[]) {
     // Den gjeldende oppstillingen tas vare på, så den kan repareres når troppen er full igjen.
@@ -272,7 +280,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
         {team && !team.freeHitActive && round !== null ? <FantasyChips chips={team.chips} /> : null}
       </section>
 
-      <section className={`${cardClass} grid min-w-0 grid-cols-1 content-start gap-3`}>
+      <section className={`${cardClass} flex h-[75dvh] min-w-0 flex-col gap-3 lg:sticky lg:top-4 lg:h-[calc(100dvh-2rem)] lg:self-start`}>
         <input value={search} onChange={(event) => { setSearch(event.target.value); setVisible(PAGE_SIZE); }} placeholder={text.search} className={inputClass} />
         <div className="grid grid-cols-2 gap-2">
           <select value={position} onChange={(event) => { setPosition(event.target.value as FantasyPosition | "all"); setVisible(PAGE_SIZE); }} className={inputClass}>
@@ -289,6 +297,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
             <option value="cheapest">{text.sort.cheapest}</option>
           </select>
         </div>
+        <div ref={listRef} onScroll={loadMoreNearBottom} className="-mx-2 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
         {filtered.length === 0 ? <p className="text-sm text-muted">{text.noPlayers}</p> : null}
         <ul className="grid grid-cols-1 gap-1">
           {filtered.slice(0, visible).map((player) => {
@@ -316,7 +325,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
             );
           })}
         </ul>
-        {filtered.length > visible ? <button type="button" onClick={() => setVisible(visible + PAGE_SIZE)} className={secondaryButtonClass}>{text.showMore}</button> : null}
+        </div>
       </section>
 
       {infoPlayer ? (
