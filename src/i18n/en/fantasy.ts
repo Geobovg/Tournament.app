@@ -202,7 +202,7 @@ export const fantasy = {
         title: "Your squad",
         items: [
           "Pick 15 players: 2 goalkeepers, 5 defenders, 5 midfielders and 3 forwards.",
-          "You have 100.0m to spend, and you can have at most 3 players from the same club.",
+          "You have 120.0m to spend, and you can have at most 3 players from the same club.",
           "Players come from the Premier League, La Liga, Serie A, the Bundesliga and Ligue 1.",
         ],
       },

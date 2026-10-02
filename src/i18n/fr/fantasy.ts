@@ -204,7 +204,7 @@ export const fantasy: FantasyDict = {
         title: "Ton effectif",
         items: [
           "Choisis 15 joueurs : 2 gardiens, 5 défenseurs, 5 milieux et 3 attaquants.",
-          "Tu as 100,0 M à dépenser et tu peux avoir au maximum 3 joueurs du même club.",
+          "Tu as 120,0 M à dépenser et tu peux avoir au maximum 3 joueurs du même club.",
           "Les joueurs viennent de la Premier League, de la Liga, de la Serie A, de la Bundesliga et de la Ligue 1.",
         ],
       },

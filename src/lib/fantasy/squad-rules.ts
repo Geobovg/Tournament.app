@@ -6,8 +6,8 @@ export const FANTASY_POSITIONS: readonly FantasyPosition[] = ["GK", "DEF", "MID"
 
 export const SQUAD_SIZE = 15;
 export const STARTERS = 11;
-// 100,0 mill. i tideler. Startbudsjettet for et nytt lag.
-export const BUDGET = 1000;
+// 120,0 mill. i tideler. Startbudsjettet for et nytt lag.
+export const BUDGET = 1200;
 export const MAX_PER_CLUB = 3;
 export const SQUAD_SHAPE: Record<FantasyPosition, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 // Minst og maks antall i startelleveren per posisjon.
@@ -23,7 +23,7 @@ export function sellingPrice(purchase: number, current: number) {
   return current <= purchase ? current : purchase + Math.floor((current - purchase) / 2);
 }
 
-// Pengene laget har å bruke: banken + salgsverdien av spillerne man eier. Et nytt lag har 100,0 mill.
+// Pengene laget har å bruke: banken + salgsverdien av spillerne man eier. Et nytt lag har 120,0 mill.
 export function availableMoney(bank: number | null, owned: readonly { purchase: number; current: number }[]) {
   if (bank === null) return BUDGET;
   return bank + owned.reduce((sum, player) => sum + sellingPrice(player.purchase, player.current), 0);

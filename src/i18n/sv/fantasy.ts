@@ -204,7 +204,7 @@ export const fantasy: FantasyDict = {
         title: "Din trupp",
         items: [
           "Välj 15 spelare: 2 målvakter, 5 försvarare, 5 mittfältare och 3 anfallare.",
-          "Du har 100,0 milj. att spendera och kan ha högst 3 spelare från samma klubb.",
+          "Du har 120,0 milj. att spendera och kan ha högst 3 spelare från samma klubb.",
           "Spelarna kommer från Premier League, La Liga, Serie A, Bundesliga och Ligue 1.",
         ],
       },

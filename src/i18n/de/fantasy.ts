@@ -204,7 +204,7 @@ export const fantasy: FantasyDict = {
         title: "Dein Kader",
         items: [
           "Wähle 15 Spieler: 2 Torhüter, 5 Verteidiger, 5 Mittelfeldspieler und 3 Stürmer.",
-          "Du hast 100,0 Mio. zur Verfügung und darfst höchstens 3 Spieler aus demselben Verein haben.",
+          "Du hast 120,0 Mio. zur Verfügung und darfst höchstens 3 Spieler aus demselben Verein haben.",
           "Die Spieler kommen aus der Premier League, La Liga, Serie A, Bundesliga und Ligue 1.",
         ],
       },

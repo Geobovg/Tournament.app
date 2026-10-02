@@ -204,7 +204,7 @@ export const fantasy: FantasyDict = {
         title: "Tu plantilla",
         items: [
           "Elige 15 jugadores: 2 porteros, 5 defensas, 5 centrocampistas y 3 delanteros.",
-          "Tienes 100,0 M para gastar y puedes tener como máximo 3 jugadores del mismo club.",
+          "Tienes 120,0 M para gastar y puedes tener como máximo 3 jugadores del mismo club.",
           "Los jugadores son de la Premier League, LaLiga, la Serie A, la Bundesliga y la Ligue 1.",
         ],
       },
