@@ -42,7 +42,7 @@ export const fantasy: FantasyDict = {
   viceCaptain: "نائب القائد",
   captainShort: "ق",
   viceCaptainShort: "ن",
-  swapHint: "اضغط على لاعب لرؤية التفاصيل أو اختيار القائد أو تبديله مع لاعب آخر.",
+  swapHint: "اضغط على لاعب لرؤية التفاصيل أو اختيار القائد أو تبديله مع لاعب آخر، أو اسحب لاعبًا فوق آخر لتبديلهما.",
   playerInfo: {
     fixture: (club: string, home: boolean) => `${club} (${home ? "د" : "خ"})`,
     switch: "تبديل",

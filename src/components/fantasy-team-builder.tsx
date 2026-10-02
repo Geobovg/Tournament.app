@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type PointerEvent, type ReactNode } from "react";
 import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { clubCode } from "@/lib/fantasy/club-codes";
@@ -92,6 +92,10 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
   const [league, setLeague] = useState<CompetitionCode | "all">("all");
   const [sort, setSort] = useState<Sort>("price");
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [drag, setDrag] = useState<{ id: number; x: number; y: number } | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const suppressTap = useRef(false);
   const [result, setResult] = useState<{ error?: string; ok?: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
   const locked = Boolean(team?.freeHitActive) || round === null;
@@ -149,23 +153,92 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
     return text.cantAdd.tooExpensive;
   }
 
-  // Trykk på en spiller for å åpne infovinduet. Etter «Bytt» der bytter neste trykk plass på
-  // de to (startellever/benk, eller rekkefølgen på benken).
+  // Oppstillingen når from og to bytter plass (startellever/benk, eller rekkefølgen på benken),
+  // eller null hvis formasjonen da blir ugyldig. To i startelleveren bytter ikke, det endrer ingenting.
+  function switched(from: number, to: number): Lineup | null {
+    if (!activeLineup || from === to || (activeLineup.starters.includes(from) && activeLineup.starters.includes(to))) return null;
+    const swap = (list: number[]) => list.map((item) => (item === from ? to : item === to ? from : item));
+    const next = { ...activeLineup, starters: swap(activeLineup.starters), bench: swap(activeLineup.bench) };
+    // En kaptein som havner på benken gir bindet videre til spilleren som kom inn.
+    if (!next.starters.includes(next.captainId)) next.captainId = next.starters.includes(to) ? to : from;
+    if (!next.starters.includes(next.viceCaptainId)) next.viceCaptainId = next.starters.includes(to) ? to : from;
+    return lineupProblems(squad, next).every((problem) => problem.type !== "formation") ? next : null;
+  }
+
+  // Trykk på en spiller for å åpne infovinduet. Etter «Bytt» der bytter neste trykk plass på de to.
   function tapPlayer(id: number) {
+    if (suppressTap.current) return;
     setResult(null);
     if (!activeLineup || selected === null || selected === id) {
       setSelected(null);
       setInfoId(id);
       return;
     }
-    const swap = (list: number[]) => list.map((item) => (item === selected ? id : item === id ? selected : item));
-    const next = { ...activeLineup, starters: swap(activeLineup.starters), bench: swap(activeLineup.bench) };
-    // En kaptein som havner på benken gir bindet videre til spilleren som kom inn.
-    if (!next.starters.includes(next.captainId)) next.captainId = next.starters.includes(id) ? id : selected;
-    if (!next.starters.includes(next.viceCaptainId)) next.viceCaptainId = next.starters.includes(id) ? id : selected;
-    const formationOk = lineupProblems(squad, next).every((problem) => problem.type !== "formation");
-    if (formationOk) setLineup(next);
+    const next = switched(selected, id);
+    if (next) setLineup(next);
     setSelected(null);
+  }
+
+  // Dra og slipp som i FPL: dra en spiller over en annen for å bytte plass. Med mus starter
+  // dragingen når man flytter musa, med fingeren etter at man har holdt den inne litt (ellers
+  // scroller siden som vanlig).
+  function startDrag(id: number, event: PointerEvent<HTMLButtonElement>) {
+    if (!activeLineup || locked || (event.pointerType === "mouse" && event.button !== 0)) return;
+    const start = { x: event.clientX, y: event.clientY };
+    const touch = event.pointerType !== "mouse";
+    let active = false;
+    let target: number | null = null;
+    const holdTimer = touch ? window.setTimeout(() => begin(), 300) : undefined;
+
+    function begin() {
+      active = true;
+      setSelected(null);
+      setDrag({ id, ...start });
+      navigator.vibrate?.(10);
+    }
+    function targetAt(x: number, y: number) {
+      const card = document.elementFromPoint(x, y)?.closest("[data-player-id]");
+      const over = card ? Number(card.getAttribute("data-player-id")) : null;
+      return over !== null && switched(id, over) ? over : null;
+    }
+    function move(moveEvent: globalThis.PointerEvent) {
+      if (!active) {
+        const moved = Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y);
+        if (touch && moved > 8) return stop();
+        if (touch || moved <= 5) return;
+        begin();
+      }
+      if (ghostRef.current) ghostRef.current.style.transform = `translate(${moveEvent.clientX - start.x}px, ${moveEvent.clientY - start.y}px)`;
+      const over = targetAt(moveEvent.clientX, moveEvent.clientY);
+      if (over !== target) setDropTarget((target = over));
+    }
+    function preventScroll(touchEvent: TouchEvent) {
+      if (active) touchEvent.preventDefault();
+    }
+    function drop() {
+      if (active) {
+        const next = target === null ? null : switched(id, target);
+        if (next) setLineup(next);
+        setResult(null);
+        // Klikket som kommer etter at man slipper skal ikke åpne infovinduet.
+        suppressTap.current = true;
+        window.setTimeout(() => { suppressTap.current = false; });
+      }
+      stop();
+    }
+    function stop() {
+      window.clearTimeout(holdTimer);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", drop);
+      window.removeEventListener("pointercancel", stop);
+      window.removeEventListener("touchmove", preventScroll);
+      setDrag(null);
+      setDropTarget(null);
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", drop);
+    window.addEventListener("pointercancel", stop);
+    window.addEventListener("touchmove", preventScroll, { passive: false });
   }
 
   function setCaptain(id: number, role: "captain" | "vice") {
@@ -189,12 +262,9 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
     setInfoId(null);
   }
 
-  // Om spilleren man bytter fra kan bytte plass med id uten at formasjonen blir ugyldig.
-  function canSwitchWith(id: number) {
-    if (!activeLineup || selected === null) return false;
-    const swap = (list: number[]) => list.map((item) => (item === selected ? id : item === id ? selected : item));
-    return lineupProblems(squad, { ...activeLineup, starters: swap(activeLineup.starters), bench: swap(activeLineup.bench) }).every((problem) => problem.type !== "formation");
-  }
+  // Spilleren som byttes fra (med «Bytt» eller ved å dra), og om han kan bytte plass med id.
+  const switchingFrom = drag?.id ?? selected;
+  const canSwitchWith = (id: number) => switchingFrom !== null && switched(switchingFrom, id) !== null;
 
   function save() {
     if (!activeLineup) return;
@@ -207,12 +277,16 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
       key={player.id}
       player={player}
       info={activeLineup ? fixtureText(t, fixtures[player.clubId]) : text.money(formatPrice(player.price, locale))}
-      selected={selected === player.id}
-      dimmed={selected !== null && selected !== player.id && !canSwitchWith(player.id)}
+      selected={switchingFrom === player.id}
+      dimmed={switchingFrom !== null && switchingFrom !== player.id && !canSwitchWith(player.id)}
+      dropTarget={dropTarget === player.id}
       badge={activeLineup?.captainId === player.id ? text.captainShort : activeLineup?.viceCaptainId === player.id ? text.viceCaptainShort : null}
       onTap={() => tapPlayer(player.id)}
+      onDragStart={activeLineup && !locked ? (event) => startDrag(player.id, event) : undefined}
+      dragId={player.id}
     />
   );
+  const draggedPlayer = drag === null ? null : byId.get(drag.id) ?? null;
   const switchingPlayer = selected === null ? null : byId.get(selected) ?? null;
   const infoPlayer = infoId === null ? null : byId.get(infoId) ?? null;
 
@@ -235,7 +309,7 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
           </div>
         </div>
 
-        {switchingPlayer ? (
+        {switchingPlayer && !drag ? (
           <div className={`${cardClass} flex flex-wrap items-center gap-2 border-yellow-400`}>
             <p className="mr-auto text-sm font-semibold">{text.playerInfo.switching(switchingPlayer.name)}</p>
             <button type="button" onClick={() => setSelected(null)} className={secondaryButtonClass}>{text.playerInfo.cancelSwitch}</button>
@@ -327,6 +401,14 @@ export function FantasyTeamBuilder({ players, team, round, fixtures }: { players
         </ul>
         </div>
       </section>
+
+      {drag && draggedPlayer ? (
+        <div ref={ghostRef} aria-hidden className="pointer-events-none fixed z-[150]" style={{ left: drag.x, top: drag.y }}>
+          <div className="-translate-x-1/2 -translate-y-1/2 rotate-3 scale-105 text-white drop-shadow-2xl">
+            <FantasyPlayerCard player={draggedPlayer} info={fixtureText(t, fixtures[draggedPlayer.clubId])} />
+          </div>
+        </div>
+      ) : null}
 
       {infoPlayer ? (
         <PlayerInfoDialog player={infoPlayer} fixtures={fixtures[infoPlayer.clubId] ?? []} sellingPrice={purchasePrices[infoPlayer.id] === undefined ? null : costOf(infoPlayer)} onClose={() => setInfoId(null)}>

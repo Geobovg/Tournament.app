@@ -40,7 +40,7 @@ export const fantasy = {
   viceCaptain: "Vice-captain",
   captainShort: "C",
   viceCaptainShort: "V",
-  swapHint: "Tap a player to see details, pick a captain or switch them with another player.",
+  swapHint: "Tap a player to see details, pick a captain or switch them with another player – or drag a player onto another to switch them.",
   playerInfo: {
     fixture: (club: string, home: boolean) => `${club} (${home ? "H" : "A"})`,
     switch: "Switch",

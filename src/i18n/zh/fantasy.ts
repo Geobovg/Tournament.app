@@ -42,7 +42,7 @@ export const fantasy: FantasyDict = {
   viceCaptain: "副队长",
   captainShort: "C",
   viceCaptainShort: "V",
-  swapHint: "点一名球员可查看详情、设为队长，或与另一名球员交换。",
+  swapHint: "点一名球员可查看详情、设为队长，或与另一名球员交换；也可以把一名球员拖到另一名球员上来交换。",
   playerInfo: {
     fixture: (club: string, home: boolean) => `${club} (${home ? "主" : "客"})`,
     switch: "交换",
