@@ -24,8 +24,8 @@ _Avoid_: Liga (brukes ikke som eget begrep ennå), Karriere
 En sesong der alle kampene spilles mot datamotstandere satt sammen av appen selv. Fungerer for én enkelt spiller uten venner. Har en **divisjon**: klarer du deg godt nok gjennom sesongen, rykker du opp til en vanskeligere divisjon neste sesong.
 _Avoid_: Karrieresesong, Solo-sesong
 
-**Vennesesong** (kommer):
-En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI.
+**Vennesesong**:
+En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI. Med 10 eller færre managere spilles det **dobbel serie** (alle møter alle hjemme og borte), med flere møtes alle én gang. Under 5 managere får bare vinneren premie, 5–6 gir premie til topp 2, og 7 eller flere til topp 3.
 _Avoid_: Liga, Turnering (Turnering er noe annet, se over)
 
 **Divisjon** (kommer):
