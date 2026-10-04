@@ -188,6 +188,7 @@ export const career = {
     starters: "STARTING XI",
     bench: "BENCH",
     dragHere: "Drag players here to swap",
+    emptyBenchSlot: "Drag a reserve here",
     reserves: "RESERVES",
     available: (count: number) => `${count} available`,
     noReserves: "No reserves in the squad.",
@@ -221,6 +222,8 @@ export const career = {
     intro: "You own the same player more than once. List one of the cards on the Transfer Market, or quick sell it here for 25% of its value. Packs are locked until you do.",
     copies: (name: string, count: number) => `${name} · ${count} copies`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · bought for ${price} MB`,
+    listOnMarket: "List on the market",
+    cancel: "Cancel",
   },
   errors: {
     bothNeedLineup: "Both managers need 11 valid players in their starting XI",

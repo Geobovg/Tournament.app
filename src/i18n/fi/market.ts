@@ -10,7 +10,7 @@ const packDescriptions: Record<string, string> = {
   bronse: "Kolme korttia. Enimmäkseen vakituisia, mutta mitä tahansa voi tapahtua.",
   solv: "Viisi korttia, joista vähintään yksi 80 tai parempi.",
   gull: "Kahdeksan korttia, joista vähintään yksi 83 tai parempi.",
-  elite: "Kaksitoista korttia, joista vähintään kaksi 84 tai parempi taattu.",
+  elite: "Kaksitoista korttia, joista kaksi 84+ ja yksi 86+ taattu.",
 };
 
 export const market = {

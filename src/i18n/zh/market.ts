@@ -10,7 +10,7 @@ const packDescriptions: Record<string, string> = {
   bronse: "三张牌。大部分都是常客，但任何事情都有可能发生。",
   solv: "五张牌，其中至少一张保证为 80 或更高。",
   gull: "八张牌，至少一张 83 或更高的保证。",
-  elite: "十二张牌，至少有两张 84 或更好的保证。",
+  elite: "十二张牌，保证两张 84+ 和一张 86+。",
 };
 
 export const market = {

@@ -5,7 +5,7 @@ import type { SbcCard, SbcChallenge, SbcRequirement } from "./sbc";
 
 export type SbcData = { challenges: SbcChallenge[]; cards: SbcCard[]; nextReset: string };
 
-/** SBC-ene, ukens forsøk og kortene brukeren faktisk kan levere (ikke Academy, ikke i laget, ikke på markedet). */
+/** SBC-ene, ukens forsøk og kortene brukeren faktisk kan levere (ikke Academy, ikke i startelleveren, ikke på markedet). Benk og reserver kan brukes. */
 export async function getSbcData(userId: string): Promise<SbcData> {
   const db = supabaseAdmin();
   const { data: bounds, error: boundsError } = await db.rpc("sbc_week_bounds");
@@ -22,14 +22,15 @@ export async function getSbcData(userId: string): Promise<SbcData> {
 
   const used = new Map<string, number>();
   for (const row of completions ?? []) used.set(row.sbc_key, (used.get(row.sbc_key) ?? 0) + 1);
-  const busy = new Set<string>([...(lineup?.starters ?? []), ...(lineup?.bench ?? []), ...(listings ?? []).map((row) => row.card_id)]);
+  const bench = new Set<string>(lineup?.bench ?? []);
+  const busy = new Set<string>([...(lineup?.starters ?? []), ...(listings ?? []).map((row) => row.card_id)]);
 
   return {
     nextReset: bounds.next_reset,
     challenges: (challenges ?? []).map((row) => ({ key: row.key, cardCount: row.card_count, requirements: row.requirements as SbcRequirement[], rewardMb: row.reward_mb, rewardPack: row.reward_pack, weeklyLimit: row.weekly_limit, usedThisWeek: used.get(row.key) ?? 0 })),
     cards: (cards ?? []).filter((card) => !busy.has(card.id)).map((card) => {
       const catalog = Array.isArray(card.player_catalog) ? card.player_catalog[0] : card.player_catalog;
-      return { id: card.id, name: card.name, position: card.position, overall: card.overall, slug: catalog?.slug ?? null, accent: catalog?.accent ?? "#7a8794", club: catalog?.club ?? "", league: catalog?.league ?? "other", nation: catalog?.nation ?? null, value: catalog?.price ?? 0 };
+      return { id: card.id, name: card.name, position: card.position, overall: card.overall, slug: catalog?.slug ?? null, accent: catalog?.accent ?? "#7a8794", club: catalog?.club ?? "", league: catalog?.league ?? "other", nation: catalog?.nation ?? null, value: catalog?.price ?? 0, onBench: bench.has(card.id) };
     }),
   };
 }

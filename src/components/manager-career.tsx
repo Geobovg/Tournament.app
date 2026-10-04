@@ -11,6 +11,7 @@ import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filter
 import { catalogBuyMaxOverall, quickSellValue, squadCapacity } from "@/lib/manager-limits";
 import { autoPickBestSquadAction, buyCatalogCardAction, loadCatalogClubsAction, loadCatalogPageAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
 import { PackStore } from "./pack-store";
+import { ListSingleCardButton } from "./transfer-market";
 import { PlayerCardFace } from "./player-card-face";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 import { clubCrest } from "@/lib/club-crests";
@@ -114,6 +115,9 @@ function SquadCard({ card, position, active, dimmed = false, dropTarget = false,
   </button>;
 }
 
+// Felles id for tomme benkeplasser, så dra-og-slipp kan treffe dem som et vanlig kort.
+const emptyBenchId = "empty-bench";
+
 type SwapOption = { card: ManagerCard; position: string; blocker: string | null };
 type SwapGroup = { title: string; options: SwapOption[] };
 
@@ -142,7 +146,8 @@ function SwapSheet({ card, role, groups, onSwap, onClose }: { card: ManagerCard;
 
 function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup | null }) {
   const savedFormation = formationNames.includes(lineup?.formation as Formation) ? lineup!.formation as Formation : "4-3-3";
-  const initialLineup = useMemo(() => lineup?.starters.length === 11 && lineup.bench.length === 7 ? { starters: lineup.starters, bench: lineup.bench } : pickBestLineup(cards, savedFormation), [cards, lineup, savedFormation]);
+  // En benk med færre enn 7 (f.eks. etter at et benkekort er levert i en SBC) beholdes, så elleveren ikke stokkes om.
+  const initialLineup = useMemo(() => lineup?.starters.length === 11 && lineup.bench.length <= 7 ? { starters: lineup.starters, bench: lineup.bench } : pickBestLineup(cards, savedFormation), [cards, lineup, savedFormation]);
   const [formation, setFormation] = useState<Formation>(savedFormation);
   const [starters, setStarters] = useState(initialLineup.starters);
   const [bench, setBench] = useState(initialLineup.bench);
@@ -179,6 +184,11 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   };
   const handleDrop = (sourceId: string, targetId: string) => {
     if (!sourceId || sourceId === targetId) return;
+    // Tom benkeplass: bare en reserve kan fylle den, ellers blir det et hull et annet sted.
+    if (targetId === emptyBenchId) {
+      if (cardById.has(sourceId) && !starters.includes(sourceId) && !bench.includes(sourceId) && bench.length < 7) { setBench([...bench, sourceId]); setNotice(""); }
+      return;
+    }
     if (!cardById.has(sourceId) || !cardById.has(targetId)) return;
     const sourceStarter = starters.indexOf(sourceId); const targetStarter = starters.indexOf(targetId);
     const sourceBench = bench.indexOf(sourceId); const targetBench = bench.indexOf(targetId);
@@ -267,7 +277,7 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
         <div className="@container relative aspect-[1000/1500] overflow-hidden rounded-2xl border border-emerald-200/25 bg-[#062a1d] shadow-[inset_0_0_90px_rgba(0,0,0,.6)] sm:aspect-[1000/900]"><PitchMarkings layout="tall" className="sm:hidden" /><PitchMarkings layout="wide" className="hidden sm:block" />
         {visibleSlots.map((slot, index) => { const card = cardById.get(starters[index]); const tall = slotPoint(slot, "tall"); const wide = slotPoint(slot, "wide"); return card ? <div key={`${slot.position}-${index}`} className="absolute left-(--tall-left) top-(--tall-top) w-[16cqw] -translate-x-1/2 -translate-y-1/2 sm:left-(--wide-left) sm:top-(--wide-top) sm:w-[clamp(60px,12.5cqw,170px)]" style={{ "--tall-left": tall.left, "--tall-top": tall.top, "--wide-left": wide.left, "--wide-top": wide.top } as React.CSSProperties}><SquadCard card={card} position={slot.position} {...cardProps(card.id)} /></div> : null; })}</div>
         <aside className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 text-white">{selected ? <><div className="flex items-start gap-3">{selectedFlag ? <Image src={selectedFlag} alt="" width={48} height={36} unoptimized className="mt-1 h-9 w-12 shrink-0 rounded object-cover shadow ring-1 ring-black/30" /> : null}<div><p className="text-xs font-bold tracking-[.18em] text-cyan-300">{text.playerDetails}</p><h3 className="mt-1 text-lg font-black">{selected.name}</h3><p className="text-sm text-white/55">{t.career.clubName(selected.club)}</p></div></div><div className="mt-5 grid grid-cols-2 gap-3 text-center">{[["OVR", selected.overall], ...Object.entries(selected.attributes).slice(0, 5).map(([key, value]) => [key.slice(0, 3).toUpperCase(), value])].map(([label, value]) => <div key={String(label)} className="rounded-lg bg-white/8 p-3"><b className="block text-2xl">{value}</b><span className="text-[10px] font-bold text-white/45">{label}</span></div>)}</div></> : <div className="grid h-full min-h-36 place-items-center text-center text-sm text-white/50">{text.tapForDetails}</div>}</aside></div>
-      <div><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-black tracking-wide">{text.bench}</h3><span className="text-xs text-muted">{text.dragHere}</span></div><div className="flex flex-wrap gap-3">{bench.map((id) => { const card = cardById.get(id); return card ? <div key={id} className={benchCardClass}><SquadCard card={card} position={card.position} {...cardProps(id)} /></div> : null; })}</div></div>
+      <div><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-black tracking-wide">{text.bench}</h3><span className="text-xs text-muted">{text.dragHere}</span></div><div className="flex flex-wrap gap-3">{bench.map((id) => { const card = cardById.get(id); return card ? <div key={id} className={benchCardClass}><SquadCard card={card} position={card.position} {...cardProps(id)} /></div> : null; })}{Array.from({ length: Math.max(0, 7 - bench.length) }, (_, index) => <div key={`empty-${index}`} data-lineup-card={emptyBenchId} className={`${benchCardClass} grid aspect-[100/136] place-items-center rounded-[9%/7%] border-2 border-dashed p-2 text-center text-xs font-bold transition ${hoverId === emptyBenchId ? "scale-105 border-cyan-300 text-cyan-200" : "border-white/30 text-white/50"}`}>{text.emptyBenchSlot}</div>)}</div></div>
       <div><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-black tracking-wide">{text.reserves}</h3><span className="text-xs text-muted">{text.available(reserves.length)}</span></div>{reserves.length ? <div className="flex flex-wrap gap-3">{reserves.map((card) => <div key={card.id} className={benchCardClass}><SquadCard card={card} position={card.position} {...cardProps(card.id)} /></div>)}</div> : <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted">{text.noReserves}</p>}</div>
       <div className="flex flex-wrap items-center gap-3"><button className={buttonClass} disabled={!canSave}>{pending ? text.saving : text.save}</button>{!canSave && !pending ? <span className="text-xs text-muted">{starters.length !== 11 || bench.length !== 7 ? text.needFullLineup : text.noChanges}</span> : null}{notice ? <span className="text-sm text-cyan-300">{notice}</span> : null}{autoState.error ? <p className="text-sm text-danger">{autoState.error}</p> : null}{state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">{text.saved}</p> : null}</div>
     </form>
@@ -344,6 +354,7 @@ function Duplicates({ groups }: { groups: ManagerCard[][] }) {
       <b className="text-sm">{text.copies(group[0].name, group.length)}</b>
       {group.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 text-sm">
         <span className="flex-1 text-muted">{text.card(card.overall, card.position, card.location === "squad", card.acquired_price)}</span>
+        {card.tradable ? <ListSingleCardButton card={card} /> : null}
         <QuickSellButton card={card} value={card.value} />
       </div>)}
     </div>)}

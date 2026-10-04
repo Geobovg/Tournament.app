@@ -13,7 +13,7 @@ const packDescriptions: Record<string, string> = {
   bronse: "Tre kort. Mest vanlige spillere, men alt kan skje.",
   solv: "Fem kort, garantert minst ett på 80 eller bedre.",
   gull: "Åtte kort, garantert minst ett på 83 eller bedre.",
-  elite: "Tolv kort, garantert minst to på 84 eller bedre.",
+  elite: "Tolv kort, garantert to på 84+ og ett på 86+.",
 };
 
 export const market: MarketDict = {

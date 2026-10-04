@@ -21,7 +21,7 @@ export type SbcRequirement =
   | { type: "league"; league: string; count: number }
   | { type: "same_nation"; count: number };
 
-export type SbcCard = { id: string; name: string; position: string; overall: number; slug: string | null; accent: string; club: string; league: string; nation: string | null; value: number };
+export type SbcCard = { id: string; name: string; position: string; overall: number; slug: string | null; accent: string; club: string; league: string; nation: string | null; value: number; onBench: boolean };
 
 export type SbcChallenge = {
   key: string;
@@ -202,4 +202,26 @@ export function autoFillPartial(pool: SbcCard[], requirements: SbcRequirement[],
     add(() => true, cardCount - chosen.length, filler);
   }
   return chosen;
+}
+
+/**
+ * Forslag når man trykker på en plass: kort som kan spille posisjonen og hjelper på krav som ikke er
+ * oppfylt ennå. Flest krav først, deretter de billigste, og benkekort sist. `others` er kortene i de
+ * andre plassene.
+ */
+export function suggestCards(pool: SbcCard[], requirements: SbcRequirement[], cardCount: number, others: SbcCard[], position: string | null, limit = 5): SbcCard[] {
+  const fits = pool.filter((card) => !position || canPlayPosition(card.position, position));
+  const minCard = Math.max(0, ...requirements.map((req) => (req.type === "min_card_rating" ? req.value : 0)));
+  const allowed = fits.filter((card) => card.overall >= minCard);
+  const helps = (card: SbcCard) => requirements.filter((req) => {
+    const before = requirementStatus(req, others, cardCount);
+    if (before.met) return false;
+    if (req.type === "team_rating") return card.overall >= req.value;
+    return requirementStatus(req, [...others, card], cardCount).current > before.current;
+  }).length;
+  return allowed
+    .map((card) => ({ card, score: helps(card) }))
+    .sort((a, b) => b.score - a.score || Number(a.card.onBench) - Number(b.card.onBench) || cheapest(a.card, b.card))
+    .slice(0, limit)
+    .map(({ card }) => card);
 }

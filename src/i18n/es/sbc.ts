@@ -63,6 +63,9 @@ export const sbc: SbcDict = {
     onlyPosition: (position: string) => `Solo ${position}`,
     allPositions: "Todas las posiciones",
     remove: "Quitar del hueco",
+    bench: "Banquillo",
+    suggestions: "Sugerencias",
+    allCards: "Todas las cartas",
     empty: "No hay tarjetas para elegir.",
     close: "Cerrar",
     sort: "Ordenar",
@@ -77,5 +80,5 @@ export const sbc: SbcDict = {
     resetFilters: "Restablecer filtros",
     count: (shown: number) => `${shown} ${shown === 1 ? "tarjeta" : "tarjetas"}`,
   },
-  noCards: "No tienes tarjetas para entregar. Las tarjetas de la Academia, tu once inicial, el banquillo y las tarjetas puestas en el mercado no se pueden usar.",
+  noCards: "No tienes tarjetas para entregar. Las tarjetas de la Academia, tu once inicial y las tarjetas puestas en el mercado no se pueden usar.",
 };

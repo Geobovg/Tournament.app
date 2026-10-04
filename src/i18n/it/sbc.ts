@@ -63,6 +63,9 @@ export const sbc: SbcDict = {
     onlyPosition: (position) => `Solo ${position}`,
     allPositions: "Tutte le posizioni",
     remove: "Rimuovi dalla posizione",
+    bench: "Panchina",
+    suggestions: "Suggerimenti",
+    allCards: "Tutte le carte",
     empty: "Nessuna carta tra cui scegliere.",
     close: "Chiudi",
     sort: "Ordina",
@@ -77,5 +80,5 @@ export const sbc: SbcDict = {
     resetFilters: "Reimposta filtri",
     count: (shown) => `${shown} ${shown === 1 ? "carta" : "carte"}`,
   },
-  noCards: "Non hai carte da consegnare. Le carte dell'academy, la tua formazione titolare e la panchina, e le carte in vendita sul mercato non possono essere usate.",
+  noCards: "Non hai carte da consegnare. Le carte dell'academy, la tua formazione titolare e le carte in vendita sul mercato non possono essere usate.",
 };

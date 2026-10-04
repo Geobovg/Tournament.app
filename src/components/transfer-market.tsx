@@ -43,6 +43,27 @@ function ListCardForm({ cards, values, activeCount }: { cards: ManagerCard[]; va
   </form>;
 }
 
+// Legger ut ett bestemt kort, f.eks. et duplikat fra en pakke. Skjemaet åpnes først når man trykker på knappen.
+export function ListSingleCardButton({ card }: { card: ManagerCard }) {
+  const t = useT();
+  const tm = t.market.transfer; const text = t.career.duplicates;
+  const [state, action, pending] = useActionState(createMarketListingAction, initial);
+  const [open, setOpen] = useState(false);
+  const { min, max } = marketPriceRange(card.value);
+  if (!open) return <button type="button" onClick={() => setOpen(true)} className={secondaryButtonClass}>{text.listOnMarket}</button>;
+  return <form action={action} className="grid w-full gap-2 rounded-xl border border-border bg-surface-raised p-3">
+    <input type="hidden" name="card_id" value={card.id} />
+    <div className="grid grid-cols-3 gap-2">
+      <label className="text-xs text-muted">{tm.startPrice}<input className="mt-1 w-full" name="start_price" type="number" min={min} max={max} defaultValue={card.value || min} /></label>
+      <label className="text-xs text-muted">{tm.buyNow}<input className="mt-1 w-full" name="buy_now_price" type="number" min={min} max={max} defaultValue={Math.min(max, card.value * 2) || max} /></label>
+      <label className="text-xs text-muted">{tm.duration}<select className="mt-1 w-full" name="duration_hours" defaultValue="24">{[1, 6, 24].map((hours) => <option key={hours} value={hours}>{tm.durationHours(hours)}</option>)}</select></label>
+    </div>
+    <p className="text-xs text-muted">{tm.priceInfo(card.value, min, max)}</p>
+    <div className="flex flex-wrap gap-2"><button className={buttonClass} disabled={pending}>{tm.listCard}</button><button type="button" onClick={() => setOpen(false)} className={secondaryButtonClass}>{text.cancel}</button></div>
+    {state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">{tm.listed}</p> : null}
+  </form>;
+}
+
 function ListingCard({ listing, budget, own }: { listing: MarketListing; budget: number; own: boolean }) {
   const t = useT();
   const tm = t.market.transfer;

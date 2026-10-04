@@ -188,6 +188,7 @@ export const career = {
     starters: "首发阵容",
     bench: "长凳",
     dragHere: "将玩家拖到此处进行交换",
+    emptyBenchSlot: "把预备队员拖到这里",
     reserves: "储量",
     available: (count: number) => `${count} 可用`,
     noReserves: "队内没有预备队。",
@@ -221,6 +222,8 @@ export const career = {
     intro: "您多次拥有同一个球员。在转会市场上列出其中一张卡，或在此以价值 25% 的价格快速出售。包将被锁定，直到您这样做为止。",
     copies: (name: string, count: number) => `${name} · ${count} 份`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · 购买价格为 ${price} MB`,
+    listOnMarket: "在转会市场上架",
+    cancel: "取消",
   },
   errors: {
     bothNeedLineup: "两位主教练的首发阵容都需要 11 名有效球员",
