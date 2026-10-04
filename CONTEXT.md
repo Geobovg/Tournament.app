@@ -16,21 +16,25 @@ _Avoid_: Annonsetråd, privatmelding (det er noe annet enn direkte overgangstilb
 En serie ekte EA FC- eller NHL-kamper som venner spiller på selve spillkonsollen/PC-en, der appen kun brukes til å registrere resultatene og holde oversikt (kamplogg, tabell). Appen simulerer ikke disse kampene.
 _Avoid_: Karriere, Manager-turnering
 
-**Sesong** (kommer):
-En avgrenset periode i Managerkarrieren med en tabell og et sluttresultat/premie. Finnes i to varianter, se **AI-sesong** og **Vennesesong**. Erstatter dagens løse enkeltkamper uten sammenheng.
+**Sesong**:
+En avgrenset periode i Managerkarrieren med en tabell og et sluttresultat/premie. Finnes i to varianter, se **AI-sesong** og **Vennesesong**.
 _Avoid_: Liga (brukes ikke som eget begrep ennå), Karriere
 
-**AI-sesong** (kommer):
+**AI-sesong**:
 En sesong der alle kampene spilles mot datamotstandere satt sammen av appen selv. Fungerer for én enkelt spiller uten venner. Har en **divisjon**: klarer du deg godt nok gjennom sesongen, rykker du opp til en vanskeligere divisjon neste sesong.
 _Avoid_: Karrieresesong, Solo-sesong
 
-**Vennesesong** (kommer):
-En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI.
+**Vennesesong**:
+En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI. Med 10 eller færre managere spilles det **dobbel serie** (alle møter alle hjemme og borte), med flere møtes alle én gang. Under 5 managere får bare vinneren premie, 5–6 gir premie til topp 2, og 7 eller flere til topp 3.
 _Avoid_: Liga, Turnering (Turnering er noe annet, se over)
 
-**Divisjon** (kommer):
-Et av 10 vanskelighetsnivåer i AI-sesongen (Divisjon 10 lavest, Divisjon 1 høyest), der AI-troppenes samlede rating skaleres opp jo høyere divisjon. Topp 3 i tabellen etter en AI-sesong rykker opp én divisjon, sist rykker ned. Belønningen for opprykk øker jo høyere divisjonen du rykker opp til er.
+**Divisjon**:
+Et av 10 vanskelighetsnivåer i AI-sesongen (Divisjon 10 lavest, Divisjon 1 høyest), der AI-troppenes samlede rating skaleres opp jo høyere divisjon. Etter en AI-sesong rykker topp 2 opp i divisjon 10–7 og bare vinneren i divisjon 6–2; plassen rett under spiller **kvalik**. De to nederste rykker ned, unntatt i divisjon 10. Belønningen for opprykk øker jo høyere divisjonen du rykker opp til er.
 _Avoid_: Nivå (brukes om klubbnivå/XP, som er noe annet), Liga
+
+**Kvalik**:
+Én ekstra kamp etter en AI-sesong for den som havner rett under opprykksplassene, mot en klubb fra divisjonen over. Kampen må ha en vinner, og bare seier gir opprykk. Den teller ikke i tabellen.
+_Avoid_: Playoff, Omspill
 
 
 **SBC**:
