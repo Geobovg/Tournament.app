@@ -36,7 +36,7 @@ export const seasons = {
     join: "Gå med",
     decline: "Nej tack",
     start: "Börja säsongen",
-    startHint: "Alla som gått med spelar varandra en gång. Alla som inte har svarat lämnas utanför.",
+    startHint: "Alla som gått med spelar varandra hemma och borta (en gång om ni är fler än 10). Alla som inte har svarat lämnas utanför.",
     waitingForStart: "Väntar på att säsongen ska börja.",
     watchLive: "Se live",
     play: "Spela",
@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NYA VÄNNER SÄSONG",
     title: "Ta emot dina vänner",
-    intro: "Alla spelar alla en gång. Vinnaren får 100 MB och ett Gold Pack, andra plats 50 MB och tredje plats 25 MB.",
+    intro: "Alla spelar alla hemma och borta (en gång med fler än 10 managers). Vinnaren får 1 Elite Pack, 2 Gold Packs och 50 MB. Med 5–6 managers får andra plats 2 Gold Packs och 50 MB, och med 7 eller fler får även tredje plats 1 Gold Pack och 25 MB.",
     namePlaceholder: "Säsongens namn",
     invite: "BJUD IN",
     submit: "Skapa och bjud in",

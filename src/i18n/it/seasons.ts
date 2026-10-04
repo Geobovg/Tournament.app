@@ -36,7 +36,7 @@ export const seasons = {
     join: "Partecipa",
     decline: "No grazie",
     start: "Inizia la stagione",
-    startHint: "Tutti quelli che si sono uniti giocano tra loro una volta. Chi non ha risposto resta escluso.",
+    startHint: "Tutti quelli che si sono uniti giocano tra loro andata e ritorno (una volta se siete più di 10). Chi non ha risposto resta escluso.",
     waitingForStart: "Aspettando l'inizio della stagione.",
     watchLive: "Guarda dal vivo",
     play: "Gioca",
@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NUOVA STAGIONE AMICI",
     title: "Affronta i tuoi amici",
-    intro: "Tutti giocano con tutti una volta. Il vincitore riceverà 100 MB e un Gold Pack, il secondo classificato 50 MB e il terzo classificato 25 MB.",
+    intro: "Tutti giocano con tutti andata e ritorno (una volta con più di 10 manager). Il vincitore riceve 1 Elite Pack, 2 Gold Pack e 50 MB. Con 5–6 manager il secondo classificato riceve 2 Gold Pack e 50 MB, e con 7 o più anche il terzo riceve 1 Gold Pack e 25 MB.",
     namePlaceholder: "Nome della stagione",
     invite: "INVITA",
     submit: "Crea e invita",

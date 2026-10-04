@@ -36,7 +36,7 @@ export const seasons = {
     join: "加入",
     decline: "不，谢谢",
     start: "开始赛季",
-    startHint: "每个加入的人都会互相玩一次。没有回答的人将被排除在外。",
+    startHint: "每个加入的人都会进行主客场双循环（超过 10 人时只交手一次）。没有回答的人将被排除在外。",
     waitingForStart: "等待赛季开始。",
     watchLive: "观看直播",
     play: "玩",
@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "新朋友季",
     title: "与你的朋友较量",
-    intro: "每个人都玩一次。获胜者获得 100 MB 和金包，第二名获得 50 MB，第三名获得 25 MB。",
+    intro: "所有人进行主客场双循环（超过 10 名经理时只交手一次）。冠军获得 1 个精英包、2 个金包和 50 MB。5–6 名经理时，第二名获得 2 个金包和 50 MB；7 名或以上时，第三名还可获得 1 个金包和 25 MB。",
     namePlaceholder: "季节名称",
     invite: "邀请",
     submit: "创建并邀请",

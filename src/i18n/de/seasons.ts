@@ -36,7 +36,7 @@ export const seasons = {
     join: "Machen Sie mit",
     decline: "Nein danke",
     start: "Starten Sie die Saison",
-    startHint: "Jeder, der beigetreten ist, spielt einmal gegeneinander. Wer nicht geantwortet hat, wird ausgeschlossen.",
+    startHint: "Jeder, der beigetreten ist, spielt in Hin- und Rückspiel gegeneinander (einmal, wenn ihr mehr als 10 seid). Wer nicht geantwortet hat, wird ausgeschlossen.",
     waitingForStart: "Ich warte auf den Saisonstart.",
     watchLive: "Live ansehen",
     play: "Spielen",
@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NEUE FREUNDE-SAISON",
     title: "Nimm es mit deinen Freunden auf",
-    intro: "Jeder spielt jeden einmal. Der Gewinner erhält 100 MB und ein Gold Pack, der Zweitplatzierte 50 MB und der Drittplatzierte 25 MB.",
+    intro: "Jeder spielt gegen jeden in Hin- und Rückspiel (einmal bei mehr als 10 Managern). Der Gewinner erhält 1 Elite Pack, 2 Gold Packs und 50 MB. Bei 5–6 Managern erhält der Zweitplatzierte 2 Gold Packs und 50 MB, ab 7 Managern erhält auch der Drittplatzierte 1 Gold Pack und 25 MB.",
     namePlaceholder: "Saisonname",
     invite: "EINLADEN",
     submit: "Erstellen und einladen",

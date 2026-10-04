@@ -37,7 +37,7 @@ export const seasons: SeasonsDict = {
     join: "Bli med",
     decline: "Nei takk",
     start: "Start sesongen",
-    startHint: "Alle som har blitt med møter hverandre én gang. De som ikke har svart, blir ikke med.",
+    startHint: "Alle som har blitt med møter hverandre hjemme og borte (én gang hvis dere er flere enn 10). De som ikke har svart, blir ikke med.",
     waitingForStart: "Venter på at sesongen startes.",
     watchLive: "Se live",
     play: "Spill",
@@ -45,7 +45,7 @@ export const seasons: SeasonsDict = {
   create: {
     eyebrow: "NY VENNESESONG",
     title: "Konkurrer mot vennene dine",
-    intro: "Alle møter alle én gang. Vinneren får 100 MB og en gullpakke, andreplass 50 MB og tredjeplass 25 MB.",
+    intro: "Alle møter alle hjemme og borte (én gang med over 10 managere). Vinneren får 1 elitepakke, 2 gullpakker og 50 MB. Med 5–6 managere får andreplass 2 gullpakker og 50 MB, og med 7 eller flere får også tredjeplass 1 gullpakke og 25 MB.",
     namePlaceholder: "Navn på sesongen",
     invite: "INVITER",
     submit: "Opprett og inviter",

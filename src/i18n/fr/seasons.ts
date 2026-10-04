@@ -36,7 +36,7 @@ export const seasons = {
     join: "Rejoindre",
     decline: "Non merci",
     start: "Commencer la saison",
-    startHint: "Tous ceux qui ont rejoint se jouent une fois. Ceux qui n'ont pas répondu sont exclus.",
+    startHint: "Tous ceux qui ont rejoint se jouent en aller-retour (une seule fois si vous êtes plus de 10). Ceux qui n'ont pas répondu sont exclus.",
     waitingForStart: "En attendant que la saison démarre.",
     watchLive: "Regarder en direct",
     play: "Jouer",
@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NOUVELLE SAISON DES AMIS",
     title: "Affrontez vos amis",
-    intro: "Tout le monde joue contre tout le monde une fois. Le gagnant reçoit 100 Mo et un Gold Pack, le deuxième 50 Mo et le troisième 25 Mo.",
+    intro: "Tout le monde joue contre tout le monde en aller-retour (une seule fois au-delà de 10 managers). Le gagnant reçoit 1 Elite Pack, 2 Gold Packs et 50 Mo. Avec 5–6 managers, le deuxième reçoit 2 Gold Packs et 50 Mo, et à partir de 7, le troisième reçoit aussi 1 Gold Pack et 25 Mo.",
     namePlaceholder: "Nom de la saison",
     invite: "INVITER",
     submit: "Créer et inviter",

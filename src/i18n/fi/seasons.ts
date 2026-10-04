@@ -36,7 +36,7 @@ export const seasons = {
     join: "Liity",
     decline: "Ei kiitos",
     start: "Aloita kausi",
-    startHint: "Jokainen, joka on liittynyt, pelaa toisiaan kerran. Jokainen, joka ei ole vastannut, jätetään pois.",
+    startHint: "Jokainen, joka on liittynyt, pelaa toisiaan vastaan koti- ja vierasottelun (kerran, jos teitä on yli 10). Jokainen, joka ei ole vastannut, jätetään pois.",
     waitingForStart: "Kauden alkua odotellessa.",
     watchLive: "Katso suorana",
     play: "Pelaa",
@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "UUSI YSTÄVIEN KAUSI",
     title: "Ota ystäväsi vastaan",
-    intro: "Jokainen pelaa kaikkia kerran. Voittaja saa 100 Mt ja Gold Packin, toinen 50 Mt ja kolmas 25 Mt.",
+    intro: "Jokainen pelaa kaikkia vastaan koti- ja vierasottelun (kerran, jos managereita on yli 10). Voittaja saa 1 Elite Packin, 2 Gold Packia ja 50 Mt. 5–6 managerilla toinen saa 2 Gold Packia ja 50 Mt, ja vähintään 7 managerilla myös kolmas saa 1 Gold Packin ja 25 Mt.",
     namePlaceholder: "Kauden nimi",
     invite: "KUTSU",
     submit: "Luo ja kutsu",
