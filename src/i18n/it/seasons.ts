@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NUOVA STAGIONE AMICI",
     title: "Affronta i tuoi amici",
-    intro: "Tutti giocano con tutti andata e ritorno (una volta con più di 10 manager). Il vincitore riceve 1 Elite Pack, 2 Gold Pack e 50 MB. Con 5–6 manager il secondo classificato riceve 2 Gold Pack e 50 MB, e con 7 o più anche il terzo riceve 1 Gold Pack e 25 MB.",
+    intro: "Tutti giocano con tutti andata e ritorno (una volta con più di 10 manager). I premi vengono assegnati solo con almeno 5 manager: il vincitore riceve 1 Elite Pack, 2 Gold Pack e 50 MB, e il secondo classificato riceve 2 Gold Pack e 50 MB. Con 7 o più anche il terzo riceve 1 Gold Pack e 25 MB.",
     namePlaceholder: "Nome della stagione",
     invite: "INVITA",
     submit: "Crea e invita",

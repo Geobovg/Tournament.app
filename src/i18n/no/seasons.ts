@@ -45,7 +45,7 @@ export const seasons: SeasonsDict = {
   create: {
     eyebrow: "NY VENNESESONG",
     title: "Konkurrer mot vennene dine",
-    intro: "Alle møter alle hjemme og borte (én gang med over 10 managere). Vinneren får 1 elitepakke, 2 gullpakker og 50 MB. Med 5–6 managere får andreplass 2 gullpakker og 50 MB, og med 7 eller flere får også tredjeplass 1 gullpakke og 25 MB.",
+    intro: "Alle møter alle hjemme og borte (én gang med over 10 managere). Premier deles bare ut med minst 5 managere: vinneren får 1 elitepakke, 2 gullpakker og 50 MB, og andreplass får 2 gullpakker og 50 MB. Med 7 eller flere får også tredjeplass 1 gullpakke og 25 MB.",
     namePlaceholder: "Navn på sesongen",
     invite: "INVITER",
     submit: "Opprett og inviter",

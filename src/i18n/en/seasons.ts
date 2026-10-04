@@ -48,7 +48,7 @@ export const seasons = {
   create: {
     eyebrow: "NEW FRIENDS SEASON",
     title: "Take on your friends",
-    intro: "Everyone plays everyone home and away (once with more than 10 managers). The winner gets 1 Elite Pack, 2 Gold Packs and 50 MB. With 5–6 managers, second place gets 2 Gold Packs and 50 MB, and with 7 or more, third place also gets 1 Gold Pack and 25 MB.",
+    intro: "Everyone plays everyone home and away (once with more than 10 managers). Prizes are only awarded with at least 5 managers: the winner gets 1 Elite Pack, 2 Gold Packs and 50 MB, and second place gets 2 Gold Packs and 50 MB. With 7 or more, third place also gets 1 Gold Pack and 25 MB.",
     namePlaceholder: "Season name",
     invite: "INVITE",
     submit: "Create and invite",
