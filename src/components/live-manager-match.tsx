@@ -10,17 +10,22 @@ import { clubCrest } from "@/lib/club-crests";
 import { playerPhoto } from "@/lib/player-photos";
 import {
   cellGoalChance,
+  EXTRA_TIME_END,
   getManagerKickoff,
   getManagerMatchReport,
   getManagerShots,
   getManagerSubstitutions,
+  getShootout,
   getManagerTimeline,
   keeperZone,
+  KICK_REVEAL_AFTER_MS,
   matchClock,
+  matchExtension,
   plannedDurationMs,
   playersById,
   scoreAtMinute,
   shootingOf,
+  shootoutScore,
   shotKeeperRating,
   SHOT_CHOICE_MS,
   SHOT_COLUMNS,
@@ -30,6 +35,7 @@ import {
   suggestSubstitutions,
   type ManagerPlayerSnapshot,
   type MatchSide,
+  type ShootoutKick,
   type ShotResult,
   type SubstitutionSuggestion,
   type TimelineEvent,
@@ -99,6 +105,73 @@ function EventPlayerCard({ player, large = false }: { player: ManagerPlayerSnaps
         {player ? shortName(player.name) : t.match.player}
       </p>
     </div>
+  );
+}
+
+function phaseText(phase: string, seconds: number, t: Dictionary): string {
+  const knockout = t.match.knockout.phase;
+  switch (phase) {
+    case "halftime": return t.match.phase.halftime(seconds);
+    case "substitutions": return t.match.phase.subWindow(seconds);
+    case "first_half": return t.match.phase.firstHalf;
+    case "second_half": return t.match.phase.secondHalf;
+    case "extra_break": return knockout.extraBreak(seconds);
+    case "extra_first": return knockout.extraFirst;
+    case "extra_halftime": return knockout.extraHalftime(seconds);
+    case "extra_second": return knockout.extraSecond;
+    case "shootout_break": return knockout.shootoutBreak(seconds);
+    case "shootout": return t.match.knockout.status.shootout;
+    default: return t.match.phase.fullTime;
+  }
+}
+
+/**
+ * Straffekonkurransen som to rader med prikker, hjemmelaget over og bortelaget under, og sparket
+ * som tas akkurat nå under dem. Den er ferdig simulert – man ser bare på at den spilles av.
+ */
+function ShootoutPanel({ kicks, revealed, pending, players, home, away, finished, countdown }: { kicks: ShootoutKick[]; revealed: ShootoutKick[]; pending: ShootoutKick | null; players: Map<string, ManagerPlayerSnapshot>; home: string; away: string; finished: boolean; countdown: number | null }) {
+  const t = useT();
+  const copy = t.match.knockout.shootout;
+  const score = shootoutScore(revealed);
+  const latest = pending ?? revealed[revealed.length - 1] ?? null;
+  const rounds = Math.max(5, ...kicks.slice(0, revealed.length + (pending ? 1 : 0)).map((kick) => kick.round));
+  const winner = finished ? (score.home > score.away ? home : away) : null;
+  const row = (side: MatchSide, name: string) => (
+    <div className="grid grid-cols-[minmax(0,6rem)_1fr_auto] items-center gap-2">
+      <b className="truncate text-left text-sm">{name}</b>
+      <div className="flex flex-wrap gap-1.5">
+        {Array.from({ length: rounds }, (_, index) => {
+          const kick = revealed.find((entry) => entry.side === side && entry.round === index + 1);
+          const current = pending?.side === side && pending.round === index + 1;
+          return (
+            <span
+              key={index}
+              className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] font-black ${kick ? (kick.scored ? "border-success bg-success/80 text-white" : "border-danger bg-danger/80 text-white") : current ? "animate-pulse border-accent" : "border-border"}`}
+            >
+              {kick ? (kick.scored ? "✓" : "✕") : ""}
+            </span>
+          );
+        })}
+      </div>
+      <b className="text-lg tabular-nums">{score[side]}</b>
+    </div>
+  );
+  return (
+    <section className="grid gap-3 rounded-xl border border-accent bg-accent-soft p-4 text-center">
+      <p className="text-xs font-bold tracking-[.2em] text-accent">{copy.title}</p>
+      {row("home", home)}
+      {row("away", away)}
+      {countdown !== null ? null : latest ? (
+        <div className={`flex items-center justify-center gap-3 ${pending ? "" : "event-pop"}`} key={`${latest.order}-${pending ? "up" : "done"}`}>
+          <EventPlayerCard player={players.get(latest.takerId)} />
+          <div className="text-left">
+            <p className="text-sm font-bold">{pending ? copy.stepsUp(shortName(latest.taker)) : shortName(latest.taker)}</p>
+            {pending ? null : <p className={`text-xs font-black tracking-[.16em] ${latest.scored ? "text-success" : "text-danger"}`}>{latest.scored ? copy.scored : copy.missed}</p>}
+          </div>
+        </div>
+      ) : null}
+      {winner ? <p className="text-sm font-bold">{copy.wonOnPenalties(winner)}</p> : null}
+    </section>
   );
 }
 
@@ -193,16 +266,16 @@ function EventRow({ event, players, shots, latest }: { event: TimelineEvent; pla
 }
 
 /** Målstripa over hendelsene, med hjemmelagets mål over streken og bortelagets under. */
-function GoalStrip({ goals, minute }: { goals: { minute: number; side: MatchSide }[]; minute: number }) {
+function GoalStrip({ goals, minute, lastMinute }: { goals: { minute: number; side: MatchSide }[]; minute: number; lastMinute: number }) {
   return (
     <div className="relative h-12 px-2">
       <div className="absolute inset-x-2 top-1/2 h-px -translate-y-1/2 bg-border" />
-      <div className="absolute left-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-accent/60 transition-[width] duration-1000" style={{ width: `calc(${Math.min(100, (minute / 90) * 100)}% - 0.5rem)` }} />
+      <div className="absolute left-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-accent/60 transition-[width] duration-1000" style={{ width: `calc(${Math.min(100, (minute / lastMinute) * 100)}% - 0.5rem)` }} />
       {goals.map((goal, index) => (
         <span
           key={`${goal.minute}-${goal.side}-${index}`}
           className={`absolute -translate-x-1/2 text-xs ${goal.side === "home" ? "top-0" : "bottom-0"}`}
-          style={{ left: `${Math.min(98, Math.max(2, (goal.minute / 90) * 100))}%` }}
+          style={{ left: `${Math.min(98, Math.max(2, (goal.minute / lastMinute) * 100))}%` }}
           title={`${goal.minute}′`}
         >
           ⚽
@@ -310,11 +383,23 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
   const timeline = useMemo(() => getManagerTimeline(events), [events]);
   const shotEvents = useMemo(() => getManagerShots(events), [events]);
   const shotMinutes = useMemo(() => shotMinutesOf(events), [events]);
+  // Ekstraomganger og straffer finnes bare i utslagskamper som står likt, så det avgjøres av stillingen.
+  const extension = useMemo(() => matchExtension(events, match.shots), [events, match.shots]);
+  const shootout = useMemo(() => getShootout(events).slice(0, extension.kicks), [events, extension.kicks]);
+  const lastMinute = extension.extraTime ? EXTRA_TIME_END : 90;
 
   const elapsed = match.started_at ? Math.max(0, now - new Date(match.started_at).getTime()) : 0;
-  const clock = matchClock(elapsed, shotMinutes);
-  const fullTime = elapsed >= plannedDurationMs(shotMinutes);
-  const shownMinute = complete ? 90 : clock.minute;
+  const clock = matchClock(elapsed, shotMinutes, extension);
+  const fullTime = elapsed >= plannedDurationMs(shotMinutes, extension);
+  const shownMinute = complete ? lastMinute : clock.minute;
+  // Målstripa strekkes til 120′ først når ekstraomgangene starter, ellers ville den avslørt at det ender likt.
+  const stripMinutes = complete || clock.phase === "extra_break" || shownMinute > 90 ? lastMinute : 90;
+  // Sparkene vises ett og ett: først tilløpet, så utfallet. Etter kampen vises hele konkurransen.
+  const kicksDone = complete || clock.phase === "full_time" ? shootout.length : clock.phase === "shootout" ? clock.kickIndex + (clock.kickElapsedMs >= KICK_REVEAL_AFTER_MS ? 1 : 0) : 0;
+  const revealedKicks = shootout.slice(0, kicksDone);
+  const pendingKick = clock.phase === "shootout" && !complete && clock.kickElapsedMs < KICK_REVEAL_AFTER_MS ? shootout[clock.kickIndex] ?? null : null;
+  const penalties = shootoutScore(revealedKicks);
+  const showShootout = shootout.length > 0 && (complete || clock.phase === "shootout_break" || clock.phase === "shootout" || clock.phase === "full_time");
 
   const activeShot: TimelineShot | null = clock.phase === "shot" && clock.shotMinute !== null ? shotEvents.find((shot) => shot.minute === clock.shotMinute) ?? null : null;
   const activeResult = activeShot ? match.shots.find((shot) => shot.minute === activeShot.minute) ?? null : null;
@@ -345,7 +430,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
 
   const userSide: MatchSide | null = kickoff?.home.userId === userId ? "home" : kickoff?.away.userId === userId ? "away" : match.home.userId === userId ? "home" : match.away.userId === userId ? "away" : null;
   const opponentSide: MatchSide | null = userSide === "home" ? "away" : userSide === "away" ? "home" : null;
-  const report = getManagerMatchReport(match.id, events, match.shots, complete ? 90 : shownMinute);
+  const report = getManagerMatchReport(match.id, events, match.shots, shownMinute);
   const yourReport = report && userSide ? report[userSide] : null;
   const opponentReport = report && opponentSide ? report[opponentSide] : null;
   const substitutions = userSide ? getManagerSubstitutions(events).filter((event) => event.side === userSide) : [];
@@ -362,7 +447,13 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
           ? t.match.status.subWindow
           : clock.phase === "shot"
             ? t.match.status.shot(activeShot?.kind === "penalty" ? t.match.status.penalty : t.match.status.bigChance, clock.minute)
-            : t.match.status.live(clock.minute)
+            : clock.phase === "extra_break"
+              ? t.match.knockout.status.extraTime
+              : clock.phase === "extra_halftime"
+                ? t.match.knockout.status.extraHalftime
+                : clock.phase === "shootout_break" || clock.phase === "shootout"
+                  ? t.match.knockout.status.shootout
+                  : t.match.status.live(clock.minute)
       : t.match.status.lobby;
 
   // Prøv igjen hvert tredje sekund til serveren har avsluttet kampen. Ett enkelt forsøk ble
@@ -447,10 +538,16 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
           </div>
         </div>
 
-        <GoalStrip goals={goalMarkers} minute={shownMinute} />
+        <GoalStrip goals={goalMarkers} minute={shownMinute} lastMinute={stripMinutes} />
         {match.status === "live" && clock.phase !== "shot" ? (
           <p className="text-center text-sm font-semibold">
-            {clock.phase === "halftime" ? t.match.phase.halftime(seconds) : clock.phase === "substitutions" ? t.match.phase.subWindow(seconds) : clock.phase === "first_half" ? t.match.phase.firstHalf : clock.phase === "second_half" ? t.match.phase.secondHalf : t.match.phase.fullTime}
+            {phaseText(clock.phase, seconds, t)}
+          </p>
+        ) : null}
+        {extension.extraTime && (complete || clock.phase === "full_time" || clock.phase === "shootout_break" || clock.phase === "shootout") ? (
+          <p className="text-center text-xs font-bold tracking-[.16em] text-muted">
+            {t.match.knockout.shootout.afterExtraTime}
+            {showShootout && revealedKicks.length ? ` · ${t.match.knockout.shootout.result(penalties.home, penalties.away)}` : ""}
           </p>
         ) : null}
       </div>
@@ -505,6 +602,19 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
             </div>
           </div>
         </section>
+      ) : null}
+
+      {showShootout ? (
+        <ShootoutPanel
+          kicks={shootout}
+          revealed={revealedKicks}
+          pending={pendingKick}
+          players={players}
+          home={match.home.username}
+          away={match.away.username}
+          finished={complete || clock.phase === "full_time"}
+          countdown={clock.phase === "shootout_break" ? seconds : null}
+        />
       ) : null}
 
       {clock.phase === "halftime" && report && yourReport && opponentReport ? (

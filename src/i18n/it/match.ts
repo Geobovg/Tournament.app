@@ -112,6 +112,29 @@ export const match = {
     backButton: "Ritorno alla carriera manageriale",
     resultSaved: "Il risultato, W/D/L e la ricompensa vengono salvati.",
   },
+  knockout: {
+    status: {
+      extraTime: "Tempi supplementari",
+      extraHalftime: "Intervallo · 105′",
+      shootout: "Calci di rigore",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Pareggio dopo 90 min – supplementari tra ${seconds} s`,
+      extraFirst: "Primo tempo supplementare",
+      extraHalftime: (seconds: number) => `Intervallo dei supplementari · ${seconds} s`,
+      extraSecond: "Secondo tempo supplementare",
+      shootoutBreak: (seconds: number) => `Pareggio dopo 120 min – rigori tra ${seconds} s`,
+    },
+    shootout: {
+      title: "CALCI DI RIGORE",
+      stepsUp: (name: string) => `${name} si presenta sul dischetto …`,
+      scored: "GOL",
+      missed: "SBAGLIATO",
+      result: (home: number, away: number) => `Rigori ${home}–${away}`,
+      afterExtraTime: "d.t.s.",
+      wonOnPenalties: (name: string) => `${name} ha vinto ai rigori`,
+    },
+  },
   history: {
     eyebrow: "STORIA DI CARRIERA",
     title: "Partite recenti dell'allenatore",

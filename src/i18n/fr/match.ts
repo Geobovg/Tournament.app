@@ -112,6 +112,29 @@ export const match = {
     backButton: "Retour à la carrière de manager",
     resultSaved: "Le résultat, W/D/L et la récompense sont enregistrés.",
   },
+  knockout: {
+    status: {
+      extraTime: "Prolongations",
+      extraHalftime: "Pause · 105′",
+      shootout: "Séance de tirs au but",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Égalité après 90 min – prolongations dans ${seconds} s`,
+      extraFirst: "Prolongation, première période",
+      extraHalftime: (seconds: number) => `Pause des prolongations · ${seconds} s`,
+      extraSecond: "Prolongation, seconde période",
+      shootoutBreak: (seconds: number) => `Égalité après 120 min – tirs au but dans ${seconds} s`,
+    },
+    shootout: {
+      title: "SÉANCE DE TIRS AU BUT",
+      stepsUp: (name: string) => `${name} s'élance …`,
+      scored: "BUT",
+      missed: "MANQUÉ",
+      result: (home: number, away: number) => `Tirs au but ${home}–${away}`,
+      afterExtraTime: "a.p.",
+      wonOnPenalties: (name: string) => `${name} a gagné aux tirs au but`,
+    },
+  },
   history: {
     eyebrow: "HISTORIQUE DE CARRIÈRE",
     title: "Matchs récents du manager",

@@ -116,6 +116,30 @@ export const match: MatchDict = {
     backButton: "Til Manager Karriere",
     resultSaved: "Resultatet, V/U/T og belønningen er lagret.",
   },
+  // Utslagskamper (kvalik til opprykk): ekstraomganger og straffekonkurranse.
+  knockout: {
+    status: {
+      extraTime: "Ekstraomganger",
+      extraHalftime: "Pause · 105′",
+      shootout: "Straffekonkurranse",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Likt etter 90 min – ekstraomganger om ${seconds} sek`,
+      extraFirst: "1. ekstraomgang",
+      extraHalftime: (seconds: number) => `Pause i ekstraomgangene · ${seconds} sek`,
+      extraSecond: "2. ekstraomgang",
+      shootoutBreak: (seconds: number) => `Likt etter 120 min – straffekonkurranse om ${seconds} sek`,
+    },
+    shootout: {
+      title: "STRAFFEKONKURRANSE",
+      stepsUp: (name: string) => `${name} går fram …`,
+      scored: "MÅL",
+      missed: "BOM",
+      result: (home: number, away: number) => `Straffer ${home}–${away}`,
+      afterExtraTime: "e.e.o.",
+      wonOnPenalties: (name: string) => `${name} vant på straffer`,
+    },
+  },
   history: {
     eyebrow: "KARRIEREHISTORIKK",
     title: "Siste managerkamper",

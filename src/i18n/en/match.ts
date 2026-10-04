@@ -112,6 +112,29 @@ export const match = {
     backButton: "Back to Manager Career",
     resultSaved: "The result, W/D/L and reward are saved.",
   },
+  knockout: {
+    status: {
+      extraTime: "Extra time",
+      extraHalftime: "Break · 105′",
+      shootout: "Penalty shootout",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Level after 90 – extra time in ${seconds}s`,
+      extraFirst: "Extra time, first half",
+      extraHalftime: (seconds: number) => `Extra-time break · ${seconds}s`,
+      extraSecond: "Extra time, second half",
+      shootoutBreak: (seconds: number) => `Level after 120 – penalties in ${seconds}s`,
+    },
+    shootout: {
+      title: "PENALTY SHOOTOUT",
+      stepsUp: (name: string) => `${name} steps up …`,
+      scored: "SCORED",
+      missed: "MISSED",
+      result: (home: number, away: number) => `Penalties ${home}–${away}`,
+      afterExtraTime: "a.e.t.",
+      wonOnPenalties: (name: string) => `${name} won on penalties`,
+    },
+  },
   history: {
     eyebrow: "CAREER HISTORY",
     title: "Recent manager matches",

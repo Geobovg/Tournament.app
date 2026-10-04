@@ -112,6 +112,29 @@ export const match = {
     backButton: "Tillbaka till chefskarriären",
     resultSaved: "Resultatet, W/D/L och belöning sparas.",
   },
+  knockout: {
+    status: {
+      extraTime: "Förlängning",
+      extraHalftime: "Paus · 105′",
+      shootout: "Straffläggning",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Lika efter 90 min – förlängning om ${seconds} sek`,
+      extraFirst: "Förlängning, första halvlek",
+      extraHalftime: (seconds: number) => `Paus i förlängningen · ${seconds} sek`,
+      extraSecond: "Förlängning, andra halvlek",
+      shootoutBreak: (seconds: number) => `Lika efter 120 min – straffläggning om ${seconds} sek`,
+    },
+    shootout: {
+      title: "STRAFFLÄGGNING",
+      stepsUp: (name: string) => `${name} går fram …`,
+      scored: "MÅL",
+      missed: "MISS",
+      result: (home: number, away: number) => `Straffar ${home}–${away}`,
+      afterExtraTime: "e.förl.",
+      wonOnPenalties: (name: string) => `${name} vann på straffar`,
+    },
+  },
   history: {
     eyebrow: "KARRIÄRHISTORIA",
     title: "Senaste tränarmatcherna",
