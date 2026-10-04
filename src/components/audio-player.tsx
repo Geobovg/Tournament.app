@@ -65,7 +65,7 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
   }
 
   return (
-    <div className="audio-fab">
+    <>
       <audio
         ref={audioRef}
         src={track.src}
@@ -73,17 +73,18 @@ export function AudioPlayer({ tracks }: { tracks: Track[] }) {
         autoPlay={playing}
         onEnded={() => setIndex(pickOther(index, tracks.length))}
       />
+      {/* Hele pillen er knappen, så man treffer uansett hvor man trykker på den. */}
       <button
         type="button"
         onClick={toggle}
         aria-label={playing ? t.turnOff : t.play}
-        className="text-lg leading-none"
+        className="audio-fab"
       >
-        {playing ? "🔊" : "🎵"}
+        <span aria-hidden className="text-lg leading-none">{playing ? "🔊" : "🎵"}</span>
+        <span className="audio-fab__title">
+          {playing ? track.title : t.label}
+        </span>
       </button>
-      <span className="audio-fab__title">
-        {playing ? track.title : t.label}
-      </span>
-    </div>
+    </>
   );
 }
