@@ -188,6 +188,7 @@ export const career = {
     starters: "TITULAIRES",
     bench: "BANC",
     dragHere: "Faites glisser les joueurs ici pour échanger",
+    emptyBenchSlot: "Glissez un remplaçant ici",
     reserves: "RÉSERVES",
     available: (count: number) => `${count} disponible`,
     noReserves: "Pas de réserve dans l'effectif.",

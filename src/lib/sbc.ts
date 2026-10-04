@@ -21,7 +21,7 @@ export type SbcRequirement =
   | { type: "league"; league: string; count: number }
   | { type: "same_nation"; count: number };
 
-export type SbcCard = { id: string; name: string; position: string; overall: number; slug: string | null; accent: string; club: string; league: string; nation: string | null; value: number };
+export type SbcCard = { id: string; name: string; position: string; overall: number; slug: string | null; accent: string; club: string; league: string; nation: string | null; value: number; onBench: boolean };
 
 export type SbcChallenge = {
   key: string;

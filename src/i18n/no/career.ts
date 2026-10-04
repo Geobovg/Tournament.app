@@ -193,6 +193,7 @@ export const career: CareerDict = {
     starters: "STARTELLEVER",
     bench: "BENK",
     dragHere: "Dra spillere hit for å bytte",
+    emptyBenchSlot: "Dra en reserve hit",
     reserves: "RESERVER",
     available: (count: number) => `${count} tilgjengelige`,
     noReserves: "Ingen reserver i troppen.",

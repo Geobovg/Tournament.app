@@ -63,6 +63,7 @@ export const sbc: SbcDict = {
     onlyPosition: (position: string) => `Nur ${position}`,
     allPositions: "Alle Positionen",
     remove: "Vom Platz entfernen",
+    bench: "Bank",
     empty: "Keine Karten zur Auswahl.",
     close: "Schließen",
     sort: "Sortieren",
@@ -77,5 +78,5 @@ export const sbc: SbcDict = {
     resetFilters: "Filter zurücksetzen",
     count: (shown: number) => `${shown} ${shown === 1 ? "Karte" : "Karten"}`,
   },
-  noCards: "Sie haben keine Karten zum Abgeben. Akademiekarten, Ihre Startelf, die Bank und auf dem Markt eingestellte Karten können nicht verwendet werden.",
+  noCards: "Sie haben keine Karten zum Abgeben. Akademiekarten, Ihre Startelf und auf dem Markt eingestellte Karten können nicht verwendet werden.",
 };

@@ -63,6 +63,7 @@ export const sbc = {
     onlyPosition: (position: string) => `Only ${position}`,
     allPositions: "All positions",
     remove: "Remove from spot",
+    bench: "Bench",
     empty: "No cards to choose from.",
     close: "Close",
     sort: "Sort",
@@ -77,7 +78,7 @@ export const sbc = {
     resetFilters: "Reset filters",
     count: (shown: number) => `${shown} ${shown === 1 ? "card" : "cards"}`,
   },
-  noCards: "You have no cards to hand in. Academy cards, your starting XI and bench, and cards listed on the market can't be used.",
+  noCards: "You have no cards to hand in. Academy cards, your starting XI and cards listed on the market can't be used.",
 };
 
 export type SbcDict = typeof sbc;

@@ -10,7 +10,7 @@ const packDescriptions: Record<string, string> = {
   bronse: "Tres cartas. En su mayoría clientes habituales, pero puede pasar cualquier cosa.",
   solv: "Cinco cartas, con al menos una de 80 o mejor garantizada.",
   gull: "Ocho cartas, con al menos una de 83 o mejor garantizada.",
-  elite: "Doce cartas, con al menos dos de 84 o mejor garantizadas.",
+  elite: "Doce cartas, con dos de 84+ y una de 86+ garantizadas.",
 };
 
 export const market = {

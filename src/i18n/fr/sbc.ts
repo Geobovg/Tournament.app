@@ -63,6 +63,7 @@ export const sbc: SbcDict = {
     onlyPosition: (position: string) => `Uniquement ${position}`,
     allPositions: "Tous les postes",
     remove: "Retirer de la place",
+    bench: "Banc",
     empty: "Aucune carte à choisir.",
     close: "Fermer",
     sort: "Trier",
@@ -77,5 +78,5 @@ export const sbc: SbcDict = {
     resetFilters: "Réinitialiser les filtres",
     count: (shown: number) => `${shown} ${shown === 1 ? "carte" : "cartes"}`,
   },
-  noCards: "Vous n'avez aucune carte à rendre. Les cartes de l'Académie, votre onze de départ, le banc et les cartes mises en vente sur le marché ne peuvent pas être utilisées.",
+  noCards: "Vous n'avez aucune carte à rendre. Les cartes de l'Académie, votre onze de départ et les cartes mises en vente sur le marché ne peuvent pas être utilisées.",
 };

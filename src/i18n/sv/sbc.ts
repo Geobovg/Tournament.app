@@ -63,6 +63,7 @@ export const sbc: SbcDict = {
     onlyPosition: (position: string) => `Bara ${position}`,
     allPositions: "Alla positioner",
     remove: "Ta bort från platsen",
+    bench: "Bänk",
     empty: "Inga kort att välja bland.",
     close: "Stäng",
     sort: "Sortera",
@@ -77,5 +78,5 @@ export const sbc: SbcDict = {
     resetFilters: "Återställ filter",
     count: (shown: number) => `${shown} kort`,
   },
-  noCards: "Du har inga kort att lämna in. Akademikort, din startelva och bänk samt kort som ligger ute på marknaden kan inte användas.",
+  noCards: "Du har inga kort att lämna in. Akademikort, din startelva och kort som ligger ute på marknaden kan inte användas.",
 };

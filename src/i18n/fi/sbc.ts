@@ -63,6 +63,7 @@ export const sbc: SbcDict = {
     onlyPosition: (position: string) => `Vain ${position}`,
     allPositions: "Kaikki pelipaikat",
     remove: "Poista paikalta",
+    bench: "Penkki",
     empty: "Ei valittavia kortteja.",
     close: "Sulje",
     sort: "Lajittele",
@@ -77,5 +78,5 @@ export const sbc: SbcDict = {
     resetFilters: "Nollaa suodattimet",
     count: (shown: number) => `${shown} ${shown === 1 ? "kortti" : "korttia"}`,
   },
-  noCards: "Sinulla ei ole palautettavia kortteja. Akatemiakortteja, avauskokoonpanoa ja vaihtopenkkiä sekä markkinoilla myynnissä olevia kortteja ei voi käyttää.",
+  noCards: "Sinulla ei ole palautettavia kortteja. Akatemiakortteja, avauskokoonpanoa ja markkinoilla myynnissä olevia kortteja ei voi käyttää.",
 };

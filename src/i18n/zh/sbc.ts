@@ -63,6 +63,7 @@ export const sbc: SbcDict = {
     onlyPosition: (position) => `仅${position}`,
     allPositions: "所有位置",
     remove: "从位置移除",
+    bench: "替补",
     empty: "没有可选择的卡片。",
     close: "关闭",
     sort: "排序",
@@ -77,5 +78,5 @@ export const sbc: SbcDict = {
     resetFilters: "重置筛选",
     count: (shown) => `${shown} 张卡`,
   },
-  noCards: "你没有可提交的卡片。青训卡、首发阵容和替补席上的卡片，以及已在市场上架的卡片无法使用。",
+  noCards: "你没有可提交的卡片。青训卡、首发阵容以及已在市场上架的卡片无法使用。",
 };

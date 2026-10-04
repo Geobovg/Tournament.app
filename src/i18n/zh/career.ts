@@ -188,6 +188,7 @@ export const career = {
     starters: "首发阵容",
     bench: "长凳",
     dragHere: "将玩家拖到此处进行交换",
+    emptyBenchSlot: "把预备队员拖到这里",
     reserves: "储量",
     available: (count: number) => `${count} 可用`,
     noReserves: "队内没有预备队。",

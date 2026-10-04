@@ -70,10 +70,12 @@ export function SbcPanel({ challenges, cards, nextReset }: SbcData) {
 }
 
 function MiniCard({ card }: { card: SbcCard }) {
-  return <span className="grid h-full w-full content-center justify-items-center overflow-hidden rounded-xl border border-white/25 px-0.5 text-white shadow-lg" style={{ background: `radial-gradient(circle at 85% 5%, ${card.accent}cc 0, transparent 55%), linear-gradient(145deg, #08150e, #102b1a)` }}>
+  const t = useT();
+  return <span className="relative grid h-full w-full content-center justify-items-center overflow-hidden rounded-xl border border-white/25 px-0.5 text-white shadow-lg" style={{ background: `radial-gradient(circle at 85% 5%, ${card.accent}cc 0, transparent 55%), linear-gradient(145deg, #08150e, #102b1a)` }}>
     <b className="text-xl font-black leading-none">{card.overall}</b>
     <span className="text-[10px] font-black">{card.position}</span>
     <span className="mt-1 w-full truncate text-center text-[10px] font-bold">{card.name}</span>
+    {card.onBench ? <span className="absolute inset-x-0 top-0 bg-amber-300 text-center text-[8px] font-black uppercase leading-3 text-slate-950">{t.sbc.picker.bench}</span> : null}
   </span>;
 }
 
@@ -94,10 +96,14 @@ function SbcBuilder({ challenge, cards, onBack }: { challenge: SbcChallenge; car
   function fill() {
     setError(null); setNotice(null);
     // Kortene du allerede har lagt inn beholdes hvis det går. Ellers prøver vi på nytt fra scratch.
-    const kept = autoFill(cards, challenge.requirements, challenge.cardCount, placed);
-    if (kept) { setChosen(placeCards(slots, chosen, kept)); return; }
-    const fresh = autoFill(cards, challenge.requirements, challenge.cardCount);
-    if (fresh) { setChosen(placeCards(slots, slots.map(() => null), fresh)); return; }
+    // Benken brukes bare når reservene og lageret ikke strekker til.
+    const reserves = cards.filter((card) => !card.onBench);
+    for (const pool of reserves.length < cards.length ? [reserves, cards] : [cards]) {
+      const kept = autoFill(pool, challenge.requirements, challenge.cardCount, placed);
+      if (kept) { setChosen(placeCards(slots, chosen, kept)); return; }
+      const fresh = autoFill(pool, challenge.requirements, challenge.cardCount);
+      if (fresh) { setChosen(placeCards(slots, slots.map(() => null), fresh)); return; }
+    }
     // Kortene strekker ikke til: legg inn de som oppfyller kravene så langt det går, så fikser brukeren resten.
     const partial = autoFillPartial(cards, challenge.requirements, challenge.cardCount, placed);
     if (partial.length > placed.length) { setChosen(placeCards(slots, chosen, partial)); setNotice(text.autoFillPartial); }
@@ -220,6 +226,7 @@ function CardPicker({ position, cards, current, onPick, onClose }: { position: s
           <button type="button" onClick={() => onPick(card)} className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-2.5 text-left hover:border-lime-300/60">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-lg font-black text-white" style={{ background: `linear-gradient(145deg, ${card.accent}bb, #102b1a)` }}>{card.overall}</span>
             <span className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="block truncate text-xs text-white/55">{t.career.clubName(card.club)}</span></span>
+            {card.onBench ? <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-950">{text.bench}</span> : null}
             <span className="text-xs font-black text-white/70">{card.position}</span>
           </button>
         </li>)}

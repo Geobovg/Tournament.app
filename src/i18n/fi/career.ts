@@ -188,6 +188,7 @@ export const career = {
     starters: "AVAUSKOKOONPANO",
     bench: "PENKKI",
     dragHere: "Vedä pelaajat tähän vaihtaaksesi",
+    emptyBenchSlot: "Vedä varamies tähän",
     reserves: "VARAUKSET",
     available: (count: number) => `${count} saatavilla`,
     noReserves: "Joukkueessa ei ole reservejä.",

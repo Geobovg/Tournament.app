@@ -64,6 +64,7 @@ export const sbc: SbcDict = {
     onlyPosition: (position: string) => `Bare ${position}`,
     allPositions: "Alle posisjoner",
     remove: "Fjern fra plassen",
+    bench: "Benk",
     empty: "Ingen kort å velge mellom.",
     close: "Lukk",
     sort: "Sorter",
@@ -78,5 +79,5 @@ export const sbc: SbcDict = {
     resetFilters: "Nullstill filter",
     count: (shown: number) => `${shown} kort`,
   },
-  noCards: "Du har ingen kort å levere. Academy-kort, startellever og benk, og kort som ligger ute på markedet, kan ikke brukes.",
+  noCards: "Du har ingen kort å levere. Academy-kort, startelleveren og kort som ligger ute på markedet, kan ikke brukes.",
 };

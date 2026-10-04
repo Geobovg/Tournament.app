@@ -188,6 +188,7 @@ export const career = {
     starters: "STARTELVA",
     bench: "BÄNK",
     dragHere: "Dra spelare hit för att byta",
+    emptyBenchSlot: "Dra en reserv hit",
     reserves: "RESERVER",
     available: (count: number) => `${count} tillgänglig`,
     noReserves: "Inga reserver i truppen.",
