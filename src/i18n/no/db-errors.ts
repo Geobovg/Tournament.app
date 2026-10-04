@@ -35,6 +35,7 @@ export const dbErrors: DbErrorsDict = {
   benchExactlySeven: "Du må ha nøyaktig 7 på benken",
   tooManyMessages: "Du sender for mange meldinger. Vent litt før du skriver igjen.",
   lineupMustBeInSquad: "Elleveren og benken må ligge i troppen",
+  playerAlreadyInSquad: "Du har allerede denne spilleren i troppen",
   playerPickedOnce: "En spiller kan bare velges én gang",
   managerProfileNotFound: "Fant ikke managerprofilen",
   notEnoughBudget: "Ikke nok managerbudsjett",

@@ -31,6 +31,7 @@ export const dbErrors = {
   benchExactlySeven: "你需要 7 名替补球员",
   tooManyMessages: "您发送的消息太多。在再次写作之前先休息一下。",
   lineupMustBeInSquad: "您的首发阵容和替补球员必须在您的阵容中",
+  playerAlreadyInSquad: "你的阵容中已有该球员",
   playerPickedOnce: "一名球员只能被挑选一次",
   managerProfileNotFound: "找不到经理个人资料",
   notEnoughBudget: "经理预算不足",

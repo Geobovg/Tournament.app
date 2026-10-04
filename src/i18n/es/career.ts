@@ -209,6 +209,7 @@ export const career = {
     searchPlaceholder: "Jugador o club...",
     noMatches: "Ninguna tarjeta coincide con el filtro.",
     moveToSquad: "Pasar al equipo",
+    alreadyInSquad: "Ya en la plantilla",
     swapWith: (name: string) => `Intercambia ${name} con`,
     swapWithPlaceholder: "Intercambiar con…",
     swap: "Intercambiar",

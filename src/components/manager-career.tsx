@@ -298,6 +298,8 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
   const [moveState, moveAction, movePending] = useActionState(moveManagerCardAction, initial);
   const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
   const roomInSquad = squad.length < squadCapacity;
+  // Maks ett kort av hver spiller i troppen, så et lagerkort av en spiller som allerede er der kan ikke flyttes inn.
+  const squadCatalogIds = new Set(squad.map((card) => card.catalog_id));
   const t = useT(); const text = t.career.storage; const filterText = t.career.filters; const clubName = t.career.clubName;
   const locale = useLocale(); const intl = INTL_LOCALES[locale];
   const message = moveState.error ?? swapState.error;
@@ -324,7 +326,8 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
     {cards.length ? <div className="grid gap-2">{cards.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
       <div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold">{card.overall}</div>
       <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position} · {clubName(card.club)}</span></div>
-      {roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>{text.moveToSquad}</button></form>
+      {card.catalog_id && squadCatalogIds.has(card.catalog_id) ? <span className="text-xs text-muted">{text.alreadyInSquad}</span>
+        : roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>{text.moveToSquad}</button></form>
         : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={text.swapWith(card.name)} defaultValue="">{<option value="" disabled>{text.swapWithPlaceholder}</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>{text.swap}</button></form>}
       {card.tradable && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">{text.listed}</span> : <QuickSellButton card={card} value={card.value} /> : null}
     </div>)}</div> : storage.length ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.empty}</p>}

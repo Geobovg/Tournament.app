@@ -31,6 +31,7 @@ export const dbErrors = {
   benchExactlySeven: "تحتاج بالضبط 7 على مقاعد البدلاء",
   tooManyMessages: "أنت ترسل عددًا كبيرًا جدًا من الرسائل. خذ قسطا من الراحة قبل أن تكتب مرة أخرى.",
   lineupMustBeInSquad: "يجب أن يكون التشكيلة الأساسية ومقعد البدلاء في فريقك",
+  playerAlreadyInSquad: "لديك هذا اللاعب بالفعل في فريقك",
   playerPickedOnce: "يمكن اختيار اللاعب مرة واحدة فقط",
   managerProfileNotFound: "لم يتم العثور على الملف التعريفي للمدير",
   notEnoughBudget: "لا توجد ميزانية كافية للمدير",

@@ -209,6 +209,7 @@ export const career = {
     searchPlaceholder: "球员或俱乐部...",
     noMatches: "没有卡片与过滤器匹配。",
     moveToSquad: "转入小队",
+    alreadyInSquad: "已在阵容中",
     swapWith: (name: string) => `将 ${name} 交换为`,
     swapWithPlaceholder: "与…交换",
     swap: "互换",

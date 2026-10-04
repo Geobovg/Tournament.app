@@ -209,6 +209,7 @@ export const career = {
     searchPlaceholder: "Spiller eller klub...",
     noMatches: "Ingen kort matcher filteret.",
     moveToSquad: "Flyt til holdet",
+    alreadyInSquad: "Allerede i holdet",
     swapWith: (name: string) => `Byt ${name} med`,
     swapWithPlaceholder: "Byt med…",
     swap: "Byt",

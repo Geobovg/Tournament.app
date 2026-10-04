@@ -31,6 +31,7 @@ export const dbErrors = {
   benchExactlySeven: "Tarvitset tasan 7 penkille",
   tooManyMessages: "Lähetät liian monta viestiä. Vedä henkeä ennen kuin kirjoitat uudelleen.",
   lineupMustBeInSquad: "Aloituspaikkasi ja penkkisi on oltava joukkueessasi",
+  playerAlreadyInSquad: "Tämä pelaaja on jo joukkueessasi",
   playerPickedOnce: "Pelaaja voidaan valita vain kerran",
   managerProfileNotFound: "Esimiehen profiilia ei löydy",
   notEnoughBudget: "Esimiehen budjetti ei riitä",

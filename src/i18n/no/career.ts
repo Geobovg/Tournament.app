@@ -214,6 +214,7 @@ export const career: CareerDict = {
     searchPlaceholder: "Spiller eller klubb…",
     noMatches: "Ingen kort passer filteret.",
     moveToSquad: "Sett i troppen",
+    alreadyInSquad: "Allerede i troppen",
     swapWith: (name: string) => `Bytt ${name} med`,
     swapWithPlaceholder: "Bytt med…",
     swap: "Bytt",

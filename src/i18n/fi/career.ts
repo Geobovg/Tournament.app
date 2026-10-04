@@ -209,6 +209,7 @@ export const career = {
     searchPlaceholder: "Pelaaja tai seura…",
     noMatches: "Yksikään kortti ei vastaa suodatinta.",
     moveToSquad: "Siirrä joukkueeseen",
+    alreadyInSquad: "Jo joukkueessa",
     swapWith: (name: string) => `Vaihda ${name} kanssa`,
     swapWithPlaceholder: "Vaihda kanssa…",
     swap: "Vaihda",
