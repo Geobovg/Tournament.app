@@ -25,7 +25,7 @@ En sesong der alle kampene spilles mot datamotstandere satt sammen av appen selv
 _Avoid_: Karrieresesong, Solo-sesong
 
 **Vennesesong**:
-En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI. Med 10 eller færre managere spilles det **dobbel serie** (alle møter alle hjemme og borte), med flere møtes alle én gang. Under 5 managere får bare vinneren premie, 5–6 gir premie til topp 2, og 7 eller flere til topp 3.
+En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI. Med 10 eller færre managere spilles det **dobbel serie** (alle møter alle hjemme og borte), med flere møtes alle én gang. Under 5 managere gis det ingen premie, 5–6 gir premie til topp 2, og 7 eller flere til topp 3.
 _Avoid_: Liga, Turnering (Turnering er noe annet, se over)
 
 **Divisjon**:

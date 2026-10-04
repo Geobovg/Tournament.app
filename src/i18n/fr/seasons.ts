@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NOUVELLE SAISON DES AMIS",
     title: "Affrontez vos amis",
-    intro: "Tout le monde joue contre tout le monde en aller-retour (une seule fois au-delà de 10 managers). Le gagnant reçoit 1 Elite Pack, 2 Gold Packs et 50 Mo. Avec 5–6 managers, le deuxième reçoit 2 Gold Packs et 50 Mo, et à partir de 7, le troisième reçoit aussi 1 Gold Pack et 25 Mo.",
+    intro: "Tout le monde joue contre tout le monde en aller-retour (une seule fois au-delà de 10 managers). Les prix ne sont attribués qu'à partir de 5 managers : le gagnant reçoit 1 Elite Pack, 2 Gold Packs et 50 Mo, et le deuxième reçoit 2 Gold Packs et 50 Mo. À partir de 7, le troisième reçoit aussi 1 Gold Pack et 25 Mo.",
     namePlaceholder: "Nom de la saison",
     invite: "INVITER",
     submit: "Créer et inviter",

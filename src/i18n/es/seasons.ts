@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NUEVA TEMPORADA DE AMIGOS",
     title: "Enfréntate a tus amigos",
-    intro: "Todos juegan contra todos en casa y fuera (una vez con más de 10 mánagers). El ganador se lleva 1 Elite Pack, 2 Gold Packs y 50 MB. Con 5–6 mánagers, el segundo lugar recibe 2 Gold Packs y 50 MB, y con 7 o más, el tercer lugar también recibe 1 Gold Pack y 25 MB.",
+    intro: "Todos juegan contra todos en casa y fuera (una vez con más de 10 mánagers). Solo hay premios con al menos 5 mánagers: el ganador se lleva 1 Elite Pack, 2 Gold Packs y 50 MB, y el segundo lugar recibe 2 Gold Packs y 50 MB. Con 7 o más, el tercer lugar también recibe 1 Gold Pack y 25 MB.",
     namePlaceholder: "Nombre de la temporada",
     invite: "INVITAR",
     submit: "Crear e invitar",

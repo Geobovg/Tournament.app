@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NYA VÄNNER SÄSONG",
     title: "Ta emot dina vänner",
-    intro: "Alla spelar alla hemma och borta (en gång med fler än 10 managers). Vinnaren får 1 Elite Pack, 2 Gold Packs och 50 MB. Med 5–6 managers får andra plats 2 Gold Packs och 50 MB, och med 7 eller fler får även tredje plats 1 Gold Pack och 25 MB.",
+    intro: "Alla spelar alla hemma och borta (en gång med fler än 10 managers). Priser delas bara ut med minst 5 managers: vinnaren får 1 Elite Pack, 2 Gold Packs och 50 MB, och andra plats får 2 Gold Packs och 50 MB. Med 7 eller fler får även tredje plats 1 Gold Pack och 25 MB.",
     namePlaceholder: "Säsongens namn",
     invite: "BJUD IN",
     submit: "Skapa och bjud in",

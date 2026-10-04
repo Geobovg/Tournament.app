@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "UUSI YSTÄVIEN KAUSI",
     title: "Ota ystäväsi vastaan",
-    intro: "Jokainen pelaa kaikkia vastaan koti- ja vierasottelun (kerran, jos managereita on yli 10). Voittaja saa 1 Elite Packin, 2 Gold Packia ja 50 Mt. 5–6 managerilla toinen saa 2 Gold Packia ja 50 Mt, ja vähintään 7 managerilla myös kolmas saa 1 Gold Packin ja 25 Mt.",
+    intro: "Jokainen pelaa kaikkia vastaan koti- ja vierasottelun (kerran, jos managereita on yli 10). Palkintoja jaetaan vain, jos managereita on vähintään 5: voittaja saa 1 Elite Packin, 2 Gold Packia ja 50 Mt, ja toinen saa 2 Gold Packia ja 50 Mt. Vähintään 7 managerilla myös kolmas saa 1 Gold Packin ja 25 Mt.",
     namePlaceholder: "Kauden nimi",
     invite: "KUTSU",
     submit: "Luo ja kutsu",
