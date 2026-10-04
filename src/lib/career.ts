@@ -4,6 +4,7 @@ import { getT } from "@/i18n/server";
 import { formationNames, pickBestLineup, type Formation } from "./lineup";
 import { catalogPageSize, type CatalogFilters } from "./catalog-filters";
 import { catalogBuyMaxOverall } from "./manager-limits";
+import type { PackPull } from "./manager-actions";
 import { supabaseAdmin } from "./supabase/server";
 
 export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number; club_xp: number };
@@ -113,6 +114,19 @@ export async function getManagerHome(userId: string): Promise<{ formation: strin
   ]);
   if (packsError || inventoryError) throw new Error(packsError?.message ?? inventoryError?.message);
   return { ...ratingFromSquad(ratingInfo), packs: (packs ?? []) as ManagerPack[], freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
+}
+
+export type LastPackOpening = { packKey: string; pulls: PackPull[] };
+
+/**
+ * Den siste pakka brukeren åpnet de siste 10 minuttene. Pakkesiden spiller den av hvis animasjonen
+ * aldri ble vist, f.eks. fordi en ny versjon av appen ble lagt ut midt i kjøpet og siden lastet seg på nytt.
+ */
+export async function getLastPackOpening(userId: string): Promise<LastPackOpening | null> {
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data, error } = await supabaseAdmin().from("pack_openings").select("pack_key, pulls").eq("user_id", userId).gte("created_at", since).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data && Array.isArray(data.pulls) && data.pulls.length ? { packKey: data.pack_key, pulls: data.pulls as PackPull[] } : null;
 }
 
 // Kortverdien (katalogprisen) følger med egne kort, så sidene slipper å hente hele katalogen.
