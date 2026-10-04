@@ -69,7 +69,7 @@ export const market = {
     toStorage: "Säilytykseen",
     inSquad: "Joukkueessa",
     duplicate: " · kopioida",
-    done: "Valmis",
+    done: "Tallenna seuraan",
     nextCard: "Seuraava kortti",
     openingCard: "Paljastava kortti",
     openingBanner: "AVAAMINEN",

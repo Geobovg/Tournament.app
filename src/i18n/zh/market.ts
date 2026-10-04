@@ -69,7 +69,7 @@ export const market = {
     toStorage: "至存储",
     inSquad: "在小队中",
     duplicate: " · 重复",
-    done: "完成",
+    done: "保存到俱乐部",
     nextCard: "下一张卡",
     openingCard: "揭秘卡",
     openingBanner: "开幕",

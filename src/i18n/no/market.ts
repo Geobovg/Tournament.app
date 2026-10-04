@@ -72,7 +72,7 @@ export const market: MarketDict = {
     toStorage: "Til lageret",
     inSquad: "I troppen",
     duplicate: " · duplikat",
-    done: "Ferdig",
+    done: "Lagre til klubben",
     nextCard: "Neste kort",
     openingCard: "Åpner kort",
     openingBanner: "ÅPNER",
