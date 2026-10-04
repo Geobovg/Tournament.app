@@ -419,16 +419,18 @@ export function shotOptions(shooting: number): number[] {
 }
 
 /**
- * Sjansen for mål i en gitt rute, gitt at keeperen ikke gjettet riktig. På en stor sjanse
- * gjetter ingen, så der trekker en god keeper sjansen ned og en svak drar den opp.
+ * Den faktiske sjansen for mål i en gitt rute – det er dette tallet som står på ruta, og
+ * skuddet avgjøres i én trekning mot nøyaktig det. En god avslutter drar sjansen opp, en god
+ * keeper drar den ned.
  */
 export function cellGoalChance(shooting: number, kind: ShotKind, cell: number, keeper: number | null = null): number {
-  // Kalibrert mot ekte straffer: en god avslutter setter rundt tre av fire når keeperen gjetter
-  // feil, en svak under halvparten – og han har dessuten færre ruter å gjemme seg i.
-  const base = kind === "penalty"
-    ? bounded(0.74 + (shooting - 55) * 0.0062, 0.6, 0.97)
-    : bounded(0.42 + (shooting - 55) * 0.004, 0.28, 0.8);
-  const keeperFactor = kind === "chance" && keeper !== null ? bounded(1 + (70 - keeper) * 0.015, 0.7, 1.3) : 1;
+  // Kalibrert mot ekte straffer: rundt tre av fire går inn når skytter og keeper er like gode.
+  if (kind === "penalty") {
+    const keeperPenalty = keeper === null ? 0 : (keeper - 70) * 0.006;
+    return bounded((0.82 + (shooting - 75) * 0.006 - keeperPenalty) * (PLACEMENT[cell] ?? 0.85), 0.4, 0.95);
+  }
+  const base = bounded(0.42 + (shooting - 55) * 0.004, 0.28, 0.8);
+  const keeperFactor = keeper !== null ? bounded(1 + (70 - keeper) * 0.015, 0.7, 1.3) : 1;
   return bounded(base * (PLACEMENT[cell] ?? 0.85) * keeperFactor, 0.05, 0.97);
 }
 
@@ -469,16 +471,19 @@ export function shotKeeperRating(shot: TimelineShot, players: Map<string, Manage
  * Utfallet regnes ut likt hos begge managerne: samme kamp, samme minutt og samme to valg
  * gir alltid samme svar, så ingen av dem ser et annet resultat enn den andre.
  *
- * Gjetter keeperen riktig på straffe, er det redning – gjetter han feil, kan han ikke redde,
- * og da avgjør bare skytterens skuddstat om ballen går i mål eller utenfor.
+ * Målet avgjøres i én trekning mot prosenten som står på ruta, så den stemmer. Går skuddet
+ * ikke inn, avgjør keeperens kast om det ble redning: kastet han seg riktig på straffe, er det
+ * redning, ellers deles det etter hvor god keeperen er.
  */
 export function resolveShot(matchId: string, shot: TimelineShot, shooting: number, keeper: number | null, shooterCell: number, keeperCell: number | null): "goal" | "saved" | "missed" {
-  if (shot.kind === "penalty" && keeperZone(shot, keeperCell).includes(shooterCell)) return "saved";
+  // Keeperens valg er med i frøet så skytteren ikke kan regne ut trekningen på forhånd; hvert
+  // utfall er likevel like tilfeldig, så sjansen blir den samme uansett hva keeperen velger.
   const roll = numberFromSeed(`${matchId}:${shot.minute}:${shot.side}:shot:${shooterCell}:${keeperCell ?? "none"}`);
-  // Keeperen på en stor sjanse finnes bare på kamper fra versjon 4; eldre kamper gir aldri redning her.
-  const rated = shot.kind === "chance" && shot.keeperId !== undefined;
+  // Keeperen telte bare fra versjon 4; på eldre kamper gir en stor sjanse aldri redning.
+  const rated = shot.keeperId !== undefined;
   const chance = cellGoalChance(shooting, shot.kind, shooterCell, rated ? keeper : null);
   if (roll < chance) return "goal";
+  if (shot.kind === "penalty" && keeperZone(shot, keeperCell).includes(shooterCell)) return "saved";
   if (!rated) return "missed";
   // Det som ikke går inn, er en redning oftere jo bedre keeperen er.
   const saveShare = bounded(0.55 + ((keeper ?? 60) - shooting) * 0.01, 0.35, 0.8);

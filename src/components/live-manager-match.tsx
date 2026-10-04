@@ -581,7 +581,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
             <div className="grid min-w-0 flex-1 gap-2">
               <GoalGrid
                 options={activeShot.options}
-                chanceFor={iAmShooting && taker ? (cell) => cellGoalChance(shootingOf(taker), activeShot.kind, cell, activeShot.kind === "chance" ? keeperRating : null) : null}
+                chanceFor={iAmShooting && taker ? (cell) => cellGoalChance(shootingOf(taker), activeShot.kind, cell, keeperRating) : null}
                 myCells={myCells}
                 otherCells={otherCells}
                 otherLabel={iAmShooting ? t.match.grid.keeper : t.match.grid.shot}
