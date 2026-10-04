@@ -508,6 +508,12 @@ body:has(.manager-bottom-nav) .audio-fab {
   color: var(--foreground);
   backdrop-filter: blur(8px);
   box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+  text-align: left;
+}
+
+.audio-fab:hover {
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .audio-fab__title {

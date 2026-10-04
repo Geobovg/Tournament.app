@@ -69,7 +69,7 @@ export const market = {
     toStorage: "Zur Aufbewahrung",
     inSquad: "Im Kader",
     duplicate: " · Duplikat",
-    done: "Fertig",
+    done: "Im Verein speichern",
     nextCard: "Nächste Karte",
     openingCard: "Aufschlussreiche Karte",
     openingBanner: "ERÖFFNUNG",

@@ -69,7 +69,7 @@ export const market = {
     toStorage: "للتخزين",
     inSquad: "في فرقة",
     duplicate: " · مكررة",
-    done: "تم",
+    done: "حفظ في النادي",
     nextCard: "البطاقة التالية",
     openingCard: "بطاقة كاشفة",
     openingBanner: "الافتتاح",

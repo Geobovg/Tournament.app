@@ -69,7 +69,7 @@ export const market = {
     toStorage: "Til opbevaring",
     inSquad: "I truppen",
     duplicate: " · duplikat",
-    done: "Færdig",
+    done: "Gem i klubben",
     nextCard: "Næste kort",
     openingCard: "Afslørende kort",
     openingBanner: "ÅBNING",

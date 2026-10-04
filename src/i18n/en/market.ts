@@ -69,7 +69,7 @@ export const market = {
     toStorage: "To storage",
     inSquad: "In squad",
     duplicate: " · duplicate",
-    done: "Done",
+    done: "Save to club",
     nextCard: "Next card",
     openingCard: "Revealing card",
     openingBanner: "OPENING",

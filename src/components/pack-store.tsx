@@ -84,14 +84,14 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
         <h2 className="mt-1 text-3xl font-black">{tp.youGot(pulls.length)}</h2>
         <p className="mt-1 text-sm text-white/70">{tp.bestCard(best)}</p>
       </div>
+      {/* Knappen står øverst og blir liggende når man ruller, så man slipper å bla ned for å gå videre. */}
+      <div className="sticky top-0 z-10 flex justify-center py-1"><button className={`${buttonClass} shadow-lg`} onClick={onClose}>{tp.done}</button></div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {pulls.map((pull) => <div key={pull.card_id} className="grid gap-1">
           <PlayerCardFace player={pull} eager />
           <p className="text-center text-xs text-white/70">{pull.location === "storage" ? tp.toStorage : tp.inSquad}{pull.duplicate ? tp.duplicate : ""}</p>
         </div>)}
       </div>
-      {/* Ingen autoFocus: den ville rullet oppsummeringen ned til knappen og skjult kortene. */}
-      <div className="flex justify-center pb-2"><button className={buttonClass} onClick={onClose}>{tp.done}</button></div>
     </div> : <button type="button" onClick={next} className="absolute inset-0 grid place-items-center focus:outline-none" aria-label={revealed ? tp.nextCard : tp.openingCard}>
       <div className={revealed && walkout ? "pack-shake grid place-items-center" : "grid place-items-center"}>
         {card ? <div className="pack-rays" style={{ "--pack-glow": glowFor(card.overall) } as CSSProperties} /> : null}
