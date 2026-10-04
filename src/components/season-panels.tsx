@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import type { ActionState } from "@/lib/actions";
 import type { Friend } from "@/lib/friends";
 import { createFriendSeasonAction, playAiSeasonMatchAction, playFriendSeasonMatchAction, respondFriendSeasonAction, startFriendSeasonAction } from "@/lib/season-actions";
+import { directPromotionSpots, isRelegation, playoffPosition } from "@/lib/season-rules";
 import type { AiSeason, FriendSeason, SeasonFixture, SeasonTableRow } from "@/lib/seasons";
 import { useT } from "@/i18n/client";
 import { buttonClass, secondaryButtonClass } from "./ui";
@@ -12,11 +13,12 @@ import { buttonClass, secondaryButtonClass } from "./ui";
 const initial: ActionState = {};
 const panelClass = "rounded-2xl border border-white/10 bg-slate-900/75 p-4 sm:p-5";
 
-/** Posisjonsfarge i AI-tabellen: grønn opprykk, rød nedrykk. */
-function zone(position: number, total: number, division: number | null) {
+/** Posisjonsfarge i AI-tabellen: grønn opprykk, blå kvalik, rød nedrykk. */
+function zone(position: number, division: number | null) {
   if (division === null) return position === 1 ? "border-l-lime-300" : "border-l-transparent";
-  if (position <= 3 && division > 1) return "border-l-lime-300";
-  if (position === total && division < 10) return "border-l-rose-400";
+  if (position <= directPromotionSpots(division)) return "border-l-lime-300";
+  if (position === playoffPosition(division)) return "border-l-cyan-300";
+  if (isRelegation(position, division)) return "border-l-rose-400";
   return "border-l-transparent";
 }
 
@@ -26,7 +28,7 @@ export function SeasonTable({ rows, division = null, compact = false }: { rows: 
   return <div className="overflow-hidden rounded-xl border border-white/10">
     <table className="w-full text-sm tabular-nums">
       <thead className="bg-white/5 text-[10px] font-black tracking-widest text-white/45"><tr><th className="py-2 pl-3 text-left">#</th><th className="text-left">{head.club}</th><th>{head.played}</th>{compact ? null : <><th>{head.wins}</th><th>{head.draws}</th><th>{head.losses}</th></>}<th>{head.goalDifference}</th><th className="pr-3">{head.points}</th></tr></thead>
-      <tbody>{rows.map((row) => <tr key={row.participant} className={`border-t border-white/5 border-l-4 ${zone(row.position, rows.length, division)} ${row.isMe ? "bg-lime-300/10 font-black" : ""}`}>
+      <tbody>{rows.map((row) => <tr key={row.participant} className={`border-t border-white/5 border-l-4 ${zone(row.position, division)} ${row.isMe ? "bg-lime-300/10 font-black" : ""}`}>
         <td className="py-2 pl-3">{row.position}</td><td className="max-w-40 truncate">{row.name}</td><td className="text-center">{row.played}</td>
         {compact ? null : <><td className="text-center">{row.wins}</td><td className="text-center">{row.draws}</td><td className="text-center">{row.losses}</td></>}
         <td className="text-center">{row.goalsFor - row.goalsAgainst > 0 ? "+" : ""}{row.goalsFor - row.goalsAgainst}</td><td className="pr-3 text-center font-black">{row.points}</td>
@@ -41,7 +43,7 @@ function FixtureRow({ fixture, action }: { fixture: SeasonFixture; action?: Reac
   const mine = fixture.homeIsMe ? fixture.homeScore : fixture.awayScore; const theirs = fixture.homeIsMe ? fixture.awayScore : fixture.homeScore;
   const result = done && mine !== null && theirs !== null ? (mine > theirs ? "text-lime-300" : mine < theirs ? "text-rose-400" : "text-cyan-300") : "";
   return <li className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm">
-    <span className="w-8 shrink-0 text-xs font-black text-white/40">{t.seasons.fixture.round(fixture.round)}</span>
+    <span className={`w-8 shrink-0 text-xs font-black ${fixture.playoff ? "text-cyan-300" : "text-white/40"}`}>{fixture.playoff ? t.seasons.fixture.playoff : t.seasons.fixture.round(fixture.round)}</span>
     <span className={`min-w-0 flex-1 truncate ${fixture.homeIsMe ? "font-black" : ""}`}>{fixture.homeName}</span>
     <span className={`shrink-0 font-black tabular-nums ${result}`}>{done ? `${fixture.homeScore} – ${fixture.awayScore}` : fixture.status === "live" ? t.seasons.fixture.live : "–"}</span>
     <span className={`min-w-0 flex-1 truncate text-right ${fixture.awayIsMe ? "font-black" : ""}`}>{fixture.awayName}</span>
@@ -75,10 +77,11 @@ export function AiSeasonHero({ season }: { season: AiSeason }) {
         <p className="text-xs font-black tracking-[.25em] text-lime-300">{t.seasons.ai.eyebrow(season.seasonNumber)}</p>
         <h2 className="mt-1 text-4xl font-black italic tracking-tight sm:text-5xl">{t.seasons.division(season.division)}</h2>
         <div className="mt-4 flex flex-wrap gap-2 text-sm font-bold">
-          <span className="rounded-lg bg-black/35 px-3 py-1.5">{t.seasons.ai.matchOf(Math.min(season.played + 1, 10), 10)}</span>
+          {season.inPlayoff ? <span className="rounded-lg bg-cyan-300/15 px-3 py-1.5 text-cyan-200">{t.seasons.ai.playoffMatch}</span> : <span className="rounded-lg bg-black/35 px-3 py-1.5">{t.seasons.ai.matchOf(Math.min(season.played + 1, 10), 10)}</span>}
           {me ? <span className="rounded-lg bg-black/35 px-3 py-1.5">{t.seasons.ai.place(me.position, me.points)}</span> : null}
-          <span className="rounded-lg bg-black/35 px-3 py-1.5 text-white/60">{t.seasons.ai.topThreeUp}</span>
+          <span className="rounded-lg bg-black/35 px-3 py-1.5 text-white/60">{t.seasons.ai.promotionRule(directPromotionSpots(season.division))}</span>
         </div>
+        {season.inPlayoff ? <p className="mt-3 text-sm text-cyan-100/80">{t.seasons.ai.playoffInfo}</p> : null}
         {season.previous ? <p className="mt-3 text-sm text-white/55">{t.seasons.ai.previous(season.previous.position, season.previous.division)}<b className={season.previous.outcome === "promoted" ? "text-lime-300" : season.previous.outcome === "relegated" ? "text-rose-300" : "text-white/80"}>{t.seasons.outcome[season.previous.outcome]}</b></p> : null}
         <div className="mt-auto pt-6"><PlayAiMatchButton season={season} large /></div>
       </div>
@@ -96,6 +99,7 @@ export function AiSeasonDetails({ season }: { season: AiSeason }) {
     <section className={`${panelClass} grid content-start gap-3`}>
       <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-black tracking-[.22em] text-lime-300">{t.seasons.ai.eyebrow(season.seasonNumber)}</p><h2 className="text-2xl font-black">{t.seasons.division(season.division)}</h2></div><p className="text-xs text-white/50">{t.seasons.ai.legend}</p></div>
       <SeasonTable rows={season.table} division={season.division} />
+      <p className="text-xs text-white/50">{t.seasons.ai.promotionRule(directPromotionSpots(season.division))}{season.division > 1 ? ` · ${t.seasons.ai.playoffInfo}` : ""}</p>
       <p className="text-xs text-white/50">{t.seasons.ai.prizeInfo}</p>
       <PlayAiMatchButton season={season} />
     </section>
