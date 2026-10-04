@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useActionState, useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import type { LastPackOpening, ManagerPack } from "@/lib/career";
+import type { ManagerPack } from "@/lib/career";
 import { openManagerPackAction, type PackActionState, type PackPull } from "@/lib/manager-actions";
 import { useLocale, useT } from "@/i18n/client";
 import { INTL_LOCALES, type Locale } from "@/i18n/locales";
@@ -123,32 +123,16 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
   </div>, document.body);
 }
 
-// Første kort-id i en åpning identifiserer den, siden kortene får nye id-er hver gang.
-const seenKey = "seen-pack-opening";
-const openingId = (pulls: PackPull[]) => pulls[0]?.card_id ?? "";
-function readSeen() { try { return window.localStorage.getItem(seenKey); } catch { return null; } }
-const noSubscription = () => () => {};
-function markSeen(pulls: PackPull[]) { try { window.localStorage.setItem(seenKey, openingId(pulls)); } catch { /* Uten lagring kan samme pakke bli vist igjen, det er ufarlig. */ } }
-
-export function PackStore({ packs, freePacks, budget, blockedByDuplicate, lastOpening }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; blockedByDuplicate: boolean; lastOpening: LastPackOpening | null }) {
+export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; blockedByDuplicate: boolean }) {
   const tp = useT().market.packs;
   const nameOf = (pack: ManagerPack) => tp.name(pack.key, pack.name);
   const [state, action, pending] = useActionState(openManagerPackAction, initial);
   const [openOdds, setOpenOdds] = useState<string | null>(null);
   const [shownAt, setShownAt] = useState<number | null>(null);
-  // Hvis siden ble lastet på nytt midt i et kjøp (f.eks. fordi en ny versjon av appen ble lagt ut),
-  // gikk svaret med kortene tapt. Da spilles den siste pakka av fra databasen, med mindre den er sett.
-  // På serveren er lagringen ukjent, så avspillingen starter først i nettleseren.
-  const seen = useSyncExternalStore(noSubscription, readSeen, () => undefined);
-  const [dismissed, setDismissed] = useState<string | null>(null);
-  const replay = lastOpening && seen !== undefined && seen !== openingId(lastOpening.pulls) && dismissed !== openingId(lastOpening.pulls) ? lastOpening : null;
   // Hvert trekk har sitt eget tidsstempel, så to like pakker etter hverandre
   // starter animasjonen på nytt i stedet for å bli stående.
-  const fresh = state.pulls?.length && state.openedAt && state.openedAt !== shownAt ? state.pulls : null;
-  const showing = fresh ?? replay?.pulls ?? null;
-  const openedPack = packs.find((pack) => pack.key === (fresh ? state.packKey : replay?.packKey));
-  // En pakke som vises rett etter kjøpet, skal ikke spilles av igjen fra databasen.
-  useEffect(() => { if (fresh) markSeen(fresh); }, [fresh]);
+  const showing = state.pulls?.length && state.openedAt && state.openedAt !== shownAt ? state.pulls : null;
+  const openedPack = packs.find((pack) => pack.key === state.packKey);
 
   return <section className={`${cardClass} grid gap-4`}>
     <div className="flex flex-wrap items-end justify-between gap-3">
@@ -201,6 +185,6 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate, lastOp
     </div>
 
     {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
-    {showing ? <PackReveal pulls={showing} packName={openedPack ? nameOf(openedPack) : tp.fallbackName} onClose={() => { if (fresh) { setShownAt(state.openedAt ?? null); setDismissed(openingId(fresh)); } else if (replay) { markSeen(replay.pulls); setDismissed(openingId(replay.pulls)); } }} /> : null}
+    {showing ? <PackReveal pulls={showing} packName={openedPack ? nameOf(openedPack) : tp.fallbackName} onClose={() => setShownAt(state.openedAt ?? null)} /> : null}
   </section>;
 }

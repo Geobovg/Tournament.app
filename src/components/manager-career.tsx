@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { useLocale, useT } from "@/i18n/client";
 import { INTL_LOCALES } from "@/i18n/locales";
 import type { ActionState } from "@/lib/actions";
-import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard, LastPackOpening } from "@/lib/career";
+import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard } from "@/lib/career";
 import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filters";
 import { catalogBuyMaxOverall, quickSellValue, squadCapacity } from "@/lib/manager-limits";
 import { autoPickBestSquadAction, buyCatalogCardAction, loadCatalogClubsAction, loadCatalogPageAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
@@ -363,7 +363,7 @@ function Duplicates({ groups }: { groups: ManagerCard[][] }) {
 
 export type ManagerCareerSection = "squad" | "storage" | "packs" | "catalog";
 
-export function ManagerCareer({ cards, catalogPage = { cards: [], total: 0 }, lineup, packs, listedCardIds, freePacks = {}, budget, section, lastOpening = null }: { cards: ManagerCard[]; catalogPage?: { cards: CatalogCard[]; total: number }; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks?: Record<string, number>; budget: number; section: ManagerCareerSection; lastOpening?: LastPackOpening | null }) {
+export function ManagerCareer({ cards, catalogPage = { cards: [], total: 0 }, lineup, packs, listedCardIds, freePacks = {}, budget, section }: { cards: ManagerCard[]; catalogPage?: { cards: CatalogCard[]; total: number }; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks?: Record<string, number>; budget: number; section: ManagerCareerSection }) {
   const squad = cards.filter((card) => card.location === "squad");
   const storage = cards.filter((card) => card.location === "storage");
   // Et kort som ligger ute for salg teller ikke som duplikat: da er valget allerede tatt.
@@ -378,6 +378,6 @@ export function ManagerCareer({ cards, catalogPage = { cards: [], total: 0 }, li
   }, [cards, listedCardIds]);
   if (section === "squad") return <Squad key={lineup?.updated_at ?? "new-lineup"} cards={squad} lineup={lineup} />;
   if (section === "storage") return <Storage storage={storage} squad={squad} listedCardIds={new Set(listedCardIds)} />;
-  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} lastOpening={lastOpening} /></div>;
+  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} /></div>;
   return <Catalog initialPage={catalogPage} owned={new Set(cards.map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />;
 }
