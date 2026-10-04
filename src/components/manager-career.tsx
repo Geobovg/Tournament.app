@@ -19,6 +19,7 @@ import { playerFlag } from "@/lib/player-nationalities";
 import { playerPhoto } from "@/lib/player-photos";
 import { PitchMarkings, slotPoint } from "./squad-pitch";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useScrollLock } from "./use-scroll-lock";
 
 const initial: ActionState = {};
 const benchCardClass = "w-[96px] sm:w-[118px]";
@@ -113,6 +114,32 @@ function SquadCard({ card, position, active, dimmed = false, dropTarget = false,
   </button>;
 }
 
+type SwapOption = { card: ManagerCard; position: string; blocker: string | null };
+type SwapGroup = { title: string; options: SwapOption[] };
+
+// Menyen som kommer opp når man trykker på en spiller: først «Bytt inn/ut», deretter hvem han skal bytte plass med.
+// Portal til body, siden troppen ligger i et kort med backdrop-blur som ellers ville fanget «fixed».
+function SwapSheet({ card, role, groups, onSwap, onClose }: { card: ManagerCard; role: string; groups: SwapGroup[]; onSwap: (targetId: string) => void; onClose: () => void }) {
+  const text = useT().career.squad;
+  const [choosing, setChoosing] = useState(false);
+  useScrollLock();
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return createPortal(<div className="fixed inset-0 z-[60] flex items-end justify-center overscroll-contain bg-black/70 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="swap-sheet-title" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-2xl border border-white/10 bg-slate-950 text-white shadow-2xl sm:rounded-2xl" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="flex items-center gap-3 border-b border-white/10 p-4"><b className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-amber-300/15 text-xl font-black text-amber-200">{card.overall}</b><div className="min-w-0"><h3 id="swap-sheet-title" className="truncate text-lg font-black">{card.name}</h3><p className="text-xs font-bold tracking-[.18em] text-white/55">{card.position} · {role}</p></div><button type="button" onClick={onClose} className="ml-auto rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-white/10">{text.close}</button></div>
+      {choosing ? <div className="grid gap-4 overflow-y-auto overscroll-contain p-4"><p className="text-sm text-white/70">{text.swapIntro(card.name)}</p>
+        {groups.filter((group) => group.options.length).map((group) => <div key={group.title} className="grid gap-2"><h4 className="text-xs font-black tracking-[.18em] text-cyan-300">{group.title}</h4>
+          {group.options.map(({ card: option, position, blocker }) => <button key={option.id} type="button" disabled={Boolean(blocker)} onClick={() => onSwap(option.id)} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left transition hover:border-cyan-300/60 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"><span className="w-11 shrink-0 rounded bg-white/10 py-1 text-center text-xs font-black">{position}</span><b className="w-7 shrink-0 text-center tabular-nums">{option.overall}</b><span className="min-w-0 flex-1"><span className="block truncate font-semibold">{option.name}</span>{blocker ? <span className="block truncate text-xs text-white/60">{blocker}</span> : null}</span></button>)}
+        </div>)}
+      </div> : <div className="grid gap-3 p-4"><div className="grid grid-cols-3 gap-2 text-center">{Object.entries(card.attributes).slice(0, 6).map(([key, value]) => <div key={key} className="rounded-lg bg-white/8 p-2"><b className="block text-lg">{value}</b><span className="text-[10px] font-bold text-white/45">{key.slice(0, 3).toUpperCase()}</span></div>)}</div><button type="button" autoFocus onClick={() => setChoosing(true)} className={buttonClass}>{text.swapPlayer}</button></div>}
+    </div>
+  </div>, document.body);
+}
+
 function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup | null }) {
   const savedFormation = formationNames.includes(lineup?.formation as Formation) ? lineup!.formation as Formation : "4-3-3";
   const initialLineup = useMemo(() => lineup?.starters.length === 11 && lineup.bench.length === 7 ? { starters: lineup.starters, bench: lineup.bench } : pickBestLineup(cards, savedFormation), [cards, lineup, savedFormation]);
@@ -126,6 +153,9 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   const [ghost, setGhost] = useState<{ id: string; width: number } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  // Klikket som kommer rett etter at et kort er sluppet, skal ikke åpne byttemenyen.
+  const suppressClickRef = useRef(false);
   const [notice, setNotice] = useState("");
   const t = useT(); const text = t.career.squad;
   const [savedSnapshot] = useState(`${savedFormation}|${initialLineup.starters.join(",")}|${initialLineup.bench.join(",")}`);
@@ -137,15 +167,23 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   const snapshot = `${formation}|${starters.join(",")}|${bench.join(",")}`;
   const canSave = starters.length === 11 && bench.length === 7 && snapshot !== savedSnapshot && !pending;
 
+  // Hvorfor to spillere ikke kan bytte plass, eller null. Brukes både av dra-og-slipp og byttemenyen.
+  const swapBlocker = (sourceId: string, targetId: string) => {
+    const source = cardById.get(sourceId); const target = cardById.get(targetId);
+    if (!source || !target) return null;
+    const sourceStarter = starters.indexOf(sourceId); const targetStarter = starters.indexOf(targetId);
+    const slots = formations[formation];
+    if (targetStarter >= 0 && !canPlayPosition(source.position, slots[targetStarter].position)) return text.cannotPlay(source.name, slots[targetStarter].position);
+    if (sourceStarter >= 0 && !canPlayPosition(target.position, slots[sourceStarter].position)) return text.cannotPlay(target.name, slots[sourceStarter].position);
+    return null;
+  };
   const handleDrop = (sourceId: string, targetId: string) => {
     if (!sourceId || sourceId === targetId) return;
-    const source = cardById.get(sourceId); const target = cardById.get(targetId);
-    if (!source || !target) return;
+    if (!cardById.has(sourceId) || !cardById.has(targetId)) return;
     const sourceStarter = starters.indexOf(sourceId); const targetStarter = starters.indexOf(targetId);
     const sourceBench = bench.indexOf(sourceId); const targetBench = bench.indexOf(targetId);
-    const slots = formations[formation];
-    if (targetStarter >= 0 && !canPlayPosition(source.position, slots[targetStarter].position)) { setNotice(text.cannotPlay(source.name, slots[targetStarter].position)); return; }
-    if (sourceStarter >= 0 && targetStarter >= 0 && !canPlayPosition(target.position, slots[sourceStarter].position)) { setNotice(text.cannotPlay(target.name, slots[sourceStarter].position)); return; }
+    const blocker = swapBlocker(sourceId, targetId);
+    if (blocker) { setNotice(blocker); return; }
     const nextStarters = [...starters]; const nextBench = [...bench];
     if (targetStarter >= 0) {
       nextStarters[targetStarter] = sourceId;
@@ -177,14 +215,51 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
     if (!drag.moved) { if (Math.hypot(drag.x - drag.startX, drag.y - drag.startY) < 6) return; drag.moved = true; setGhost({ id: drag.id, width: drag.width }); }
     moveGhost(); setHoverId(cardUnder(drag.x, drag.y, drag.id));
   };
-  const pointerUp: CardPointerHandler = (event) => { const drag = dragRef.current; if (drag?.moved) { const target = cardUnder(event.clientX, event.clientY, drag.id); if (target) handleDrop(drag.id, target); } endDrag(); };
-  const cardProps = (id: string) => ({ active: draggedId === id, dimmed: ghost?.id === id, dropTarget: hoverId === id, selected: selectedId === id, onPointerDown: pointerDown(id), onPointerMove: pointerMove, onPointerUp: pointerUp, onPointerCancel: endDrag, onClick: () => setSelectedId(id) });
+  const pointerUp: CardPointerHandler = (event) => {
+    const drag = dragRef.current;
+    if (drag?.moved) {
+      suppressClickRef.current = true; setTimeout(() => { suppressClickRef.current = false; }, 0);
+      const target = cardUnder(event.clientX, event.clientY, drag.id); if (target) handleDrop(drag.id, target);
+    }
+    endDrag();
+  };
+  // Siden ruller av seg selv når et kort dras mot kanten, så et kort fra benken kan dras helt opp på banen.
+  const dragging = ghost !== null;
+  useEffect(() => {
+    if (!dragging) return;
+    let frame = 0;
+    const step = () => {
+      const drag = dragRef.current;
+      if (drag) {
+        const edge = 80; const speed = drag.y < edge ? -(edge - drag.y) / 4 : drag.y > window.innerHeight - edge ? (drag.y - (window.innerHeight - edge)) / 4 : 0;
+        if (speed) { window.scrollBy(0, speed); setHoverId(cardUnder(drag.x, drag.y, drag.id)); }
+      }
+      frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [dragging]);
+  const openMenu = (id: string) => { if (suppressClickRef.current) return; setSelectedId(id); setMenuId(id); };
+  const cardProps = (id: string) => ({ active: draggedId === id, dimmed: ghost?.id === id, dropTarget: hoverId === id, selected: selectedId === id, onPointerDown: pointerDown(id), onPointerMove: pointerMove, onPointerUp: pointerUp, onPointerCancel: endDrag, onClick: () => openMenu(id) });
   const ghostCard = ghost ? cardById.get(ghost.id) : null;
   const ghostPosition = ghost && starters.includes(ghost.id) ? formations[formation][starters.indexOf(ghost.id)].position : ghostCard?.position;
   const chooseFormation = (nextFormation: Formation) => { setFormation(nextFormation); const next = rearrangeLineup(cards, nextFormation, starters, bench); setStarters(next.starters); setBench(next.bench); setNotice(""); };
   const selected = selectedId ? cardById.get(selectedId) : null;
   const selectedFlag = selected ? playerFlag(selected.slug) : null;
   const visibleSlots = formations[formation];
+  const menuCard = menuId ? cardById.get(menuId) : null;
+  const swapOption = (card: ManagerCard, position: string): SwapOption => ({ card, position, blocker: swapBlocker(menuId!, card.id) });
+  const starterOptions = (exclude: string | null) => starters.flatMap((id, index) => { const card = cardById.get(id); return card && id !== exclude ? [swapOption(card, visibleSlots[index].position)] : []; });
+  const benchOptions = (exclude: string | null) => bench.flatMap((id) => { const card = cardById.get(id); return card && id !== exclude ? [swapOption(card, card.position)] : []; });
+  const reserveOptions = (exclude: string | null) => reserves.filter((card) => card.id !== exclude).map((card) => swapOption(card, card.position));
+  // Startspillere bytter helst med benken, benk og reserver helst med elleveren. Benk mot benk gir ingen endring og vises ikke.
+  const menuRole = !menuId ? "" : starters.includes(menuId) ? text.starters : bench.includes(menuId) ? text.bench : text.reserves;
+  const menuGroups: SwapGroup[] = !menuId ? [] : starters.includes(menuId)
+    ? [{ title: text.bench, options: benchOptions(menuId) }, { title: text.reserves, options: reserveOptions(menuId) }, { title: text.starters, options: starterOptions(menuId) }]
+    : bench.includes(menuId)
+      ? [{ title: text.starters, options: starterOptions(menuId) }, { title: text.reserves, options: reserveOptions(menuId) }]
+      : [{ title: text.starters, options: starterOptions(menuId) }, { title: text.bench, options: benchOptions(menuId) }];
+  const closeMenu = () => setMenuId(null);
   return <section className={`${cardClass} grid gap-5 overflow-hidden`}><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-[.22em] text-cyan-300">{text.eyebrow}</p><h2 className="mt-1 text-2xl font-black">{text.heading}</h2><p className="mt-1 text-sm text-muted">{text.intro}</p></div><span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{cards.length} / {squadCapacity}</span></div>
     <form action={action} className="grid gap-4"><input type="hidden" name="formation" value={formation} />{starters.map((id) => <input key={`starter-${id}`} type="hidden" name="starter_ids" value={id} />)}{bench.map((id) => <input key={`bench-${id}`} type="hidden" name="bench_ids" value={id} />)}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3"><label className="text-sm font-semibold text-white/75">{text.formation}<select value={formation} onChange={(event) => chooseFormation(event.target.value as Formation)} className="ml-2 bg-slate-900 text-sm"><>{formationNames.map((name) => <option key={name}>{name}</option>)}</></select></label><button type="submit" formAction={autoAction} className={secondaryButtonClass} disabled={autoPending}>{autoPending ? text.pickingBest : text.pickBest}</button><span className="ml-auto text-xs text-white/50">{text.counts(starters.length, bench.length)}</span></div>
@@ -197,6 +272,7 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
       <div className="flex flex-wrap items-center gap-3"><button className={buttonClass} disabled={!canSave}>{pending ? text.saving : text.save}</button>{!canSave && !pending ? <span className="text-xs text-muted">{starters.length !== 11 || bench.length !== 7 ? text.needFullLineup : text.noChanges}</span> : null}{notice ? <span className="text-sm text-cyan-300">{notice}</span> : null}{autoState.error ? <p className="text-sm text-danger">{autoState.error}</p> : null}{state.error ? <p className="text-sm text-danger">{state.error}</p> : state.ok ? <p className="text-sm text-success">{text.saved}</p> : null}</div>
     </form>
     {/* Kortet som følger pekeren. Portal til body, så det ikke klippes av banen (overflow-hidden) når det dras ned til benken. */}
+    {menuCard ? <SwapSheet key={menuCard.id} card={menuCard} role={menuRole} groups={menuGroups} onSwap={(targetId) => { handleDrop(menuCard.id, targetId); setMenuId(null); }} onClose={closeMenu} /> : null}
     {ghost && ghostCard ? createPortal(<div ref={(element) => { ghostRef.current = element; moveGhost(); }} aria-hidden className="pointer-events-none fixed left-0 top-0 z-50" style={{ width: ghost.width }}><div className="rotate-3 scale-110 drop-shadow-[0_18px_24px_rgba(0,0,0,.55)]"><SquadCard card={ghostCard} position={ghostPosition ?? ghostCard.position} active selected={false} /></div></div>, document.body) : null}
   </section>;
 }
@@ -222,6 +298,8 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
   const [moveState, moveAction, movePending] = useActionState(moveManagerCardAction, initial);
   const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
   const roomInSquad = squad.length < squadCapacity;
+  // Maks ett kort av hver spiller i troppen, så et lagerkort av en spiller som allerede er der kan ikke flyttes inn.
+  const squadCatalogIds = new Set(squad.map((card) => card.catalog_id));
   const t = useT(); const text = t.career.storage; const filterText = t.career.filters; const clubName = t.career.clubName;
   const locale = useLocale(); const intl = INTL_LOCALES[locale];
   const message = moveState.error ?? swapState.error;
@@ -248,7 +326,8 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
     {cards.length ? <div className="grid gap-2">{cards.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
       <div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold">{card.overall}</div>
       <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position} · {clubName(card.club)}</span></div>
-      {roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>{text.moveToSquad}</button></form>
+      {card.catalog_id && squadCatalogIds.has(card.catalog_id) ? <span className="text-xs text-muted">{text.alreadyInSquad}</span>
+        : roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>{text.moveToSquad}</button></form>
         : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={text.swapWith(card.name)} defaultValue="">{<option value="" disabled>{text.swapWithPlaceholder}</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>{text.swap}</button></form>}
       {card.tradable && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">{text.listed}</span> : <QuickSellButton card={card} value={card.value} /> : null}
     </div>)}</div> : storage.length ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.empty}</p>}

@@ -31,6 +31,7 @@ export const dbErrors = {
   benchExactlySeven: "Ne servono esattamente 7 in panchina",
   tooManyMessages: "Stai inviando troppi messaggi. Prenditi una pausa prima di scrivere di nuovo.",
   lineupMustBeInSquad: "Il tuo XI titolare e la tua panchina devono essere nella tua squadra",
+  playerAlreadyInSquad: "Hai già questo giocatore nella tua squadra",
   playerPickedOnce: "Un giocatore può essere scelto solo una volta",
   managerProfileNotFound: "Profilo manager non trovato",
   notEnoughBudget: "Budget del manager insufficiente",

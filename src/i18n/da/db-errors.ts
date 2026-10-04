@@ -31,6 +31,7 @@ export const dbErrors = {
   benchExactlySeven: "Du skal bruge præcis 7 på bænken",
   tooManyMessages: "Du sender for mange beskeder. Tag en pause, før du skriver igen.",
   lineupMustBeInSquad: "Dit start XI og bænk skal være i dit hold",
+  playerAlreadyInSquad: "Du har allerede denne spiller i dit hold",
   playerPickedOnce: "En spiller kan kun vælges én gang",
   managerProfileNotFound: "Managerprofil blev ikke fundet",
   notEnoughBudget: "Ikke nok managerbudget",

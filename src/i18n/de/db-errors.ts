@@ -31,6 +31,7 @@ export const dbErrors = {
   benchExactlySeven: "Sie benötigen genau 7 auf der Bank",
   tooManyMessages: "Sie senden zu viele Nachrichten. Machen Sie eine Pause, bevor Sie wieder schreiben.",
   lineupMustBeInSquad: "Ihre Startelf und Ersatzbank müssen in Ihrem Kader sein",
+  playerAlreadyInSquad: "Sie haben diesen Spieler bereits in Ihrem Kader",
   playerPickedOnce: "Ein Spieler kann nur einmal ausgewählt werden",
   managerProfileNotFound: "Managerprofil nicht gefunden",
   notEnoughBudget: "Nicht genügend Managerbudget",

@@ -532,6 +532,8 @@ body:has(.manager-bottom-nav) .audio-fab {
   display: grid;
   place-items: center;
   padding: 1rem;
+  overflow: hidden;
+  overscroll-behavior: contain;
   background:
     radial-gradient(circle at 50% 45%, rgba(24, 48, 32, 0.9) 0, rgba(3, 7, 5, 0.97) 60%),
     rgba(2, 5, 3, 0.98);

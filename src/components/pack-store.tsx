@@ -1,12 +1,14 @@
 "use client";
 
 import { useActionState, useEffect, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import type { ManagerPack } from "@/lib/career";
 import { openManagerPackAction, type PackActionState, type PackPull } from "@/lib/manager-actions";
 import { useLocale, useT } from "@/i18n/client";
 import { INTL_LOCALES, type Locale } from "@/i18n/locales";
 import { PlayerCardFace } from "./player-card-face";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
+import { useScrollLock } from "./use-scroll-lock";
 
 const initial: PackActionState = {};
 // Grensa for det store trekket. Alt herfra og opp får walkout slik som i FIFA.
@@ -71,8 +73,11 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
   const next = () => { if (revealed) setPhase((current) => ({ index: current.index + 1, revealed: false })); };
   const done = index >= pulls.length;
   const best = pulls.reduce((top, pull) => Math.max(top, pull.overall), 0);
+  useScrollLock();
 
-  return <div className="pack-stage" role="dialog" aria-modal="true" aria-label={tp.opening(packName)}>
+  // Portal til body: butikken ligger i et kort med backdrop-blur, og da ville «fixed» blitt
+  // regnet fra kortet i stedet for skjermen, så man måtte bla opp for å se pakka.
+  return createPortal(<div className="pack-stage" role="dialog" aria-modal="true" aria-label={tp.opening(packName)}>
     {/* Alle kortene i pakka tegnes usynlig med en gang, så bilde, flagg og klubbmerke
         lastes ned mens pakka ryker opp og ligger klare når hvert kort snus. */}
     {done ? null : <div aria-hidden className="pointer-events-none invisible absolute left-0 top-0 w-72 overflow-hidden">
@@ -115,7 +120,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
         </div> : null}
       </div>
     </button>}
-  </div>;
+  </div>, document.body);
 }
 
 export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; blockedByDuplicate: boolean }) {

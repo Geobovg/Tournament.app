@@ -92,9 +92,15 @@ export async function autoPickBestSquadAction(_prev: ActionState, formData: Form
   const formation = String(formData.get("formation") ?? "4-3-3") as Formation;
   if (!formationNames.includes(formation)) return { error: (await getT()).career.errors.invalidFormation };
   const db = supabaseAdmin();
-  const { data: cards, error: cardsError } = await db.from("manager_cards").select("id, position, overall").eq("owner_id", user.id);
+  const { data: cards, error: cardsError } = await db.from("manager_cards").select("id, catalog_id, position, overall, location").eq("owner_id", user.id);
   if (cardsError) return { error: await dbErrorMessage(cardsError) };
-  const best = pickBestSquad(cards ?? [], formation, squadCapacity);
+  // Bare ett kort per spiller kan være i troppen. Har man flere, velges det som allerede ligger der.
+  const oneCopyEach = new Map<string, NonNullable<typeof cards>[number]>();
+  for (const card of [...(cards ?? [])].sort((a, b) => Number(b.location === "squad") - Number(a.location === "squad"))) {
+    const key = card.catalog_id ?? card.id;
+    if (!oneCopyEach.has(key)) oneCopyEach.set(key, card);
+  }
+  const best = pickBestSquad([...oneCopyEach.values()], formation, squadCapacity);
   if (best.starters.length !== 11 || best.bench.length !== 7) return { error: (await getT()).career.errors.notEnoughCards };
   const { error } = await db.rpc("auto_pick_manager_squad", { target_user: user.id, next_formation: formation, next_squad: best.squad, next_starters: best.starters, next_bench: best.bench });
   if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };

@@ -57,6 +57,7 @@ export const DB_ERROR_RULES: DbErrorRule[] = [
     message: (t) => t.dbErrors.tooManyMessages,
   },
   { pattern: /^Elleveren og benken må ligge i troppen$/, message: (t) => t.dbErrors.lineupMustBeInSquad },
+  { pattern: /^Du har allerede denne spilleren i troppen$/, message: (t) => t.dbErrors.playerAlreadyInSquad },
   { pattern: /^En spiller kan bare velges én gang$/, message: (t) => t.dbErrors.playerPickedOnce },
   { pattern: /^Fant ikke managerprofilen$/, message: (t) => t.dbErrors.managerProfileNotFound },
   { pattern: /^Ikke nok managerbudsjett$/, message: (t) => t.dbErrors.notEnoughBudget },

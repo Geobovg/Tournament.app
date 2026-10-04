@@ -31,6 +31,7 @@ export const dbErrors = {
   benchExactlySeven: "Du behöver exakt 7 på bänken",
   tooManyMessages: "Du skickar för många meddelanden. Ta en paus innan du skriver igen.",
   lineupMustBeInSquad: "Ditt startelva och bänk måste vara med i din trupp",
+  playerAlreadyInSquad: "Du har redan den här spelaren i din trupp",
   playerPickedOnce: "En spelare kan bara väljas en gång",
   managerProfileNotFound: "Det gick inte att hitta chefsprofilen",
   notEnoughBudget: "Inte tillräcklig chefsbudget",
