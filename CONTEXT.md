@@ -17,7 +17,7 @@ En serie ekte EA FC- eller NHL-kamper som venner spiller på selve spillkonsolle
 _Avoid_: Karriere, Manager-turnering
 
 **Sesong**:
-En avgrenset periode i Managerkarrieren med en tabell og et sluttresultat/premie. Finnes i to varianter, se **AI-sesong** og **Vennesesong**. Erstatter dagens løse enkeltkamper uten sammenheng.
+En avgrenset periode i Managerkarrieren med en tabell og et sluttresultat/premie. Finnes i to varianter, se **AI-sesong** og **Vennesesong**.
 _Avoid_: Liga (brukes ikke som eget begrep ennå), Karriere
 
 **AI-sesong**:
@@ -29,8 +29,12 @@ En sesong der tabellen består av deg og venner som spiller managerkarrieren sam
 _Avoid_: Liga, Turnering (Turnering er noe annet, se over)
 
 **Divisjon**:
-Et av 10 vanskelighetsnivåer i AI-sesongen (Divisjon 10 lavest, Divisjon 1 høyest), der AI-troppenes samlede rating skaleres opp jo høyere divisjon. Topp 3 i tabellen etter en AI-sesong rykker opp én divisjon, sist rykker ned. Belønningen for opprykk øker jo høyere divisjonen du rykker opp til er.
+Et av 10 vanskelighetsnivåer i AI-sesongen (Divisjon 10 lavest, Divisjon 1 høyest), der AI-troppenes samlede rating skaleres opp jo høyere divisjon. Etter en AI-sesong rykker topp 2 opp i divisjon 10–7 og bare vinneren i divisjon 6–2; plassen rett under spiller **kvalik**. De to nederste rykker ned, unntatt i divisjon 10. Belønningen for opprykk øker jo høyere divisjonen du rykker opp til er.
 _Avoid_: Nivå (brukes om klubbnivå/XP, som er noe annet), Liga
+
+**Kvalik**:
+Én ekstra kamp etter en AI-sesong for den som havner rett under opprykksplassene, mot en klubb fra divisjonen over. Kampen må ha en vinner, og bare seier gir opprykk. Den teller ikke i tabellen.
+_Avoid_: Playoff, Omspill
 
 
 **SBC**:
