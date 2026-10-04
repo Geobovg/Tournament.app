@@ -112,6 +112,29 @@ export const match = {
     backButton: "Takaisin manageriuraan",
     resultSaved: "Tulos, W/D/L ja palkinto tallennetaan.",
   },
+  knockout: {
+    status: {
+      extraTime: "Jatkoaika",
+      extraHalftime: "Tauko · 105′",
+      shootout: "Rangaistuspotkukilpailu",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Tasan 90 min jälkeen – jatkoaika ${seconds} s päästä`,
+      extraFirst: "Jatkoajan 1. puoliaika",
+      extraHalftime: (seconds: number) => `Jatkoajan tauko · ${seconds} s`,
+      extraSecond: "Jatkoajan 2. puoliaika",
+      shootoutBreak: (seconds: number) => `Tasan 120 min jälkeen – rangaistuspotkut ${seconds} s päästä`,
+    },
+    shootout: {
+      title: "RANGAISTUSPOTKUKILPAILU",
+      stepsUp: (name: string) => `${name} astuu esiin …`,
+      scored: "MAALI",
+      missed: "OHI",
+      result: (home: number, away: number) => `Rangaistuspotkut ${home}–${away}`,
+      afterExtraTime: "jatkoajalla",
+      wonOnPenalties: (name: string) => `${name} voitti rangaistuspotkuilla`,
+    },
+  },
   history: {
     eyebrow: "URAHISTORIA",
     title: "Viimeaikaiset manageriottelut",

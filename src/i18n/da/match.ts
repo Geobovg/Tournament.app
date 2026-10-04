@@ -112,6 +112,29 @@ export const match = {
     backButton: "Tilbage til lederkarriere",
     resultSaved: "Resultatet, W/D/L og belønning gemmes.",
   },
+  knockout: {
+    status: {
+      extraTime: "Forlænget spilletid",
+      extraHalftime: "Pause · 105′",
+      shootout: "Straffesparkskonkurrence",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Lige efter 90 min – forlænget spilletid om ${seconds} sek`,
+      extraFirst: "Forlænget, 1. halvleg",
+      extraHalftime: (seconds: number) => `Pause i forlænget spilletid · ${seconds} sek`,
+      extraSecond: "Forlænget, 2. halvleg",
+      shootoutBreak: (seconds: number) => `Lige efter 120 min – straffespark om ${seconds} sek`,
+    },
+    shootout: {
+      title: "STRAFFESPARKSKONKURRENCE",
+      stepsUp: (name: string) => `${name} træder frem …`,
+      scored: "MÅL",
+      missed: "FORBI",
+      result: (home: number, away: number) => `Straffespark ${home}–${away}`,
+      afterExtraTime: "e.forl.",
+      wonOnPenalties: (name: string) => `${name} vandt på straffespark`,
+    },
+  },
   history: {
     eyebrow: "KARRIEREHISTORIE",
     title: "Seneste managerkampe",

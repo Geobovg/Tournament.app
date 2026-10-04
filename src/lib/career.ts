@@ -185,7 +185,7 @@ export async function listTransferMarket(): Promise<MarketListing[]> {
 export type ManagerMatchHistory = { id: string; opponentName: string; result: "win" | "draw" | "loss"; myScore: number; opponentScore: number; managerBudget: number; completedAt: string | null };
 export async function listManagerMatchHistory(userId: string): Promise<ManagerMatchHistory[]> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("career_matches").select("id, home_user_id, away_user_id, away_ai_name, home_score, away_score, completed_at").eq("mode", "manager").eq("status", "completed").or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).order("completed_at", { ascending: false }).limit(8);
+  const { data, error } = await db.from("career_matches").select("id, home_user_id, away_user_id, away_ai_name, home_score, away_score, home_penalties, away_penalties, completed_at").eq("mode", "manager").eq("status", "completed").or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`).order("completed_at", { ascending: false }).limit(8);
   if (error) throw new Error(error.message);
   const matches = data ?? [];
   const opponentIds = [...new Set(matches.map((match) => match.home_user_id === userId ? match.away_user_id : match.home_user_id).filter((id): id is string => Boolean(id)))];
@@ -197,7 +197,11 @@ export async function listManagerMatchHistory(userId: string): Promise<ManagerMa
     const home = match.home_user_id === userId;
     const myScore = home ? match.home_score : match.away_score;
     const opponentScore = home ? match.away_score : match.home_score;
-    const result = myScore === opponentScore ? "draw" : myScore > opponentScore ? "win" : "loss";
+    // En utslagskamp som står likt etter 120′ er avgjort på straffer, og teller som seier eller tap.
+    const myPenalties = home ? match.home_penalties : match.away_penalties;
+    const opponentPenalties = home ? match.away_penalties : match.home_penalties;
+    const decidedOnPenalties = myScore === opponentScore && myPenalties !== null && opponentPenalties !== null && myPenalties !== opponentPenalties;
+    const result = decidedOnPenalties ? (myPenalties > opponentPenalties ? "win" : "loss") : myScore === opponentScore ? "draw" : myScore > opponentScore ? "win" : "loss";
     const opponentId = home ? match.away_user_id : match.home_user_id;
     return { id: match.id, opponentName: opponentId ? names.get(opponentId) ?? fallback.friend : match.away_ai_name ?? fallback.aiClub, result, myScore, opponentScore, managerBudget: result === "win" ? 5 : result === "draw" ? 2 : 0, completedAt: match.completed_at };
   });

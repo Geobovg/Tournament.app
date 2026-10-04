@@ -112,6 +112,29 @@ export const match = {
     backButton: "返回经理职业生涯",
     resultSaved: "结果、W/D/L 和奖励均被保存。",
   },
+  knockout: {
+    status: {
+      extraTime: "加时赛",
+      extraHalftime: "中场休息 · 105′",
+      shootout: "点球大战",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `90分钟战平 – ${seconds}秒后进入加时赛`,
+      extraFirst: "加时赛上半场",
+      extraHalftime: (seconds: number) => `加时赛中场休息 · ${seconds}秒`,
+      extraSecond: "加时赛下半场",
+      shootoutBreak: (seconds: number) => `120分钟战平 – ${seconds}秒后进行点球大战`,
+    },
+    shootout: {
+      title: "点球大战",
+      stepsUp: (name: string) => `${name} 走上点球点……`,
+      scored: "进球",
+      missed: "未进",
+      result: (home: number, away: number) => `点球 ${home}–${away}`,
+      afterExtraTime: "加时",
+      wonOnPenalties: (name: string) => `${name} 点球获胜`,
+    },
+  },
   history: {
     eyebrow: "职业经历",
     title: "最近的主教练比赛",

@@ -112,6 +112,29 @@ export const match = {
     backButton: "Volver a la carrera de gerente",
     resultSaved: "Se guardan el resultado, W/D/L y la recompensa.",
   },
+  knockout: {
+    status: {
+      extraTime: "Prórroga",
+      extraHalftime: "Descanso · 105′",
+      shootout: "Tanda de penaltis",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Empate tras 90 min – prórroga en ${seconds} s`,
+      extraFirst: "Prórroga, primera parte",
+      extraHalftime: (seconds: number) => `Descanso de la prórroga · ${seconds} s`,
+      extraSecond: "Prórroga, segunda parte",
+      shootoutBreak: (seconds: number) => `Empate tras 120 min – penaltis en ${seconds} s`,
+    },
+    shootout: {
+      title: "TANDA DE PENALTIS",
+      stepsUp: (name: string) => `${name} se prepara …`,
+      scored: "GOL",
+      missed: "FALLO",
+      result: (home: number, away: number) => `Penaltis ${home}–${away}`,
+      afterExtraTime: "tras prórroga",
+      wonOnPenalties: (name: string) => `${name} ganó en los penaltis`,
+    },
+  },
   history: {
     eyebrow: "HISTORIA DE CARRERA",
     title: "Partidos recientes de entrenador",

@@ -112,6 +112,29 @@ export const match = {
     backButton: "Zurück zur Managerkarriere",
     resultSaved: "Ergebnis, W/D/L und Belohnung werden gespeichert.",
   },
+  knockout: {
+    status: {
+      extraTime: "Verlängerung",
+      extraHalftime: "Pause · 105′",
+      shootout: "Elfmeterschießen",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `Unentschieden nach 90 Min. – Verlängerung in ${seconds} s`,
+      extraFirst: "Verlängerung, erste Hälfte",
+      extraHalftime: (seconds: number) => `Pause in der Verlängerung · ${seconds} s`,
+      extraSecond: "Verlängerung, zweite Hälfte",
+      shootoutBreak: (seconds: number) => `Unentschieden nach 120 Min. – Elfmeterschießen in ${seconds} s`,
+    },
+    shootout: {
+      title: "ELFMETERSCHIESSEN",
+      stepsUp: (name: string) => `${name} tritt an …`,
+      scored: "TOR",
+      missed: "VERSCHOSSEN",
+      result: (home: number, away: number) => `Elfmeter ${home}–${away}`,
+      afterExtraTime: "n.V.",
+      wonOnPenalties: (name: string) => `${name} gewann im Elfmeterschießen`,
+    },
+  },
   history: {
     eyebrow: "KARRIEREGESCHICHTE",
     title: "Aktuelle Managerspiele",

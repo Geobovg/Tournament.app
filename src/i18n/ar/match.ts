@@ -112,6 +112,29 @@ export const match = {
     backButton: "العودة إلى مهنة المدير",
     resultSaved: "يتم حفظ النتيجة، W/D/L والمكافأة.",
   },
+  knockout: {
+    status: {
+      extraTime: "الأشواط الإضافية",
+      extraHalftime: "استراحة · 105′",
+      shootout: "ركلات الترجيح",
+    },
+    phase: {
+      extraBreak: (seconds: number) => `التعادل بعد 90 دقيقة – الأشواط الإضافية بعد ${seconds} ث`,
+      extraFirst: "الشوط الإضافي الأول",
+      extraHalftime: (seconds: number) => `استراحة الأشواط الإضافية · ${seconds} ث`,
+      extraSecond: "الشوط الإضافي الثاني",
+      shootoutBreak: (seconds: number) => `التعادل بعد 120 دقيقة – ركلات الترجيح بعد ${seconds} ث`,
+    },
+    shootout: {
+      title: "ركلات الترجيح",
+      stepsUp: (name: string) => `${name} يتقدم …`,
+      scored: "هدف",
+      missed: "ضائعة",
+      result: (home: number, away: number) => `ركلات الترجيح ${home}–${away}`,
+      afterExtraTime: "بعد الأشواط الإضافية",
+      wonOnPenalties: (name: string) => `${name} فاز بركلات الترجيح`,
+    },
+  },
   history: {
     eyebrow: "التاريخ الوظيفي",
     title: "آخر مباريات المدير الفني",

@@ -11,7 +11,11 @@ export type ManagerPlayerSnapshot = {
   shooting?: number | null;
 };
 export type ManagerTeamSnapshot = { userId: string; formation: string; starters: ManagerPlayerSnapshot[]; bench: ManagerPlayerSnapshot[] };
-export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot };
+/**
+ * `knockout` settes på kamper som må ha en vinner (kvalik til opprykk): står det likt etter 90′,
+ * spilles ekstraomganger, og står det fortsatt likt etter 120′, avgjøres kampen på straffer.
+ */
+export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot; knockout?: boolean };
 /**
  * Kamper som startes nå får versjon 4: angrep mot forsvar og avslutter mot keeper. Eldre kamper
  * beholder den gamle modellen, ellers ville et bytte midt i en pågående kamp skrevet om det som
@@ -32,7 +36,12 @@ export type ShotKind = "penalty" | "chance";
  */
 export type TimelineShot = { type: "shot"; minute: number; side: MatchSide; kind: ShotKind; takerId: string; taker: string; options: number[]; keeperId?: string | null; reach?: number };
 export type TimelineEvent = TimelineGoal | TimelineCard | TimelineChance | ManagerSubstitutionEvent | TimelineShot;
-export type ManagerMatchEvent = ManagerKickoffEvent | TimelineEvent | ManagerFullTimeEvent;
+/**
+ * Ett spark i straffekonkurransen. Den simuleres ferdig ved avspark – ingen velger noe – og
+ * listen slutter på sparket som avgjør, så den kan telles rett fram av både visningen og databasen.
+ */
+export type ShootoutKick = { type: "shootout_kick"; order: number; round: number; side: MatchSide; takerId: string; taker: string; keeper: string | null; scored: boolean };
+export type ManagerMatchEvent = ManagerKickoffEvent | TimelineEvent | ManagerFullTimeEvent | ShootoutKick;
 
 /** Raden fra career_match_shots: hva de to faktisk valgte, og hvordan det gikk. */
 export type ShotResult = { minute: number; kind: ShotKind; side: MatchSide; shooterCell: number | null; keeperCell: number | null; outcome: "goal" | "saved" | "missed" | null };
@@ -62,17 +71,43 @@ export const SHOT_CHOICE_MS = 6_000;
 export const SHOT_REVEAL_MS = 4_000;
 export const SHOT_MS = SHOT_CHOICE_MS + SHOT_REVEAL_MS;
 
-export type MatchPhase = "first_half" | "halftime" | "second_half" | "substitutions" | "shot" | "full_time";
-export type MatchClock = { phase: MatchPhase; minute: number; remainingMs: number; shotMinute: number | null; shotElapsedMs: number };
+/** Ekstraomgangene går i samme tempo som resten av kampen, med en kort pust før og midt i. */
+export const EXTRA_BREAK_MS = 5_000;
+export const EXTRA_HALFTIME_MINUTE = 105;
+export const EXTRA_HALFTIME_MS = 3_000;
+export const EXTRA_TIME_END = 120;
+/** Før straffekonkurransen, og deretter tre sekunder per spark: tilløp, så utfallet. */
+export const SHOOTOUT_BREAK_MS = 4_000;
+export const KICK_MS = 3_000;
+export const KICK_REVEAL_AFTER_MS = 1_500;
+
+export type MatchPhase = "first_half" | "halftime" | "second_half" | "substitutions" | "shot" | "extra_break" | "extra_first" | "extra_halftime" | "extra_second" | "shootout_break" | "shootout" | "full_time";
+/** `kickIndex` er sparket som tas akkurat nå (0-basert) og `kickElapsedMs` hvor langt det har kommet. */
+export type MatchClock = { phase: MatchPhase; minute: number; remainingMs: number; shotMinute: number | null; shotElapsedMs: number; kickIndex: number; kickElapsedMs: number };
+/** Hvor langt kampen går utover 90′: ekstraomganger, og i så fall hvor mange straffespark. */
+export type MatchExtension = { extraTime: boolean; kicks: number };
+export const NO_EXTENSION: MatchExtension = { extraTime: false, kicks: 0 };
 
 type Stoppage = { minute: number; ms: number; phase: MatchPhase };
 
-function stoppagesFor(shotMinutes: number[]): Stoppage[] {
+function stoppagesFor(shotMinutes: number[], extension: MatchExtension): Stoppage[] {
   return [
     { minute: HALF_MINUTES, ms: HALFTIME_MS, phase: "halftime" as const },
     { minute: SUB_WINDOW_MINUTE, ms: SUB_WINDOW_MS, phase: "substitutions" as const },
     ...shotMinutes.map((minute) => ({ minute, ms: SHOT_MS, phase: "shot" as const })),
+    ...(extension.extraTime
+      ? [
+          { minute: 90, ms: EXTRA_BREAK_MS, phase: "extra_break" as const },
+          { minute: EXTRA_HALFTIME_MINUTE, ms: EXTRA_HALFTIME_MS, phase: "extra_halftime" as const },
+        ]
+      : []),
   ].sort((first, second) => first.minute - second.minute);
+}
+
+function runningPhase(minute: number): MatchPhase {
+  if (minute <= HALF_MINUTES) return "first_half";
+  if (minute <= 90) return "second_half";
+  return minute <= EXTRA_HALFTIME_MINUTE ? "extra_first" : "extra_second";
 }
 
 /**
@@ -80,36 +115,49 @@ function stoppagesFor(shotMinutes: number[]): Stoppage[] {
  * minutt for minutt, med stoppene lagt inn på faste steder. Fordi alle stoppene er kjent
  * ved avspark, kommer begge klientene fram til nøyaktig samme minutt uten å snakke sammen.
  */
-export function matchClock(elapsedMs: number, shotMinutes: number[] = []): MatchClock {
-  const stoppages = stoppagesFor(shotMinutes);
+export function matchClock(elapsedMs: number, shotMinutes: number[] = [], extension: MatchExtension = NO_EXTENSION): MatchClock {
+  const stoppages = stoppagesFor(shotMinutes, extension);
+  const lastMinute = extension.extraTime ? EXTRA_TIME_END : 90;
+  const idle = { shotMinute: null, shotElapsedMs: 0, kickIndex: 0, kickElapsedMs: 0 };
   let remaining = Math.max(0, elapsedMs);
 
-  for (let minute = 1; minute <= 90; minute += 1) {
+  for (let minute = 1; minute <= lastMinute; minute += 1) {
     if (remaining < MS_PER_MINUTE) {
-      return { phase: minute <= HALF_MINUTES ? "first_half" : "second_half", minute: minute - 1, remainingMs: msUntilBreak(minute, remaining, stoppages), shotMinute: null, shotElapsedMs: 0 };
+      return { ...idle, phase: runningPhase(minute), minute: minute - 1, remainingMs: msUntilBreak(minute, remaining, stoppages, lastMinute) };
     }
     remaining -= MS_PER_MINUTE;
 
     for (const stoppage of stoppages.filter((entry) => entry.minute === minute)) {
       if (remaining < stoppage.ms) {
-        return { phase: stoppage.phase, minute, remainingMs: stoppage.ms - remaining, shotMinute: stoppage.phase === "shot" ? minute : null, shotElapsedMs: stoppage.phase === "shot" ? remaining : 0 };
+        return { ...idle, phase: stoppage.phase, minute, remainingMs: stoppage.ms - remaining, shotMinute: stoppage.phase === "shot" ? minute : null, shotElapsedMs: stoppage.phase === "shot" ? remaining : 0 };
       }
       remaining -= stoppage.ms;
     }
   }
 
-  return { phase: "full_time", minute: 90, remainingMs: 0, shotMinute: null, shotElapsedMs: 0 };
+  if (extension.kicks > 0) {
+    if (remaining < SHOOTOUT_BREAK_MS) return { ...idle, phase: "shootout_break", minute: lastMinute, remainingMs: SHOOTOUT_BREAK_MS - remaining };
+    remaining -= SHOOTOUT_BREAK_MS;
+    if (remaining < extension.kicks * KICK_MS) {
+      return { ...idle, phase: "shootout", minute: lastMinute, remainingMs: extension.kicks * KICK_MS - remaining, kickIndex: Math.floor(remaining / KICK_MS), kickElapsedMs: remaining % KICK_MS };
+    }
+  }
+
+  return { ...idle, phase: "full_time", minute: lastMinute, remainingMs: 0, kickIndex: extension.kicks };
 }
 
 /** Sekundene som er igjen til neste stopp, slik nedtellingen viser noe meningsfylt. */
-function msUntilBreak(minute: number, intoMinute: number, stoppages: Stoppage[]): number {
-  const next = stoppages.find((entry) => entry.minute >= minute)?.minute ?? 90;
+function msUntilBreak(minute: number, intoMinute: number, stoppages: Stoppage[], lastMinute: number): number {
+  const next = stoppages.find((entry) => entry.minute >= minute)?.minute ?? lastMinute;
   return (next - minute) * MS_PER_MINUTE + (MS_PER_MINUTE - intoMinute);
 }
 
-/** Hele kampens lengde i sanntid, inkludert pause, byttevindu og straffer. */
-export function plannedDurationMs(shotMinutes: number[] = []): number {
-  return 90 * MS_PER_MINUTE + HALFTIME_MS + SUB_WINDOW_MS + shotMinutes.length * SHOT_MS;
+/** Hele kampens lengde i sanntid, inkludert pause, byttevindu, straffer og eventuell forlengelse. */
+export function plannedDurationMs(shotMinutes: number[] = [], extension: MatchExtension = NO_EXTENSION): number {
+  const regular = 90 * MS_PER_MINUTE + HALFTIME_MS + SUB_WINDOW_MS + shotMinutes.length * SHOT_MS;
+  const extra = extension.extraTime ? (EXTRA_TIME_END - 90) * MS_PER_MINUTE + EXTRA_BREAK_MS + EXTRA_HALFTIME_MS : 0;
+  const shootout = extension.kicks > 0 ? SHOOTOUT_BREAK_MS + extension.kicks * KICK_MS : 0;
+  return regular + extra + shootout;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +201,7 @@ export function getManagerSubstitutions(events: unknown): ManagerSubstitutionEve
 function isTimelineGoal(value: unknown): value is TimelineGoal {
   if (!value || typeof value !== "object") return false;
   const goal = value as Record<string, unknown>;
-  return goal.type === "goal" && Number.isInteger(goal.minute) && Number(goal.minute) >= 1 && Number(goal.minute) <= 90 && (goal.side === "home" || goal.side === "away") && typeof goal.scorer === "string";
+  return goal.type === "goal" && Number.isInteger(goal.minute) && Number(goal.minute) >= 1 && Number(goal.minute) <= EXTRA_TIME_END && (goal.side === "home" || goal.side === "away") && typeof goal.scorer === "string";
 }
 
 function isTimelineCard(value: unknown): value is TimelineCard {
@@ -208,10 +256,41 @@ export function getManagerTimeline(events: unknown): TimelineEvent[] {
   return timeline.sort(byMinute);
 }
 
+function isShootoutKick(value: unknown): value is ShootoutKick {
+  if (!value || typeof value !== "object") return false;
+  const kick = value as Record<string, unknown>;
+  return kick.type === "shootout_kick" && Number.isInteger(kick.order) && (kick.side === "home" || kick.side === "away") && typeof kick.taker === "string" && typeof kick.scored === "boolean";
+}
+
+/** Straffekonkurransen i rekkefølge. Tom for alle kamper som ikke er utslagskamper. */
+export function getShootout(events: unknown): ShootoutKick[] {
+  if (!Array.isArray(events)) return [];
+  return events.filter(isShootoutKick).sort((first, second) => first.order - second.order);
+}
+
+export function shootoutScore(kicks: ShootoutKick[]) {
+  return {
+    home: kicks.filter((kick) => kick.side === "home" && kick.scored).length,
+    away: kicks.filter((kick) => kick.side === "away" && kick.scored).length,
+  };
+}
+
+/**
+ * Om kampen går til ekstraomganger og straffer. Det avgjøres av stillingen etter 90′ og 120′,
+ * og databasen bruker nøyaktig samme regel når resultatet lagres.
+ */
+export function matchExtension(events: unknown, shots: ShotResult[]): MatchExtension {
+  if (!getManagerKickoff(events)?.knockout) return NO_EXTENSION;
+  const regular = scoreAtMinute(events, shots, 90);
+  if (regular.home !== regular.away) return NO_EXTENSION;
+  const extra = scoreAtMinute(events, shots, EXTRA_TIME_END);
+  return { extraTime: true, kicks: extra.home === extra.away ? getShootout(events).length : 0 };
+}
+
 export function teamAfterSubstitutions(events: unknown, side: MatchSide): ManagerTeamSnapshot | null {
   const kickoff = getManagerKickoff(events);
   if (!kickoff) return null;
-  return lineupAtMinute(kickoff[side], getManagerSubstitutions(events).filter((event) => event.side === side), 91);
+  return lineupAtMinute(kickoff[side], getManagerSubstitutions(events).filter((event) => event.side === side), EXTRA_TIME_END + 1);
 }
 
 /** Laget slik det så ut i starten av `minute`, altså etter bytter gjort tidligere enn dette minuttet. */
@@ -500,7 +579,9 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
     away: minutesOnPitch(kickoff.away, substitutions.filter((event) => event.side === "away")),
   };
 
-  for (let minute = 1; minute <= 90; minute += 1) {
+  // En utslagskamp planlegges helt til 120′. Ekstraomgangene vises og telles bare hvis det står likt etter 90′.
+  const lastMinute = kickoff.knockout ? EXTRA_TIME_END : 90;
+  for (let minute = 1; minute <= lastMinute; minute += 1) {
     const active = {
       home: lineupAtMinute(kickoff.home, substitutions.filter((event) => event.side === "home"), minute).starters.filter((player) => !sentOff.has(player.id)),
       away: lineupAtMinute(kickoff.away, substitutions.filter((event) => event.side === "away"), minute).starters.filter((player) => !sentOff.has(player.id)),
@@ -596,7 +677,52 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
     }
   }
 
-  return [kickoff, ...substitutions, ...timeline.sort(byMinute)];
+  const shootout = kickoff.knockout
+    ? planShootout(matchId, {
+        home: lineupAtMinute(kickoff.home, substitutions.filter((event) => event.side === "home"), lastMinute + 1).starters.filter((player) => !sentOff.has(player.id)),
+        away: lineupAtMinute(kickoff.away, substitutions.filter((event) => event.side === "away"), lastMinute + 1).starters.filter((player) => !sentOff.has(player.id)),
+      })
+    : [];
+  return [kickoff, ...substitutions, ...timeline.sort(byMinute), ...shootout];
+}
+
+/** Sjansen for at et spark i straffekonkurransen går inn: skytteren mot keeperen, innenfor et realistisk spenn. */
+export function shootoutKickChance(shooting: number, keeper: number): number {
+  return bounded(0.76 + (shooting - 75) * 0.006 - (keeper - 70) * 0.006, 0.55, 0.92);
+}
+
+/**
+ * Fem spark hver, med hjemmelaget først, og deretter sudden death. Den beste avslutteren tar
+ * det første sparket og keeperen det siste; går runden lenger enn laget har spillere, begynner
+ * rekka på nytt. Konkurransen stopper så snart det ene laget ikke lenger kan ta igjen det andre.
+ */
+function planShootout(matchId: string, active: Record<MatchSide, ManagerPlayerSnapshot[]>): ShootoutKick[] {
+  const order = (players: ManagerPlayerSnapshot[]) =>
+    [...players].sort((first, second) => Number(first.position === "GK") - Number(second.position === "GK") || shootingOf(second) - shootingOf(first) || first.name.localeCompare(second.name));
+  const takers = { home: order(active.home), away: order(active.away) };
+  if (!takers.home.length || !takers.away.length) return [];
+  const keepers = { home: keeperOf(active.home), away: keeperOf(active.away) };
+  const goals = { home: 0, away: 0 };
+  const taken = { home: 0, away: 0 };
+  const kicks: ShootoutKick[] = [];
+
+  for (let round = 1; round <= 30; round += 1) {
+    for (const side of ["home", "away"] as const) {
+      const opponent: MatchSide = side === "home" ? "away" : "home";
+      const taker = takers[side][(round - 1) % takers[side].length];
+      // Etter 20 runder (praktisk talt aldri) avgjøres det, så lista alltid har en vinner.
+      const scored = round > 20 ? side === "home" : numberFromSeed(`${matchId}:shootout:${round}:${side}`) < shootoutKickChance(shootingOf(taker), keepers[opponent].rating);
+      kicks.push({ type: "shootout_kick", order: kicks.length + 1, round, side, takerId: taker.id, taker: taker.name, keeper: keepers[opponent].name, scored });
+      taken[side] += 1;
+      if (scored) goals[side] += 1;
+
+      const decided = round <= 5
+        ? goals.home + (5 - taken.home) < goals.away || goals.away + (5 - taken.away) < goals.home
+        : taken.home === taken.away && goals.home !== goals.away;
+      if (decided) return kicks;
+    }
+  }
+  return kicks;
 }
 
 // ---------------------------------------------------------------------------
