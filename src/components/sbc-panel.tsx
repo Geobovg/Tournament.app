@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { canPlayPosition } from "@/lib/lineup";
-import { autoFill, autoFillPartial, placeCards, requirementStatus, sbcSatisfied, sbcSlots, teamRating, type SbcCard, type SbcChallenge, type SbcRequirement } from "@/lib/sbc";
+import { autoFill, autoFillPartial, placeCards, requirementStatus, sbcSatisfied, sbcSlots, suggestCards, teamRating, type SbcCard, type SbcChallenge, type SbcRequirement } from "@/lib/sbc";
 import { completeSbcAction } from "@/lib/sbc-actions";
 import type { SbcData } from "@/lib/sbc-data";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -127,6 +127,7 @@ function SbcBuilder({ challenge, cards, onBack }: { challenge: SbcChallenge; car
 
   const picking = pickingSlot === null ? null : { index: pickingSlot, position: slots[pickingSlot].position };
   const usedElsewhere = new Set(chosen.filter((card, index) => card && index !== pickingSlot).map((card) => card!.id));
+  const available = cards.filter((card) => !usedElsewhere.has(card.id));
   const slotButton = (index: number) => {
     const card = chosen[index]; const position = slots[index].position;
     return <button key={index} type="button" onClick={() => setPickingSlot(index)} aria-label={card ? card.name : text.emptySlot} className={`h-[5.6rem] w-[4.3rem] shrink-0 rounded-xl transition hover:scale-105 ${card ? "" : "grid content-center justify-items-center border-2 border-dashed border-white/35 bg-black/25 text-white/70"}`}>
@@ -168,7 +169,7 @@ function SbcBuilder({ challenge, cards, onBack }: { challenge: SbcChallenge; car
       </aside>
     </div>
     {confirming ? <ConfirmDialog message={text.confirm(challenge.cardCount, rewardText(t, challenge))} onCancel={() => setConfirming(false)} onConfirm={submit} /> : null}
-    {picking ? <CardPicker position={picking.position} cards={cards.filter((card) => !usedElsewhere.has(card.id))} current={chosen[picking.index]} onClose={() => setPickingSlot(null)} onPick={(card) => { setChosen((prev) => prev.map((slot, index) => (index === picking.index ? card : slot))); setPickingSlot(null); setError(null); setNotice(null); }} /> : null}
+    {picking ? <CardPicker position={picking.position} cards={available} suggestions={suggestCards(available, challenge.requirements, challenge.cardCount, chosen.filter((card, index): card is SbcCard => Boolean(card) && index !== picking.index), picking.position)} current={chosen[picking.index]} onClose={() => setPickingSlot(null)} onPick={(card) => { setChosen((prev) => prev.map((slot, index) => (index === picking.index ? card : slot))); setPickingSlot(null); setError(null); setNotice(null); }} /> : null}
   </div>;
 }
 
@@ -181,7 +182,7 @@ function nationName(locale: string, code: string) {
 type PickerSort = "high" | "low" | "name";
 const selectClass = "min-w-0 rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-xs font-bold";
 
-function CardPicker({ position, cards, current, onPick, onClose }: { position: string | null; cards: SbcCard[]; current: SbcCard | null; onPick: (card: SbcCard | null) => void; onClose: () => void }) {
+function CardPicker({ position, cards, suggestions, current, onPick, onClose }: { position: string | null; cards: SbcCard[]; suggestions: SbcCard[]; current: SbcCard | null; onPick: (card: SbcCard | null) => void; onClose: () => void }) {
   const t = useT(); const text = t.sbc.picker; const locale = useLocale();
   const [search, setSearch] = useState("");
   const [onlyPosition, setOnlyPosition] = useState(Boolean(position));
@@ -201,6 +202,13 @@ function CardPicker({ position, cards, current, onPick, onClose }: { position: s
     .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name, locale) : sort === "high" ? b.overall - a.overall : a.overall - b.overall) || a.name.localeCompare(b.name, locale));
   const filtered = Boolean(league || club || nation || minRating || maxRating);
   const reset = () => { setLeague(""); setClub(""); setNation(""); setMinRating(""); setMaxRating(""); };
+  const showSuggestions = suggestions.length > 0 && !needle && !filtered;
+  const row = (card: SbcCard, suggested: boolean) => <button type="button" onClick={() => onPick(card)} className={`flex w-full items-center gap-3 rounded-lg border p-2.5 text-left hover:border-lime-300/60 ${suggested ? "border-lime-300/40 bg-lime-300/10" : "border-white/10 bg-white/5"}`}>
+    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-lg font-black text-white" style={{ background: `linear-gradient(145deg, ${card.accent}bb, #102b1a)` }}>{card.overall}</span>
+    <span className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="block truncate text-xs text-white/55">{t.career.clubName(card.club)}</span></span>
+    {card.onBench ? <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-950">{text.bench}</span> : null}
+    <span className="text-xs font-black text-white/70">{card.position}</span>
+  </button>;
   return <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={text.title(position)}>
     <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-2xl border border-white/15 bg-[#08101b] shadow-2xl sm:rounded-2xl">
       <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4"><b className="text-lg font-black">{text.title(position)}</b><button type="button" onClick={onClose} className="text-sm font-bold text-white/60 hover:text-white">{text.close}</button></div>
@@ -221,16 +229,13 @@ function CardPicker({ position, cards, current, onPick, onClose }: { position: s
           <span className="ml-auto text-xs font-bold text-white/45">{text.count(list.length)}</span>
         </div>
       </div>
-      <ul className="grid gap-1.5 overflow-y-auto p-3">
-        {list.length === 0 ? <li className="p-4 text-center text-sm text-white/55">{text.empty}</li> : list.map((card) => <li key={card.id}>
-          <button type="button" onClick={() => onPick(card)} className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-2.5 text-left hover:border-lime-300/60">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-lg font-black text-white" style={{ background: `linear-gradient(145deg, ${card.accent}bb, #102b1a)` }}>{card.overall}</span>
-            <span className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="block truncate text-xs text-white/55">{t.career.clubName(card.club)}</span></span>
-            {card.onBench ? <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-950">{text.bench}</span> : null}
-            <span className="text-xs font-black text-white/70">{card.position}</span>
-          </button>
-        </li>)}
-      </ul>
+      <div className="grid gap-1.5 overflow-y-auto p-3">
+        {/* Forslagene vises bare når man ikke har søkt eller filtrert selv. */}
+        {showSuggestions ? <><span className="text-[10px] font-bold tracking-widest text-lime-300">{text.suggestions.toUpperCase()}</span><ul className="grid gap-1.5">{suggestions.map((card) => <li key={card.id}>{row(card, true)}</li>)}</ul><span className="mt-2 text-[10px] font-bold tracking-widest text-white/45">{text.allCards.toUpperCase()}</span></> : null}
+        <ul className="grid gap-1.5">
+          {list.length === 0 ? <li className="p-4 text-center text-sm text-white/55">{text.empty}</li> : list.map((card) => <li key={card.id}>{row(card, false)}</li>)}
+        </ul>
+      </div>
     </div>
   </div>;
 }

@@ -222,6 +222,8 @@ export const career = {
     intro: "Possiedi lo stesso giocatore più di una volta. Elenca una delle carte sul mercato o vendila velocemente qui per il 25% del suo valore. I pacchetti sono bloccati finché non lo fai.",
     copies: (name: string, count: number) => `${name} · ${count} copie`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · acquistato per ${price} MB`,
+    listOnMarket: "Metti sul mercato",
+    cancel: "Annulla",
   },
   errors: {
     bothNeedLineup: "Entrambi gli allenatori hanno bisogno di 11 giocatori validi nell'undici titolare",

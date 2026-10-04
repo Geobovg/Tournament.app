@@ -222,6 +222,8 @@ export const career = {
     intro: "أنت تمتلك نفس اللاعب أكثر من مرة. قم بإدراج إحدى البطاقات في سوق الانتقالات، أو قم ببيعها سريعًا هنا مقابل 25% من قيمتها. الحزم مقفلة حتى تفعل ذلك.",
     copies: (name: string, count: number) => `${name} · ${count} نسخ`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · تم شراؤها مقابل ${price} ميغابايت`,
+    listOnMarket: "اعرض في السوق",
+    cancel: "إلغاء",
   },
   errors: {
     bothNeedLineup: "يحتاج كلا المديرين إلى 11 لاعبًا صالحًا في التشكيلة الأساسية",

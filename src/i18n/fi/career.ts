@@ -222,6 +222,8 @@ export const career = {
     intro: "Omistat saman pelaajan useammin kuin kerran. Listaa yksi korteista Transfer Marketissa tai myy se nopeasti täällä 25 %:lla sen arvosta. Pakkaukset ovat lukittuina, kunnes teet sen.",
     copies: (name: string, count: number) => `${name} · ${count} kopiota`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · ostettu hintaan ${price} Mt`,
+    listOnMarket: "Laita myyntiin markkinoille",
+    cancel: "Peruuta",
   },
   errors: {
     bothNeedLineup: "Molemmat managerit tarvitsevat 11 kelvollista pelaajaa aloitussarjaansa",

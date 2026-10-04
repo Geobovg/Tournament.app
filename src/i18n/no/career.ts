@@ -227,6 +227,8 @@ export const career: CareerDict = {
     intro: "Du eier samme spiller flere ganger. Legg ett av kortene ut på overgangsmarkedet, eller hurtigselg det her for 25 % av verdien. Pakker er stengt til det er gjort.",
     copies: (name: string, count: number) => `${name} · ${count} eksemplarer`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "i troppen" : "på lageret"} · kjøpt for ${price} MB`,
+    listOnMarket: "Legg ut på markedet",
+    cancel: "Avbryt",
   },
   errors: {
     bothNeedLineup: "Begge managerne må ha 11 gyldige spillere i startelleveren",

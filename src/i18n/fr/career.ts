@@ -222,6 +222,8 @@ export const career = {
     intro: "Vous possédez le même lecteur plusieurs fois. Répertoriez l'une des cartes sur le marché des transferts ou vendez-la rapidement ici pour 25 % de sa valeur. Les packs sont verrouillés jusqu'à ce que vous le fassiez.",
     copies: (name: string, count: number) => `${name} · ${count} exemplaires`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · acheté pour ${price} Mo`,
+    listOnMarket: "Mettre en vente sur le marché",
+    cancel: "Annuler",
   },
   errors: {
     bothNeedLineup: "Les deux managers ont besoin de 11 joueurs valides dans leur onze de départ",

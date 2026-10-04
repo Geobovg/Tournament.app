@@ -222,6 +222,8 @@ export const career = {
     intro: "Du ejer den samme spiller mere end én gang. Angiv et af kortene på overførselsmarkedet, eller sælg det hurtigt her for 25 % af dets værdi. Pakkerne er låst, indtil du gør det.",
     copies: (name: string, count: number) => `${name} · ${count} kopier`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · købt for ${price} MB`,
+    listOnMarket: "Sæt til salg på markedet",
+    cancel: "Annuller",
   },
   errors: {
     bothNeedLineup: "Begge managere har brug for 11 gyldige spillere i deres start XI",

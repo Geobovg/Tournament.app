@@ -11,6 +11,7 @@ import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filter
 import { catalogBuyMaxOverall, quickSellValue, squadCapacity } from "@/lib/manager-limits";
 import { autoPickBestSquadAction, buyCatalogCardAction, loadCatalogClubsAction, loadCatalogPageAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
 import { PackStore } from "./pack-store";
+import { ListSingleCardButton } from "./transfer-market";
 import { PlayerCardFace } from "./player-card-face";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 import { clubCrest } from "@/lib/club-crests";
@@ -353,6 +354,7 @@ function Duplicates({ groups }: { groups: ManagerCard[][] }) {
       <b className="text-sm">{text.copies(group[0].name, group.length)}</b>
       {group.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 text-sm">
         <span className="flex-1 text-muted">{text.card(card.overall, card.position, card.location === "squad", card.acquired_price)}</span>
+        {card.tradable ? <ListSingleCardButton card={card} /> : null}
         <QuickSellButton card={card} value={card.value} />
       </div>)}
     </div>)}

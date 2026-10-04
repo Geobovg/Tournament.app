@@ -222,6 +222,8 @@ export const career = {
     intro: "Du äger samma spelare mer än en gång. Lista ett av korten på överföringsmarknaden, eller snabbsälj det här för 25 % av dess värde. Paketen är låsta tills du gör det.",
     copies: (name: string, count: number) => `${name} · ${count} kopior`,
     card: (overall: number, position: string, inSquad: boolean, price: number) => `${overall} ${position} · ${inSquad ? "in squad" : "in storage"} · köpt för ${price} MB`,
+    listOnMarket: "Lägg ut på marknaden",
+    cancel: "Avbryt",
   },
   errors: {
     bothNeedLineup: "Båda tränarna behöver 11 giltiga spelare i sin start XI",

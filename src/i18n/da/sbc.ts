@@ -64,6 +64,8 @@ export const sbc: SbcDict = {
     allPositions: "Alle positioner",
     remove: "Fjern fra pladsen",
     bench: "Bænk",
+    suggestions: "Forslag",
+    allCards: "Alle kort",
     empty: "Ingen kort at vælge imellem.",
     close: "Luk",
     sort: "Sortér",

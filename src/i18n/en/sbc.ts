@@ -64,6 +64,8 @@ export const sbc = {
     allPositions: "All positions",
     remove: "Remove from spot",
     bench: "Bench",
+    suggestions: "Suggestions",
+    allCards: "All cards",
     empty: "No cards to choose from.",
     close: "Close",
     sort: "Sort",

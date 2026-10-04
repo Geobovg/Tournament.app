@@ -64,6 +64,8 @@ export const sbc: SbcDict = {
     allPositions: "Alle Positionen",
     remove: "Vom Platz entfernen",
     bench: "Bank",
+    suggestions: "Vorschläge",
+    allCards: "Alle Karten",
     empty: "Keine Karten zur Auswahl.",
     close: "Schließen",
     sort: "Sortieren",

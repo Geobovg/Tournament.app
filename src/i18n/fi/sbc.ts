@@ -64,6 +64,8 @@ export const sbc: SbcDict = {
     allPositions: "Kaikki pelipaikat",
     remove: "Poista paikalta",
     bench: "Penkki",
+    suggestions: "Ehdotukset",
+    allCards: "Kaikki kortit",
     empty: "Ei valittavia kortteja.",
     close: "Sulje",
     sort: "Lajittele",

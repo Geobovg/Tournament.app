@@ -64,6 +64,8 @@ export const sbc: SbcDict = {
     allPositions: "所有位置",
     remove: "从位置移除",
     bench: "替补",
+    suggestions: "推荐",
+    allCards: "所有卡片",
     empty: "没有可选择的卡片。",
     close: "关闭",
     sort: "排序",
