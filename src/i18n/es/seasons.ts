@@ -36,7 +36,7 @@ export const seasons = {
     join: "Unirse",
     decline: "No gracias",
     start: "Empieza la temporada",
-    startHint: "Todos los que se han unido juegan entre sí una vez. Cualquiera que no haya respondido queda fuera.",
+    startHint: "Todos los que se han unido juegan entre sí en casa y fuera (una vez si sois más de 10). Cualquiera que no haya respondido queda fuera.",
     waitingForStart: "Esperando que empiece la temporada.",
     watchLive: "Ver en vivo",
     play: "Jugar",
@@ -44,7 +44,7 @@ export const seasons = {
   create: {
     eyebrow: "NUEVA TEMPORADA DE AMIGOS",
     title: "Enfréntate a tus amigos",
-    intro: "Todos juegan contra todos una vez. El ganador se lleva 100 MB y un Gold Pack, el segundo lugar 50 MB y el tercer lugar 25 MB.",
+    intro: "Todos juegan contra todos en casa y fuera (una vez con más de 10 mánagers). El ganador se lleva 1 Elite Pack, 2 Gold Packs y 50 MB. Con 5–6 mánagers, el segundo lugar recibe 2 Gold Packs y 50 MB, y con 7 o más, el tercer lugar también recibe 1 Gold Pack y 25 MB.",
     namePlaceholder: "Nombre de la temporada",
     invite: "INVITAR",
     submit: "Crear e invitar",

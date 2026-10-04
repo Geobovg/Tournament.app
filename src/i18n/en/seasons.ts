@@ -40,7 +40,7 @@ export const seasons = {
     join: "Join",
     decline: "No thanks",
     start: "Start the season",
-    startHint: "Everyone who has joined plays each other once. Anyone who hasn't answered is left out.",
+    startHint: "Everyone who has joined plays each other home and away (once if there are more than 10 of you). Anyone who hasn't answered is left out.",
     waitingForStart: "Waiting for the season to start.",
     watchLive: "Watch live",
     play: "Play",
@@ -48,7 +48,7 @@ export const seasons = {
   create: {
     eyebrow: "NEW FRIENDS SEASON",
     title: "Take on your friends",
-    intro: "Everyone plays everyone once. The winner gets 100 MB and a Gold Pack, second place 50 MB and third place 25 MB.",
+    intro: "Everyone plays everyone home and away (once with more than 10 managers). The winner gets 1 Elite Pack, 2 Gold Packs and 50 MB. With 5–6 managers, second place gets 2 Gold Packs and 50 MB, and with 7 or more, third place also gets 1 Gold Pack and 25 MB.",
     namePlaceholder: "Season name",
     invite: "INVITE",
     submit: "Create and invite",
