@@ -474,6 +474,14 @@ export function penaltyCellChance(shot: TimelineShot, cell: number): number {
   return 1 - covering / shot.options.length;
 }
 
+/**
+ * Sjansen for mål i en gitt rute på en stor sjanse: avslutterens sjanse mot keeperen, men aldri
+ * høyere enn andelen av keeperens kast som ikke når ruta.
+ */
+export function chanceCellChance(shot: TimelineShot, shooting: number, cell: number, keeper: number | null): number {
+  return Math.min(cellGoalChance(shooting, cell, keeper), penaltyCellChance(shot, cell));
+}
+
 /** Ratingen til keeperen skuddet går mot, eller null på eldre kamper der keeperen ikke telte. */
 export function shotKeeperRating(shot: TimelineShot, players: Map<string, ManagerPlayerSnapshot>): number | null {
   if (shot.keeperId === undefined) return null;
@@ -486,8 +494,9 @@ export function shotKeeperRating(shot: TimelineShot, players: Map<string, Manage
  *
  * En straffe bommer aldri: når keeperen ruta skytteren valgte, er det redning, ellers er det mål.
  *
- * En stor sjanse avgjøres i én trekning mot prosenten som står på ruta, så den stemmer. Går
- * skuddet ikke inn, deles det mellom redning og bom etter hvor god keeperen er.
+ * På en stor sjanse kaster keeperen seg også, og når han ruta, er det redning. Ellers avgjøres
+ * skuddet i én trekning, skalert slik at den totale sjansen blir prosenten som står på ruta.
+ * Går det ikke inn, deles det mellom redning og bom etter hvor god keeperen er.
  */
 export function resolveShot(matchId: string, shot: TimelineShot, shooting: number, keeper: number | null, shooterCell: number, keeperCell: number | null): "goal" | "saved" | "missed" {
   if (shot.kind === "penalty") return keeperZone(shot, keeperCell).includes(shooterCell) ? "saved" : "goal";
@@ -496,7 +505,10 @@ export function resolveShot(matchId: string, shot: TimelineShot, shooting: numbe
   const roll = numberFromSeed(`${matchId}:${shot.minute}:${shot.side}:shot:${shooterCell}:${keeperCell ?? "none"}`);
   // Keeperen telte bare fra versjon 4; på eldre kamper gir en stor sjanse aldri redning.
   const rated = shot.keeperId !== undefined;
-  const chance = cellGoalChance(shooting, shooterCell, rated ? keeper : null);
+  if (rated && keeperZone(shot, keeperCell).includes(shooterCell)) return "saved";
+  const chance = rated && keeperCell !== null
+    ? Math.min(1, chanceCellChance(shot, shooting, shooterCell, keeper) / penaltyCellChance(shot, shooterCell))
+    : cellGoalChance(shooting, shooterCell, rated ? keeper : null);
   if (roll < chance) return "goal";
   if (!rated) return "missed";
   // Det som ikke går inn, er en redning oftere jo bedre keeperen er.
