@@ -14,7 +14,7 @@ const packDescriptions: Record<string, string> = {
   gull: "Kahdeksan korttia, joista vähintään yksi 83 tai parempi.",
   elite: "Kaksitoista korttia, joista kaksi 84+ ja yksi 86+ taattu.",
   inform: "Seitsemän korttia: taattu yksi Inform, yksi 88+, kaksi 86+ ja kolme 83+. Yksi viikossa.",
-  spesial: "Yksi satunnainen erikoiskortti. Ei myytävissä markkinoilla.",
+  spesial: "Yksi satunnainen erikoiskortti: inform tai TOTS. Ei myytävissä markkinoilla.",
 };
 
 export const market = {

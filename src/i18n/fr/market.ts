@@ -14,7 +14,7 @@ const packDescriptions: Record<string, string> = {
   gull: "Huit cartes, avec au moins une garantie de 83 ou mieux.",
   elite: "Douze cartes, avec deux 84+ et une 86+ garanties.",
   inform: "Sept cartes : un Inform, une 88+, deux 86+ et trois 83+ garanties. Un par semaine.",
-  spesial: "Une carte spéciale au hasard. Ne peut pas être vendue sur le marché.",
+  spesial: "Une carte spéciale au hasard : inform ou TOTS. Ne peut pas être vendue sur le marché.",
 };
 
 export const market = {

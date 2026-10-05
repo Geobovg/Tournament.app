@@ -134,7 +134,7 @@ export const match: MatchDict = {
       title: "STRAFFEKONKURRANSE",
       stepsUp: (name: string) => `${name} går fram …`,
       scored: "MÅL",
-      missed: "BOM",
+      saved: "REDDET",
       result: (home: number, away: number) => `Straffer ${home}–${away}`,
       afterExtraTime: "e.e.o.",
       wonOnPenalties: (name: string) => `${name} vant på straffer`,

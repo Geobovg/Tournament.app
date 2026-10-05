@@ -129,7 +129,7 @@ export const match = {
       title: "PENALTY SHOOTOUT",
       stepsUp: (name: string) => `${name} steps up …`,
       scored: "SCORED",
-      missed: "MISSED",
+      saved: "SAVED",
       result: (home: number, away: number) => `Penalties ${home}–${away}`,
       afterExtraTime: "a.e.t.",
       wonOnPenalties: (name: string) => `${name} won on penalties`,

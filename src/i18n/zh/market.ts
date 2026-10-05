@@ -14,7 +14,7 @@ const packDescriptions: Record<string, string> = {
   gull: "八张牌，至少一张 83 或更高的保证。",
   elite: "十二张牌，保证两张 84+ 和一张 86+。",
   inform: "七张卡：保底一张状态卡、一张 88+、两张 86+ 和三张 83+。每周一包。",
-  spesial: "一张随机特殊卡。不能在市场出售。",
+  spesial: "一张随机特殊卡：状态卡或 TOTS。不能在市场出售。",
 };
 
 export const market = {
