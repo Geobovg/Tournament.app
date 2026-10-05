@@ -1,8 +1,8 @@
-// Spesialkort (migrering 0060). Inform ligger i special_cards.kind i databasen; nye typer legges til der
+// Spesialkort (migrering 0060). Inform og TOTS (0065) ligger i special_cards.kind i databasen; nye typer legges til der
 // og her, og får egen stil på kortbildet. «personal» er de personlige kortene (migrering 0063), som har
 // egen tabell, men vises med samme mekanikk.
 
-export type SpecialKind = "inform" | "personal";
+export type SpecialKind = "inform" | "tots" | "personal";
 
 /** Fargene på et spesialkort: bakgrunn, kantlinje og teksten i merket. */
 export const specialStyles: Record<SpecialKind, { background: string; border: string; badge: string; glow: string }> = {
@@ -11,6 +11,13 @@ export const specialStyles: Record<SpecialKind, { background: string; border: st
     border: "#d4af37",
     badge: "#f2c94c",
     glow: "#f2c94c",
+  },
+  // Team of the Season, som i FC: mørk marineblå med lyseblått lys fra øvre hjørne og gullkant.
+  tots: {
+    background: "radial-gradient(circle at 85% 0%, rgba(110,200,255,.55), transparent 42%), radial-gradient(circle at 10% 100%, rgba(212,175,55,.22), transparent 38%), linear-gradient(160deg, #0c2a5c 0%, #061433 55%, #020817 100%)",
+    border: "#e2bd52",
+    badge: "#8fd6ff",
+    glow: "#5cc8ff",
   },
   // Inspirert av FUTTIES i FC: sommerlig rosa, oransje og gult, med solstråler fra øvre hjørne.
   personal: {

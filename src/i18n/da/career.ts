@@ -18,6 +18,7 @@ export const career = {
     karrierehistorikk: "Kamphistorie",
     sbc: "SBC",
     informs: "Informs",
+    tots: "TOTS",
   },
   subTabs: {
     squad: "Squad",
@@ -259,7 +260,15 @@ export const career = {
     unusableCard: "Holdet indeholder et kort, du ikke kan bruge",
     wrongPosition: "En spiller er i en position, han ikke kan spille",
   },
-  special: { badge: { inform: "INFORM", personal: "PERSONLIG" }, name: { inform: "Inform", personal: "Personligt kort" }, untradable: "Kan ikke sælges", anyPosition: "ALLE", personalHint: "Spiller alle positioner. +1 i rating for hver ny division du når" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "PERSONLIG" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Personligt kort" }, untradable: "Kan ikke sælges", anyPosition: "ALLE", personalHint: "Spiller alle positioner. +1 i rating for hver ny division du når" },
+  tots: {
+    intro: (count: number) => `${count} Team of the Season-kort med de bedste spillere i hver liga. De kan dukke op i pakker.`,
+    all: "Alle",
+    rest: "Resten af verden",
+    count: (count: number) => `${count} kort`,
+    boost: (boost: number) => `+${boost} fra det almindelige kort`,
+    empty: "Ingen TOTS-kort her.",
+  },
   informs: {
     intro: (total: number, rounds: number) => `${total} Inform-kort fra ${rounds} ${rounds === 1 ? "runde" : "runder"}. Nye trækkes hver fredag kl. 18:00.`,
     thisWeek: "Denne uge",
