@@ -28,18 +28,42 @@ _Avoid_: Karrieresesong, Solo-sesong
 En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI. Med 10 eller færre managere spilles det **dobbel serie** (alle møter alle hjemme og borte), med flere møtes alle én gang. Under 5 managere gis det ingen premie, 5–6 gir premie til topp 2, og 7 eller flere til topp 3.
 _Avoid_: Liga, Turnering (Turnering er noe annet, se over)
 
+**Arena**:
+Et av fem stadioner i AI-sesongen, som i Clash Royale: Gamle Gress, Ullevaal, Wembley Stadium, Old Trafford og Camp Nou. Hver arena har ti **divisjoner**, så stigen er 50 nivåer lang. Vinner du divisjon 1, går du opp til divisjon 10 i neste arena. Du faller aldri ut av en arena du har nådd. AI-klubbene blir jevnere og får en skjult styrkebonus jo høyere arenaen er, og premiene ganges opp. Første gang du når en ny arena får du en egen belønning.
+_Avoid_: Liga, Nivå, Stadion alene (Stadion er navnet, Arena er nivået)
+
 **Divisjon**:
-Et av 10 vanskelighetsnivåer i AI-sesongen (Divisjon 10 lavest, Divisjon 1 høyest), der AI-troppenes samlede rating skaleres opp jo høyere divisjon. Etter en AI-sesong rykker topp 2 opp i divisjon 10–7 og bare vinneren i divisjon 6–2; plassen rett under spiller **kvalik**. De to nederste rykker ned, unntatt i divisjon 10. Belønningen for opprykk øker jo høyere divisjonen du rykker opp til er.
+Et av ti vanskelighetsnivåer i hver **arena** (Divisjon 10 lavest, Divisjon 1 høyest), der AI-troppenes samlede rating skaleres opp jo høyere divisjon. Etter en AI-sesong rykker topp 2 opp i divisjon 10–7 og bare vinneren i divisjon 6–1; vinneren av divisjon 1 går til neste arena. Plassen rett under spiller **kvalik**. De to nederste rykker ned, unntatt i divisjon 10, som er gulvet i arenaen. Belønningen for opprykk øker jo høyere divisjonen du rykker opp til er.
 _Avoid_: Nivå (brukes om klubbnivå/XP, som er noe annet), Liga
 
+**Mestertittel**:
+Det du får når du vinner divisjon 1 på Camp Nou, den siste arenaen. Du blir der og kan vinne flere; antallet vises på arenaveien.
+_Avoid_: Mesterskap, Trofé
+
 **Kvalik**:
-Én ekstra kamp etter en AI-sesong for den som havner rett under opprykksplassene, mot en klubb fra divisjonen over. Kampen må ha en vinner, og bare seier gir opprykk. Den teller ikke i tabellen.
+Én ekstra kamp etter en AI-sesong for den som havner rett under opprykksplassene, mot en klubb fra divisjonen over (fra divisjon 1: en klubb fra divisjon 10 i neste arena). Kampen må ha en vinner, og bare seier gir opprykk. Den teller ikke i tabellen.
 _Avoid_: Playoff, Omspill
 
 
 **SBC**:
-En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som oppfyller kravene (f.eks. snitt-rating eller antall fra én liga) og får en premie i MB eller pakker. Kortene du leverer er borte for alltid. SBC-er med begrenset antall forsøk nullstilles hver fredag kl. 18:00 norsk tid. Heter «SBC» på alle språk.
+En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som oppfyller kravene (f.eks. snitt-rating eller antall fra én liga) og får en premie i MB eller pakker. Kortene du leverer er borte for alltid. Forsøkene kan være begrenset per dag (nullstilles kl. 18:00 norsk tid) eller per uke (fredag kl. 18:00). Heter «SBC» på alle språk.
 _Avoid_: Oppdrag, Utfordring alene (tvetydig med vennekamp-utfordringer), Kjemi (finnes ikke i appen)
+
+**Spesialkort**:
+Et kort av en spiller som er bedre enn spillerens vanlige kort og har eget utseende. Det er et eget kort: du kan eie både vanlig-kortet og spesialkortet, men bare én av dem kan være i troppen, og de regnes ikke som duplikater av hverandre. Foreløpig finnes bare én type, **inform**.
+_Avoid_: Spesialutgave, Event-kort
+
+**Inform**:
+Spesialkortet for en spiller som er i form denne uken, som Team of the Week i FC. Hver fredag kl. 18:00 trekkes 25 tilfeldige spillere blant topp 400 (en **inform-runde**). Kortet er 1–3 bedre, og har spilleren hatt inform før, bygger det på forrige inform. Spillere fra de to siste rundene trekkes ikke, og topp 20 kan bare få inform én gang.
+_Avoid_: TOTW, Ukens lag
+
+**Inform-pakke**:
+En pakke til 800 MB som garanterer én inform fra ukens runde, og kan kjøpes én gang per uke. Vanlige pakker kan også gi inform, med liten sjanse.
+_Avoid_: Spesialpakke (det er SBC-premien)
+
+**Spesialpakke**:
+Premien fra spesial-SBC-en (to kort på 88+): ett tilfeldig spesialkort blant alle som noen gang er laget. Kortet kan ikke selges på markedet. Pakken kan ikke kjøpes.
+_Avoid_: Inform-pakke
 
 **Fantasy**:
 En egen modus utenfor Managerkarrieren, som Premier League Fantasy, men for spillere fra alle de fem store ligaene. Du velger et lag av ekte spillere innenfor et budsjett og får poeng etter hva de gjør i ekte kamper. Kampdataene hentes fra API-Football; appen simulerer ingenting her.
