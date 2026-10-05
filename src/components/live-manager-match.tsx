@@ -10,6 +10,7 @@ import { clubCrest } from "@/lib/club-crests";
 import { playerPhoto } from "@/lib/player-photos";
 import {
   cellGoalChance,
+  penaltyCellChance,
   EXTRA_TIME_END,
   getManagerKickoff,
   getManagerMatchReport,
@@ -167,7 +168,7 @@ function ShootoutPanel({ kicks, revealed, pending, players, home, away, finished
           <EventPlayerCard player={players.get(latest.takerId)} />
           <div className="text-left">
             <p className="text-sm font-bold">{pending ? copy.stepsUp(shortName(latest.taker)) : shortName(latest.taker)}</p>
-            {pending ? null : <p className={`text-xs font-black tracking-[.16em] ${latest.scored ? "text-success" : "text-danger"}`}>{latest.scored ? copy.scored : copy.missed}</p>}
+            {pending ? null : <p className={`text-xs font-black tracking-[.16em] ${latest.scored ? "text-success" : "text-danger"}`}>{latest.scored ? copy.scored : copy.saved}</p>}
           </div>
         </div>
       ) : null}
@@ -586,7 +587,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
             <div className="grid min-w-0 flex-1 gap-2">
               <GoalGrid
                 options={activeShot.options}
-                chanceFor={iAmShooting && taker ? (cell) => cellGoalChance(shootingOf(taker), activeShot.kind, cell, keeperRating) : null}
+                chanceFor={iAmShooting && taker ? (cell) => (activeShot.kind === "penalty" ? penaltyCellChance(activeShot, cell) : cellGoalChance(shootingOf(taker), cell, keeperRating)) : null}
                 myCells={myCells}
                 otherCells={otherCells}
                 otherLabel={iAmShooting ? t.match.grid.keeper : t.match.grid.shot}

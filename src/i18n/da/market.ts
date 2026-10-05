@@ -14,7 +14,7 @@ const packDescriptions: Record<string, string> = {
   gull: "Otte kort, med mindst ét 83 eller bedre garanteret.",
   elite: "Tolv kort, med to på 84+ og ét på 86+ garanteret.",
   inform: "Syv kort: garanteret ét Inform, ét 88+, to 86+ og tre 83+. Én om ugen.",
-  spesial: "Ét tilfældigt specialkort. Kan ikke sælges på markedet.",
+  spesial: "Ét tilfældigt specialkort: inform eller TOTS. Kan ikke sælges på markedet.",
 };
 
 export const market = {

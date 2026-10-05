@@ -14,7 +14,7 @@ const packDescriptions: Record<string, string> = {
   gull: "Ocho cartas, con al menos una de 83 o mejor garantizada.",
   elite: "Doce cartas, con dos de 84+ y una de 86+ garantizadas.",
   inform: "Siete cartas: un Inform, una 88+, dos 86+ y tres 83+ garantizadas. Uno por semana.",
-  spesial: "Una carta especial aleatoria. No se puede vender en el mercado.",
+  spesial: "Una carta especial aleatoria: inform o TOTS. No se puede vender en el mercado.",
 };
 
 export const market = {

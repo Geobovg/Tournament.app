@@ -303,7 +303,7 @@ function QuickSellButton({ card, value }: { card: ManagerCard; value: number }) 
   const [state, action, pending] = useActionState(quickSellManagerCardAction, initial);
   const [confirming, setConfirming] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const payout = quickSellValue(value);
+  const payout = quickSellValue(value, card.special);
   const text = useT().career.quickSell;
   return <>
     <form ref={formRef} action={action} className="flex flex-wrap items-center gap-2">
