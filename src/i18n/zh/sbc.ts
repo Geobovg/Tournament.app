@@ -5,6 +5,8 @@ export const sbc: SbcDict = {
   intro: "提交符合要求的球员卡即可获得奖励。提交的卡片将永久消失。",
   resets: (when) => `新的次数 ${when}`,
   attempts: (left, total) => `本周剩余 ${left}/${total}`,
+  attemptsToday: (left: number, total: number) => `今日剩余 ${left}/${total}`,
+  resetsDaily: (time: string) => `每日次数于 ${time} 重置`,
   unlimited: "不限次数",
   completedBadge: "已完成",
   cardCount: (count) => `${count} 张卡`,
@@ -17,7 +19,8 @@ export const sbc: SbcDict = {
     defensive_wall: { title: "防守铁壁", description: "提交五张卡，其中至少四名后卫。" },
     club_mates: { title: "俱乐部队友", description: "三名来自同一俱乐部的球员。" },
     english_invasion: { title: "英伦入侵", description: "六张卡，大部分来自英超。" },
-    top_class: { title: "顶级阵容", description: "一套评分 84 的精英阵容，换取一个精英包。" },
+    top_class: { title: "顶级阵容", description: "一套评分 85 的精英阵容，换取一个精英包。" },
+    special_swap: { title: "特殊兑换", description: "提交两张 88+ 卡片，换取一个含一张随机特殊卡的特殊卡包。" },
   },
   leagues: {
     premier_league: "英超",

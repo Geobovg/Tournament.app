@@ -21,6 +21,7 @@ export const DB_ERROR_RULES: DbErrorRule[] = [
   { pattern: /^Wildcard og Free Hit kan brukes fra andre runde laget er med$/, message: (t) => t.dbErrors.fantasyChipTooEarly },
   { pattern: /^Denne chipen er allerede brukt i denne halvdelen av sesongen$/, message: (t) => t.dbErrors.fantasyChipUsed },
   { pattern: /^Du har ikke flere forsøk igjen på denne SBC-en denne uken$/, message: (t) => t.dbErrors.sbcNoAttemptsLeft },
+  { pattern: /^Du har ikke flere forsøk igjen på denne SBC-en i dag$/, message: (t) => t.dbErrors.sbcNoAttemptsToday },
   { pattern: /^Velg riktig antall kort til SBC-en$/, message: (t) => t.dbErrors.sbcWrongCardCount },
   { pattern: /^Noen av kortene kan ikke brukes i en SBC$/, message: (t) => t.dbErrors.sbcCardsNotUsable },
   { pattern: /^Kortene oppfyller ikke kravene til SBC-en$/, message: (t) => t.dbErrors.sbcRequirementsNotMet },

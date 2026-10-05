@@ -5,6 +5,8 @@ export const sbc = {
   intro: "Hand in cards that meet the requirements and get a reward. The cards you hand in are gone for good.",
   resets: (when: string) => `New attempts ${when}`,
   attempts: (left: number, total: number) => `${left}/${total} left this week`,
+  attemptsToday: (left: number, total: number) => `${left}/${total} left today`,
+  resetsDaily: (time: string) => `Daily attempts reset at ${time}`,
   unlimited: "Unlimited",
   completedBadge: "Completed",
   cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
@@ -17,7 +19,8 @@ export const sbc = {
     defensive_wall: { title: "Defensive Wall", description: "Hand in five cards with at least four defenders." },
     club_mates: { title: "Club Mates", description: "Three players from the same club." },
     english_invasion: { title: "English Invasion", description: "Six cards, most of them from the Premier League." },
-    top_class: { title: "Top Class", description: "An elite squad of 84-rated cards for an Elite Pack." },
+    top_class: { title: "Top Class", description: "An elite squad of 85-rated cards for an Elite Pack." },
+    special_swap: { title: "Special Swap", description: "Hand in two 88+ cards for a Special Pack with one random special card." },
   } as Record<string, { title: string; description: string }>,
   leagues: {
     premier_league: "Premier League",

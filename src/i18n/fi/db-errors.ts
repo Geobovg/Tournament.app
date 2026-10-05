@@ -85,6 +85,7 @@ export const dbErrors = {
   packWeeklyLimit: "Olet jo ostanut tämän paketin tällä viikolla",
   noSpecialCards: "Nostettavia erikoiskortteja ei ole vielä",
   cardNotTradable: "Tätä korttia ei voi myydä markkinoilla",
+  sbcNoAttemptsToday: "Sinulla ei ole tänään enää yrityksiä tähän SBC:hen",
 };
 
 export type DbErrorsDict = typeof dbErrors;

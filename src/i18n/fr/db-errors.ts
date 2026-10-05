@@ -85,6 +85,7 @@ export const dbErrors = {
   packWeeklyLimit: "Tu as déjà acheté ce pack cette semaine",
   noSpecialCards: "Il n'y a pas encore de cartes spéciales à tirer",
   cardNotTradable: "Cette carte ne peut pas être vendue sur le marché",
+  sbcNoAttemptsToday: "Tu n’as plus d’essais pour ce SBC aujourd’hui",
 };
 
 export type DbErrorsDict = typeof dbErrors;

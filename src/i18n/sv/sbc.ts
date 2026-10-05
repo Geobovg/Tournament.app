@@ -5,6 +5,8 @@ export const sbc: SbcDict = {
   intro: "Lämna in kort som uppfyller kraven och få en belöning. Korten du lämnar in är borta för alltid.",
   resets: (when: string) => `Nya försök ${when}`,
   attempts: (left: number, total: number) => `${left}/${total} kvar den här veckan`,
+  attemptsToday: (left: number, total: number) => `${left}/${total} kvar i dag`,
+  resetsDaily: (time: string) => `Dagens försök nollställs ${time}`,
   unlimited: "Obegränsat",
   completedBadge: "Klar",
   cardCount: (count: number) => `${count} kort`,
@@ -17,7 +19,8 @@ export const sbc: SbcDict = {
     defensive_wall: { title: "Defensiv mur", description: "Lämna in fem kort med minst fyra försvarare." },
     club_mates: { title: "Klubbkamrater", description: "Tre spelare från samma klubb." },
     english_invasion: { title: "Engelsk invasion", description: "Sex kort, de flesta från Premier League." },
-    top_class: { title: "Toppklass", description: "En elittrupp av kort med betyg 84 för ett Elitpaket." },
+    top_class: { title: "Toppklass", description: "En elittrupp av kort med betyg 85 för ett Elitpaket." },
+    special_swap: { title: "Specialbyte", description: "Lämna in två 88+-kort och få ett Specialpaket med ett slumpat specialkort." },
   } as Record<string, { title: string; description: string }>,
   leagues: {
     premier_league: "Premier League",

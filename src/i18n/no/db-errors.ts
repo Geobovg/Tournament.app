@@ -89,5 +89,6 @@ export const dbErrors: DbErrorsDict = {
   packWeeklyLimit: "Du har allerede kjøpt denne pakken denne uken",
   noSpecialCards: "Det finnes ingen spesialkort å trekke ennå",
   cardNotTradable: "Dette kortet kan ikke selges på markedet",
+  sbcNoAttemptsToday: "Du har ikke flere forsøk igjen på denne SBC-en i dag",
 };
 

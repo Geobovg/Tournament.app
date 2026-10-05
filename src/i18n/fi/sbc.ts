@@ -5,6 +5,8 @@ export const sbc: SbcDict = {
   intro: "Palauta vaatimukset täyttäviä kortteja ja saat palkinnon. Palauttamasi kortit menetetään lopullisesti.",
   resets: (when: string) => `Uudet yritykset ${when}`,
   attempts: (left: number, total: number) => `${left}/${total} jäljellä tällä viikolla`,
+  attemptsToday: (left: number, total: number) => `${left}/${total} jäljellä tänään`,
+  resetsDaily: (time: string) => `Päivän yritykset nollautuvat klo ${time}`,
   unlimited: "Rajaton",
   completedBadge: "Suoritettu",
   cardCount: (count: number) => `${count} ${count === 1 ? "kortti" : "korttia"}`,
@@ -17,7 +19,8 @@ export const sbc: SbcDict = {
     defensive_wall: { title: "Puolustusmuuri", description: "Palauta viisi korttia, joista vähintään neljä on puolustajia." },
     club_mates: { title: "Seurakaverit", description: "Kolme pelaajaa samasta seurasta." },
     english_invasion: { title: "Englantilaisinvaasio", description: "Kuusi korttia, suurin osa Premier Leaguesta." },
-    top_class: { title: "Huippuluokka", description: "84-arvoisista korteista koostuva eliittijoukkue Elite Packia varten." },
+    top_class: { title: "Huippuluokka", description: "85-arvoisista korteista koostuva eliittijoukkue Elite Packia varten." },
+    special_swap: { title: "Erikoisvaihto", description: "Luovuta kaksi 88+-korttia ja saat erikoispaketin, jossa on yksi satunnainen erikoiskortti." },
   } as Record<string, { title: string; description: string }>,
   leagues: {
     premier_league: "Premier League",

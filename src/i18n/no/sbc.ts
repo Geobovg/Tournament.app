@@ -6,6 +6,8 @@ export const sbc: SbcDict = {
   intro: "Lever inn kort som oppfyller kravene og få en premie. Kortene du leverer, er borte for alltid.",
   resets: (when: string) => `Nye forsøk ${when}`,
   attempts: (left: number, total: number) => `${left}/${total} igjen denne uken`,
+  attemptsToday: (left: number, total: number) => `${left}/${total} igjen i dag`,
+  resetsDaily: (time: string) => `Dagens forsøk nullstilles kl. ${time}`,
   unlimited: "Ubegrenset",
   completedBadge: "Fullført",
   cardCount: (count: number) => `${count} kort`,
@@ -18,7 +20,8 @@ export const sbc: SbcDict = {
     defensive_wall: { title: "Forsvarsmur", description: "Lever fem kort der minst fire er forsvarere." },
     club_mates: { title: "Klubbkamerater", description: "Tre spillere fra samme klubb." },
     english_invasion: { title: "Engelsk invasjon", description: "Seks kort, de fleste fra Premier League." },
-    top_class: { title: "Toppklassen", description: "En elitetropp med 84-kort for en Elitepakke." },
+    top_class: { title: "Toppklassen", description: "En elitetropp med 85-kort for en Elitepakke." },
+    special_swap: { title: "Spesialbytte", description: "Lever to kort på 88+ og få en spesialpakke med ett tilfeldig spesialkort." },
   },
   leagues: {
     premier_league: "Premier League",

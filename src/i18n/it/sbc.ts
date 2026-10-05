@@ -5,6 +5,8 @@ export const sbc: SbcDict = {
   intro: "Consegna carte che soddisfano i requisiti e ottieni una ricompensa. Le carte consegnate sono perse per sempre.",
   resets: (when) => `Nuovi tentativi ${when}`,
   attempts: (left, total) => `${left}/${total} rimasti questa settimana`,
+  attemptsToday: (left: number, total: number) => `${left}/${total} rimasti oggi`,
+  resetsDaily: (time: string) => `I tentativi giornalieri si azzerano alle ${time}`,
   unlimited: "Illimitato",
   completedBadge: "Completata",
   cardCount: (count) => `${count} ${count === 1 ? "carta" : "carte"}`,
@@ -17,7 +19,8 @@ export const sbc: SbcDict = {
     defensive_wall: { title: "Muro difensivo", description: "Consegna cinque carte con almeno quattro difensori." },
     club_mates: { title: "Compagni di club", description: "Tre giocatori dello stesso club." },
     english_invasion: { title: "Invasione inglese", description: "Sei carte, la maggior parte della Premier League." },
-    top_class: { title: "Classe superiore", description: "Una squadra d'élite di carte con valutazione 84 per un Elite Pack." },
+    top_class: { title: "Classe superiore", description: "Una squadra d'élite di carte con valutazione 85 per un Elite Pack." },
+    special_swap: { title: "Scambio speciale", description: "Consegna due carte 88+ e ricevi un pacchetto speciale con una carta speciale casuale." },
   },
   leagues: {
     premier_league: "Premier League",

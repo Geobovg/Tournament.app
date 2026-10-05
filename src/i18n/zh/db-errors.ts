@@ -85,6 +85,7 @@ export const dbErrors = {
   packWeeklyLimit: "你本周已经购买过此卡包",
   noSpecialCards: "目前还没有可抽取的特殊卡",
   cardNotTradable: "此卡不能在市场出售",
+  sbcNoAttemptsToday: "你今天在这个 SBC 上已没有剩余次数",
 };
 
 export type DbErrorsDict = typeof dbErrors;
