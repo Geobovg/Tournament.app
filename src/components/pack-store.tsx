@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import type { InformCard, ManagerPack, PackShop } from "@/lib/career";
+import type { ManagerPack, PackShop } from "@/lib/career";
 import { specialStyles } from "@/lib/special-cards";
 import { openManagerPackAction, type PackActionState, type PackPull } from "@/lib/manager-actions";
 import { useLocale, useT } from "@/i18n/client";
@@ -58,26 +58,6 @@ function PackOdds({ pack, informFactor }: { pack: ManagerPack; informFactor: num
       <dd className="font-semibold tabular-nums">{tp.percent(oddsLabel(tots, locale))}</dd>
     </div> : null}
   </dl>;
-}
-
-/** Ukens inform-kort, som Team of the Week i FC. */
-function InformShowcase({ informs, nextReset }: { informs: InformCard[]; nextReset: string }) {
-  const t = useT(); const tp = t.market.packs; const locale = useLocale();
-  if (!informs.length) return null;
-  let resets = "";
-  try { resets = new Intl.DateTimeFormat(INTL_LOCALES[locale], { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(nextReset)); } catch { resets = ""; }
-  return <div className="grid gap-3 rounded-xl border-2 p-4 text-white" style={{ background: specialStyles.inform.background, borderColor: specialStyles.inform.border }}>
-    <div className="flex flex-wrap items-end justify-between gap-2">
-      <div><p className="text-xs font-black tracking-[.3em]" style={{ color: specialStyles.inform.badge }}>★ {t.career.special.badge.inform}</p><h3 className="text-xl font-black">{tp.informWeekTitle}</h3><p className="text-sm text-white/70">{tp.informWeekIntro(informs.length)}</p></div>
-      <div className="grid justify-items-end gap-1">{resets ? <p className="text-xs text-white/60" suppressHydrationWarning>{tp.informWeekResets(resets)}</p> : null}<Link href="/managerkarriere/informs" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.inform.badge }}>{tp.allInforms} →</Link><Link href="/managerkarriere/tots" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.tots.badge }}>{tp.allTots} →</Link></div>
-    </div>
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-      {informs.map((card) => <li key={card.id} className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/40 px-2 py-1.5">
-        <b className="w-8 text-center text-lg font-black tabular-nums" style={{ color: specialStyles.inform.badge }}>{card.overall}</b>
-        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{card.name}</span><span className="text-[11px] text-white/60">{card.position} · +{card.boost}</span></span>
-      </li>)}
-    </ul>
-  </div>;
 }
 
 function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName: string; onClose: () => void }) {
@@ -189,7 +169,10 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
     {Object.values(freePacks).some(Boolean) ? <p className="rounded-lg border border-accent/40 bg-accent-soft p-3 text-sm font-semibold text-accent">{tp.freePacks(packs.filter((pack) => freePacks[pack.key]).map((pack) => `${freePacks[pack.key]}× ${nameOf(pack)}`).join(", "))}</p> : null}
 
 
-    <InformShowcase informs={shop.informs} nextReset={shop.nextReset} />
+    <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <Link href="/managerkarriere/informs" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.inform.border }}>{tp.allInforms} →</Link>
+      <Link href="/managerkarriere/tots" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.tots.glow }}>{tp.allTots} →</Link>
+    </div>
 
     <div className="grid gap-3 sm:grid-cols-2">
       {visible.map((pack) => {
