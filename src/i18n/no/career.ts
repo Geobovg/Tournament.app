@@ -22,6 +22,7 @@ export const career: CareerDict = {
     karrierehistorikk: "Kamphistorikk",
     sbc: "SBC",
     informs: "Informs",
+    tots: "TOTS",
   },
   subTabs: {
     squad: "Lagtropp",
@@ -264,7 +265,15 @@ export const career: CareerDict = {
     unusableCard: "Troppen inneholder et kort du ikke kan bruke",
     wrongPosition: "En spiller står i en posisjon han ikke kan spille",
   },
-  special: { badge: { inform: "INFORM", personal: "PERSONLIG" }, name: { inform: "Inform", personal: "Personlig kort" }, untradable: "Kan ikke selges", anyPosition: "ALLE", personalHint: "Spiller alle posisjoner. +1 i rating for hver ny divisjon du når" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "PERSONLIG" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Personlig kort" }, untradable: "Kan ikke selges", anyPosition: "ALLE", personalHint: "Spiller alle posisjoner. +1 i rating for hver ny divisjon du når" },
+  tots: {
+    intro: (count: number) => `${count} Team of the Season-kort med de beste spillerne i hver liga. De kan dukke opp i pakker.`,
+    all: "Alle",
+    rest: "Resten av verden",
+    count: (count: number) => `${count} kort`,
+    boost: (boost: number) => `+${boost} fra vanlig-kortet`,
+    empty: "Ingen TOTS-kort her.",
+  },
   informs: {
     intro: (total: number, rounds: number) => `${total} inform-kort fra ${rounds} ${rounds === 1 ? "runde" : "runder"}. Nye trekkes hver fredag kl. 18:00.`,
     thisWeek: "Denne uken",

@@ -50,12 +50,16 @@ En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som o
 _Avoid_: Oppdrag, Utfordring alene (tvetydig med vennekamp-utfordringer), Kjemi (finnes ikke i appen)
 
 **Spesialkort**:
-Et kort av en spiller som er bedre enn spillerens vanlige kort og har eget utseende. Det er et eget kort: du kan eie både vanlig-kortet og spesialkortet, men bare én av dem kan være i troppen, og de regnes ikke som duplikater av hverandre. Foreløpig finnes bare én type, **inform**.
+Et kort av en spiller som er bedre enn spillerens vanlige kort og har eget utseende. Det er et eget kort: du kan eie både vanlig-kortet og spesialkortet, men bare én av dem kan være i troppen, og de regnes ikke som duplikater av hverandre. Det finnes to typer: **inform** og **TOTS**.
 _Avoid_: Spesialutgave, Event-kort
 
 **Inform**:
 Spesialkortet for en spiller som er i form denne uken, som Team of the Week i FC. Hver fredag kl. 18:00 trekkes 25 tilfeldige spillere blant topp 400 (en **inform-runde**). Kortet er 1–3 bedre, og har spilleren hatt inform før, bygger det på forrige inform. Spillere fra de to siste rundene trekkes ikke, og topp 20 kan bare få inform én gang.
 _Avoid_: TOTW, Ukens lag
+
+**TOTS**:
+Team of the Season, spesialkortet for de beste spillerne i hver liga, som i FC. 200 kort laget én gang (migrering 0065) av spillere fra topp 500: 35 hver fra Premier League, La Liga, Serie A og Bundesliga, alle 26 fra Ligue 1 som er i topp 500, og 34 fra resten av verden, med omtrent en tropps fordeling på posisjoner. Ratingen er 88–95 og følger vanlig-kortet (best vanlig-kort gir 95), og kortet er alltid bedre enn vanlig-kortet. Vanlige pakker kan gi TOTS med halvparten av inform-sjansen, og spesialpakken kan også gi det. Heter «TOTS» på alle språk.
+_Avoid_: Sesongens lag, Sesong (det er noe annet, se over)
 
 **Inform-pakke**:
 En pakke til 800 MB som garanterer én inform fra ukens runde, og kan kjøpes én gang per uke. Vanlige pakker kan også gi inform, med liten sjanse.

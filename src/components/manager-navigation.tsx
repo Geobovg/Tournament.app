@@ -3,7 +3,7 @@ import { getT } from "@/i18n/server";
 import { clubLevelProgress, describeLevelReward } from "@/lib/club-level";
 
 // Seksjonene som finnes under /managerkarriere/[section]. Fanelinjen nederst viser de viktigste;
-// klubblager, kamplobby og historikk nås fra Tropp- og Sesong-sidene, og informs fra Pakker. Titlene ligger i t.career.sections.
+// klubblager, kamplobby og historikk nås fra Tropp- og Sesong-sidene, og informs og TOTS fra Pakker. Titlene ligger i t.career.sections.
 export const managerSections = [
   { key: "sesong" },
   { key: "lagtropp" },
@@ -12,6 +12,7 @@ export const managerSections = [
   { key: "spillermarked" },
   { key: "sbc" },
   { key: "informs" },
+  { key: "tots" },
   { key: "kamplobby" },
   { key: "karrierehistorikk" },
 ] as const;

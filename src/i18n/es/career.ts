@@ -18,6 +18,7 @@ export const career = {
     karrierehistorikk: "Historial de partidos",
     sbc: "SBC",
     informs: "Inform",
+    tots: "TOTS",
   },
   subTabs: {
     squad: "plantilla",
@@ -259,7 +260,15 @@ export const career = {
     unusableCard: "El escuadrón contiene una tarjeta que no puedes usar.",
     wrongPosition: "Un jugador está en una posición en la que no puede jugar.",
   },
-  special: { badge: { inform: "INFORM", personal: "PERSONAL" }, name: { inform: "Inform", personal: "Carta personal" }, untradable: "No vendible", anyPosition: "TODAS", personalHint: "Juega en todas las posiciones. +1 de valoración por cada nueva división que alcances" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "PERSONAL" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Carta personal" }, untradable: "No vendible", anyPosition: "TODAS", personalHint: "Juega en todas las posiciones. +1 de valoración por cada nueva división que alcances" },
+  tots: {
+    intro: (count: number) => `${count} cartas Team of the Season con los mejores jugadores de cada liga. Pueden salir en sobres.`,
+    all: "Todas",
+    rest: "Resto del mundo",
+    count: (count: number) => `${count} cartas`,
+    boost: (boost: number) => `+${boost} sobre la carta normal`,
+    empty: "No hay cartas TOTS aquí.",
+  },
   informs: {
     intro: (total: number, rounds: number) => `${total} cartas Inform de ${rounds} ${rounds === 1 ? "ronda" : "rondas"}. Se sortean nuevas cada viernes a las 18:00.`,
     thisWeek: "Esta semana",

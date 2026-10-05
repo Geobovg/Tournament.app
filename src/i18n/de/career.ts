@@ -18,6 +18,7 @@ export const career = {
     karrierehistorikk: "Spielverlauf",
     sbc: "SBC",
     informs: "Informs",
+    tots: "TOTS",
   },
   subTabs: {
     squad: "Kader",
@@ -259,7 +260,15 @@ export const career = {
     unusableCard: "Der Trupp enthält eine Karte, die Sie nicht verwenden können",
     wrongPosition: "Ein Spieler befindet sich auf einer Position, die er nicht spielen kann",
   },
-  special: { badge: { inform: "INFORM", personal: "PERSÖNLICH" }, name: { inform: "Inform", personal: "Persönliche Karte" }, untradable: "Nicht handelbar", anyPosition: "ALLE", personalHint: "Spielt jede Position. +1 Wertung für jede neue Division, die du erreichst" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "PERSÖNLICH" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Persönliche Karte" }, untradable: "Nicht handelbar", anyPosition: "ALLE", personalHint: "Spielt jede Position. +1 Wertung für jede neue Division, die du erreichst" },
+  tots: {
+    intro: (count: number) => `${count} Team-of-the-Season-Karten mit den besten Spielern jeder Liga. Sie können in Packs auftauchen.`,
+    all: "Alle",
+    rest: "Rest der Welt",
+    count: (count: number) => `${count} Karten`,
+    boost: (boost: number) => `+${boost} gegenüber der normalen Karte`,
+    empty: "Hier gibt es keine TOTS-Karten.",
+  },
   informs: {
     intro: (total: number, rounds: number) => `${total} Inform-Karten aus ${rounds} ${rounds === 1 ? "Runde" : "Runden"}. Neue werden jeden Freitag um 18:00 Uhr gezogen.`,
     thisWeek: "Diese Woche",

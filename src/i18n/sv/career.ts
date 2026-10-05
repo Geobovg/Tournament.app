@@ -18,6 +18,7 @@ export const career = {
     karrierehistorikk: "Matchhistorik",
     sbc: "SBC",
     informs: "Inform",
+    tots: "TOTS",
   },
   subTabs: {
     squad: "Truppen",
@@ -259,7 +260,15 @@ export const career = {
     unusableCard: "Truppen innehåller ett kort som du inte kan använda",
     wrongPosition: "En spelare är i en position han inte kan spela",
   },
-  special: { badge: { inform: "INFORM", personal: "PERSONLIG" }, name: { inform: "Inform", personal: "Personligt kort" }, untradable: "Kan inte säljas", anyPosition: "ALLA", personalHint: "Spelar alla positioner. +1 i betyg för varje ny division du når" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "PERSONLIG" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Personligt kort" }, untradable: "Kan inte säljas", anyPosition: "ALLA", personalHint: "Spelar alla positioner. +1 i betyg för varje ny division du når" },
+  tots: {
+    intro: (count: number) => `${count} Team of the Season-kort med de bästa spelarna i varje liga. De kan dyka upp i paket.`,
+    all: "Alla",
+    rest: "Resten av världen",
+    count: (count: number) => `${count} kort`,
+    boost: (boost: number) => `+${boost} från vanliga kortet`,
+    empty: "Inga TOTS-kort här.",
+  },
   informs: {
     intro: (total: number, rounds: number) => `${total} Informkort från ${rounds} ${rounds === 1 ? "omgång" : "omgångar"}. Nya dras varje fredag kl. 18:00.`,
     thisWeek: "Den här veckan",

@@ -83,8 +83,8 @@ export async function getCareerMatch(matchId: string, userId: string) {
 export type ManagerCard = { id: string; catalog_id: string | null; special_card_id: string | null; special: SpecialKind | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number>; value: number };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
-export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; special_guarantee: number; special_scope: "current" | "all"; purchasable: boolean; weekly_limit: number | null };
-const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, special_guarantee, special_scope, purchasable, weekly_limit";
+export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; tots_chance: number; special_guarantee: number; special_scope: "current" | "all"; purchasable: boolean; weekly_limit: number | null };
+const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, tots_chance, special_guarantee, special_scope, purchasable, weekly_limit";
 
 /**
  * Bare det toppfeltet trenger for å vise lagrating: elleveren og hvilke kort som står i den.
@@ -205,6 +205,18 @@ export async function getInformHistory(): Promise<InformRound[]> {
   }
   const now = Date.now();
   return (rounds ?? []).map((round) => ({ id: round.id, startsAt: round.starts_at, current: new Date(round.starts_at).getTime() <= now && now < new Date(round.ends_at).getTime(), cards: cards.filter((card) => roundOf.get(card.id) === round.id) })).filter((round) => round.cards.length);
+}
+
+export type TotsCard = InformCard & { league: string };
+
+/** Alle TOTS-kortene (migrering 0065), sortert etter rating, med ligaen til spilleren for filteret i galleriet. */
+export async function getTotsCards(): Promise<TotsCard[]> {
+  const { data, error } = await supabaseAdmin().from("special_cards").select("id, kind, overall, boost, attributes, player_catalog(slug, name, position, accent, club, league)").eq("kind", "tots").order("overall", { ascending: false }).order("id");
+  if (error) throw new Error(error.message);
+  return (data ?? []).flatMap((row) => {
+    const catalog = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
+    return catalog ? [{ id: row.id, slug: catalog.slug, name: catalog.name, position: catalog.position, overall: row.overall, boost: row.boost, accent: catalog.accent, club: catalog.club, league: catalog.league, attributes: row.attributes as Record<string, number>, special: row.kind as SpecialKind }] : [];
+  });
 }
 
 // Katalogen har 1300+ kort, og databasen gir maks 1000 rader per spørring. Derfor søkes,

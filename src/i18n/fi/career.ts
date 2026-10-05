@@ -18,6 +18,7 @@ export const career = {
     karrierehistorikk: "Otteluhistoria",
     sbc: "SBC",
     informs: "Informit",
+    tots: "TOTS",
   },
   subTabs: {
     squad: "Ryhmä",
@@ -259,7 +260,15 @@ export const career = {
     unusableCard: "Joukkueessa on kortti, jota et voi käyttää",
     wrongPosition: "Pelaaja on tilanteessa, jossa hän ei voi pelata",
   },
-  special: { badge: { inform: "INFORM", personal: "HENKILÖKOHTAINEN" }, name: { inform: "Inform", personal: "Henkilökohtainen kortti" }, untradable: "Ei myytävissä", anyPosition: "KAIKKI", personalHint: "Pelaa kaikilla pelipaikoilla. +1 luokitus jokaisesta uudesta divisioonasta, jonka saavutat" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "HENKILÖKOHTAINEN" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Henkilökohtainen kortti" }, untradable: "Ei myytävissä", anyPosition: "KAIKKI", personalHint: "Pelaa kaikilla pelipaikoilla. +1 luokitus jokaisesta uudesta divisioonasta, jonka saavutat" },
+  tots: {
+    intro: (count: number) => `${count} Team of the Season -korttia jokaisen liigan parhaista pelaajista. Niitä voi saada paketeista.`,
+    all: "Kaikki",
+    rest: "Muu maailma",
+    count: (count: number) => `${count} korttia`,
+    boost: (boost: number) => `+${boost} tavalliseen korttiin`,
+    empty: "Ei TOTS-kortteja täällä.",
+  },
   informs: {
     intro: (total: number, rounds: number) => `${total} Inform-korttia ${rounds} kierrokselta. Uudet arvotaan joka perjantai klo 18.00.`,
     thisWeek: "Tällä viikolla",
