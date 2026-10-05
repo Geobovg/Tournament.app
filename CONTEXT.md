@@ -66,7 +66,7 @@ Premien fra spesial-SBC-en (to kort på 88+): ett tilfeldig spesialkort blant al
 _Avoid_: Inform-pakke
 
 **Personlig kort**:
-Et kort av en ekte manager i appen, med bilde av personen selv. Hver manager kan ha ett, og bare eieren kan ha det: det kan ikke selges, byttes, leveres i SBC, kastes eller trekkes i pakker. Kortet kan spille alle posisjoner. Det starter på 80 og går opp 1 for hvert nytt nivå man når på AI-stigen; det er det høyeste nivået man har nådd som teller, så nedrykk gjør ikke kortet dårligere, og man får ingen oppgradering for å rykke opp igjen til et nivå man har vært på før. Maks 99. Kortene deles ut for hånd med `grant_personal_card` (migrering 0063).
+Et kort av en ekte manager i appen, med bilde av personen selv. Hver manager kan ha ett, og bare eieren kan ha det: det kan ikke selges, byttes, leveres i SBC, kastes eller trekkes i pakker. Kortet kan spille alle posisjoner. Det starter på 80 og går opp 1 for hvert nytt nivå man når på AI-stigen; det er det høyeste nivået man har nådd som teller, så nedrykk gjør ikke kortet dårligere, og man får ingen oppgradering for å rykke opp igjen til et nivå man har vært på før. Kortet har ikke taket på 99 som alle andre kort: divisjon 1 på Camp Nou gir 129, og første **mestertittel** gir 130. Kortene deles ut for hånd med `grant_personal_card` (migrering 0063).
 _Avoid_: Ikon, Spesialkort (spesialkort er bedre versjoner av ekte spillere, se over)
 
 **Fantasy**:

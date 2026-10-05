@@ -113,7 +113,7 @@ function SquadCard({ card, position, active, dimmed = false, dropTarget = false,
     <span className="absolute inset-0 bg-[linear-gradient(125deg,rgba(255,255,255,.35),transparent_32%,transparent_60%,rgba(0,0,0,.25))]" />
     {photo ? <Image src={photo} alt="" width={256} height={256} draggable={false} className="pointer-events-none absolute bottom-[21%] right-[-12%] h-[90cqw] w-[90cqw] object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,.45)]" /> : <span className="absolute bottom-[30%] right-[12%] text-[34cqw] leading-none opacity-80">⚽</span>}
     <span className="absolute left-[6cqw] top-[6cqw] flex w-[24cqw] flex-col items-center gap-[2.5cqw] drop-shadow-[0_1px_2px_rgba(0,0,0,.6)]">
-      <b className="text-[27cqw] font-black leading-[.85] tracking-tighter" style={card.special ? { color: specialStyles[card.special].badge } : undefined}>{card.overall}</b>
+      <b className={`${card.overall >= 100 ? "text-[19cqw]" : "text-[27cqw]"} font-black leading-[.85] tracking-tighter`} style={card.special ? { color: specialStyles[card.special].badge } : undefined}>{card.overall}</b>
       <span className={`text-[max(7px,12cqw)] font-black leading-none tracking-wide ${outOfPosition ? "text-cyan-100" : ""}`}>{positionLabel(position)}</span>
       {flag ? <Image src={flag} alt="" width={32} height={24} unoptimized draggable={false} className="mt-[1cqw] h-[13cqw] w-[18cqw] rounded-[2px] object-cover ring-1 ring-black/30" /> : null}
       {crest ? <Image src={crest} alt="" width={32} height={32} draggable={false} className="h-[18cqw] w-[18cqw] object-contain" /> : null}

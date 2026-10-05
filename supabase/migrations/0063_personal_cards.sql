@@ -6,8 +6,10 @@
 --   eller trekkes i pakker. Det ligger ikke i katalogen.
 -- * Ratingen starter på 80 og går opp 1 for hvert nytt nivå på AI-stigen (5 arenaer × 10 divisjoner).
 --   Det er det høyeste nivået man har nådd som teller: rykker man ned, blir kortet ikke dårligere,
---   og man får ingen oppgradering før man er forbi det høyeste nivået igjen. Maks 99.
---   Nivåer man allerede har nådd før kortet ble laget, teller også.
+--   og man får ingen oppgradering før man er forbi det høyeste nivået igjen. Nivåer man allerede har
+--   nådd før kortet ble laget, teller også.
+-- * Kortet har ikke taket på 99 som andre kort. Divisjon 1 på Camp Nou gir 129, og første mestertittel
+--   er det siste steget opp: 130.
 
 create table if not exists personal_cards (
   user_id uuid primary key references profiles(id) on delete cascade,
@@ -18,6 +20,11 @@ create table if not exists personal_cards (
 );
 alter table personal_cards enable row level security;
 
+-- Bare personlige kort (posisjon ALL) kan gå forbi 99.
+alter table manager_cards drop constraint if exists manager_cards_overall_check;
+alter table manager_cards add constraint manager_cards_overall_check
+  check (overall between 40 and 99 or (position = 'ALL' and overall between 40 and 130));
+
 -- 1) Ratingen. Nivå 0 er divisjon 10 i Gamle Gress, nivå 49 er divisjon 1 på Camp Nou.
 create or replace function public.ai_ladder_level(target_arena integer, target_division integer)
 returns integer language sql immutable set search_path = public, pg_temp
@@ -26,7 +33,9 @@ as $fn$ select (least(greatest(target_arena, 1), 5) - 1) * 10 + (10 - least(grea
 create or replace function public.personal_card_overall(target_user uuid)
 returns integer language sql stable set search_path = public, pg_temp
 as $fn$
-  select least(99, 80 + coalesce((select max(public.ai_ladder_level(arena, division)) from career_ai_seasons where user_id = target_user), 0))
+  select 80
+    + coalesce((select max(public.ai_ladder_level(arena, division)) from career_ai_seasons where user_id = target_user), 0)
+    + case when exists (select 1 from career_ai_seasons where user_id = target_user and outcome = 'champion') then 1 else 0 end
 $fn$;
 
 -- Alle seks attributtene er lik ratingen: kortet er like godt overalt på banen.
@@ -51,7 +60,7 @@ begin
 end;
 $fn$;
 
--- En ny AI-sesong lages når man når en divisjon, så det er nok å se på nye sesonger.
+-- En ny AI-sesong lages når man når en divisjon. Mestertittelen står i outcome når sesongen er ferdig.
 create or replace function public.refresh_personal_card_on_season()
 returns trigger language plpgsql set search_path = public, pg_temp
 as $fn$
@@ -63,7 +72,7 @@ $fn$;
 
 drop trigger if exists career_ai_seasons_refresh_personal_card on career_ai_seasons;
 create trigger career_ai_seasons_refresh_personal_card
-  after insert or update of arena, division on career_ai_seasons
+  after insert or update of arena, division, outcome on career_ai_seasons
   for each row execute function public.refresh_personal_card_on_season();
 
 -- 2) Sperrene. De ligger i triggere, så alle veier ut av klubben er stengt, også de som kommer senere.
