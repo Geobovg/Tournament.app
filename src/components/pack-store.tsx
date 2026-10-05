@@ -40,10 +40,15 @@ function PackOdds({ pack, informFactor }: { pack: ManagerPack; informFactor: num
   const inform = pack.inform_chance * informFactor * 100;
   const tots = pack.tots_chance * informFactor * 100;
   return <dl className="grid gap-1 text-xs">
-    {pack.special_guarantee ? null : [...pack.odds].reverse().map((tier) => <div key={tier.min} className="flex items-center justify-between gap-3">
+    {[...pack.odds].reverse().map((tier) => <div key={tier.min} className="flex items-center justify-between gap-3">
       <dt className="text-muted">{tp.rating(tierLabel(tier))}</dt>
       <dd className="font-semibold tabular-nums">{tp.percent(oddsLabel(100 * tier.weight / total, locale))}</dd>
     </div>)}
+    {/* Spesialkortet er et eget, garantert kort ved siden av kortene som trekkes etter sjansene over. */}
+    {pack.special_guarantee ? <div className="flex items-center justify-between gap-3 border-t border-border pt-1">
+      <dt className="font-semibold" style={{ color: specialStyles.inform.border }}>{tp.specialGuarantee(pack.special_guarantee, pack.special_scope)}</dt>
+      <dd className="font-semibold">{tp.guaranteed}</dd>
+    </div> : null}
     {inform > 0 ? <div className="flex items-center justify-between gap-3 border-t border-border pt-1">
       <dt className="font-semibold" style={{ color: specialStyles.inform.border }}>{tp.informOdds}</dt>
       <dd className="font-semibold tabular-nums">{tp.percent(oddsLabel(inform, locale))}</dd>

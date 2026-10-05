@@ -7,7 +7,7 @@ const packNames: Record<string, string> = {
   solv: "Sølvpakke",
   gull: "Gullpakke",
   elite: "Elitepakke",
-  inform: "Inform-pakke",
+  inform: "Allpacka",
   spesial: "Spesialpakke",
 };
 
@@ -113,6 +113,7 @@ export const market: MarketDict = {
     specialGuarantee: (count, scope) => `${count}× ${scope === "current" ? "inform" : "spesialkort"}`,
     weeklyLeft: (left, total) => `${left}/${total} igjen denne uken`,
     boughtThisWeek: "Kjøpt denne uken",
+    guaranteed: "Garantert",
   },
   chat: {
     title: "Markedschat",
