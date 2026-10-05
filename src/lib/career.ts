@@ -4,7 +4,7 @@ import { getT } from "@/i18n/server";
 import { formationNames, pickBestLineup, type Formation } from "./lineup";
 import { catalogPageSize, type CatalogFilters } from "./catalog-filters";
 import { catalogBuyMaxOverall } from "./manager-limits";
-import type { SpecialKind } from "./special-cards";
+import { specialStyles, type SpecialKind } from "./special-cards";
 import { supabaseAdmin } from "./supabase/server";
 
 export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number; club_xp: number };
@@ -124,21 +124,25 @@ export async function getManagerHome(userId: string): Promise<{ formation: strin
 // Kortverdien (katalogprisen) følger med egne kort, så sidene slipper å hente hele katalogen.
 export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks: Record<string, number> }> {
   const db = supabaseAdmin();
-  const [{ data: cards, error: cardsError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }, { data: inventory, error: inventoryError }] = await Promise.all([
-    db.from("manager_cards").select("id, catalog_id, special_card_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club, price), special_cards(kind, price)").eq("owner_id", userId).order("overall", { ascending: false }),
+  const [{ data: cards, error: cardsError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }, { data: inventory, error: inventoryError }, { data: profile, error: profileError }] = await Promise.all([
+    db.from("manager_cards").select("id, catalog_id, special_card_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club, price), special_cards(kind, price), personal_cards(slug)").eq("owner_id", userId).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench, updated_at").eq("user_id", userId).maybeSingle(),
     db.from("manager_packs").select(packColumns).eq("active", true).order("sort_order", { ascending: true }),
     db.from("market_listings").select("card_id").eq("seller_id", userId).eq("status", "active"),
     db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
+    db.from("player_profiles").select("club_name").eq("user_id", userId).maybeSingle(),
   ]);
-  if (cardsError || lineupError || packsError || listingsError || inventoryError) throw new Error(cardsError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message ?? inventoryError?.message);
+  if (cardsError || lineupError || packsError || listingsError || inventoryError || profileError) throw new Error(cardsError?.message ?? lineupError?.message ?? packsError?.message ?? listingsError?.message ?? inventoryError?.message ?? profileError?.message);
   // Academy-kort er laget for hånd og mangler katalograd, så kortbildet faller tilbake på nøytrale verdier.
   // «Academy» er en fast verdi her; den oversettes ved visning med t.career.clubName.
   const owned = (cards ?? []).map((row) => {
     const source = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
     // Et spesialkort har sin egen verdi og type. Spiller, klubb og bilde kommer fortsatt fra katalogen.
     const special = Array.isArray(row.special_cards) ? row.special_cards[0] : row.special_cards;
-    return { ...row, player_catalog: undefined, special_cards: undefined, special: special?.kind ?? null, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Academy", value: special?.price ?? source?.price ?? 0 };
+    // Et personlig kort har bildet sitt i personal_cards og spiller for eierens egen klubb.
+    const personal = Array.isArray(row.personal_cards) ? row.personal_cards[0] : row.personal_cards;
+    if (personal) return { ...row, player_catalog: undefined, special_cards: undefined, personal_cards: undefined, special: "personal", slug: personal.slug, accent: specialStyles.personal.badge, club: profile?.club_name ?? "My team", value: 0 };
+    return { ...row, player_catalog: undefined, special_cards: undefined, personal_cards: undefined, special: special?.kind ?? null, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Academy", value: special?.price ?? source?.price ?? 0 };
   });
   return { cards: owned as unknown as ManagerCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
 }

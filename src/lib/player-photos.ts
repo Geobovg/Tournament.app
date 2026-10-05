@@ -408,6 +408,14 @@ const withPhoto = new Set([
   "zubimendi",
 ]);
 
+/**
+ * Bildene på de personlige kortene (migrering 0063) ligger i public/personal. Slugen er den samme som
+ * i personal_cards.slug og begynner alltid med «personal-», så den aldri kolliderer med en ekte spiller.
+ * Nytt kort: legg bildet i public/personal/<slug>.png (256 × 256, gjennomsiktig bakgrunn) og slugen her.
+ */
+const personalPhotos = new Set<string>([]);
+
 export function playerPhoto(slug: string): string | null {
+  if (personalPhotos.has(slug)) return `/personal/${slug}.png`;
   return withPhoto.has(slug) ? `/players/${slug}.png` : null;
 }

@@ -261,7 +261,7 @@ export const career = {
     unusableCard: "Der Trupp enthält eine Karte, die Sie nicht verwenden können",
     wrongPosition: "Ein Spieler befindet sich auf einer Position, die er nicht spielen kann",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Nicht handelbar" },
+  special: { badge: { inform: "INFORM", personal: "PERSÖNLICH" }, name: { inform: "Inform", personal: "Persönliche Karte" }, untradable: "Nicht handelbar", anyPosition: "ALLE", personalHint: "Spielt jede Position. +1 Wertung für jede neue Division, die du erreichst" },
   informs: {
     intro: (total: number, rounds: number) => `${total} Inform-Karten aus ${rounds} ${rounds === 1 ? "Runde" : "Runden"}. Neue werden jeden Freitag um 18:00 Uhr gezogen.`,
     thisWeek: "Diese Woche",

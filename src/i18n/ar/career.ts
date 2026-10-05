@@ -261,7 +261,7 @@ export const career = {
     unusableCard: "تحتوي الفرقة على بطاقة لا يمكنك استخدامها",
     wrongPosition: "اللاعب في مركز لا يستطيع اللعب فيه",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "بطاقة الفورمة" }, untradable: "غير قابلة للبيع" },
+  special: { badge: { inform: "INFORM", personal: "شخصية" }, name: { inform: "بطاقة الفورمة", personal: "بطاقة شخصية" }, untradable: "غير قابلة للبيع", anyPosition: "الكل", personalHint: "تلعب في كل المراكز. +1 تقييم لكل درجة جديدة تصل إليها" },
   informs: {
     intro: (total: number, rounds: number) => `${total} بطاقة فورمة من ${rounds} جولة. تُسحب بطاقات جديدة كل جمعة الساعة 18:00.`,
     thisWeek: "هذا الأسبوع",

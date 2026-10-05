@@ -86,6 +86,9 @@ export const dbErrors = {
   noSpecialCards: "Todavía no hay cartas especiales para sacar",
   cardNotTradable: "Esta carta no se puede vender en el mercado",
   sbcNoAttemptsToday: "No te quedan intentos en este SBC hoy",
+  personalCardLocked: "Las cartas personales no se pueden vender, intercambiar ni entregar",
+  personalCardUserNotFound: (name: string) => `No hay ningún mánager con el nombre de usuario ${name}`,
+  personalCardExists: (name: string) => `${name} ya tiene una carta personal`,
 };
 
 export type DbErrorsDict = typeof dbErrors;

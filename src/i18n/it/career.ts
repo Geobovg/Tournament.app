@@ -261,7 +261,7 @@ export const career = {
     unusableCard: "La squadra contiene una carta che non puoi utilizzare",
     wrongPosition: "Un giocatore è in una posizione in cui non può giocare",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Non scambiabile" },
+  special: { badge: { inform: "INFORM", personal: "PERSONALE" }, name: { inform: "Inform", personal: "Carta personale" }, untradable: "Non scambiabile", anyPosition: "TUTTI", personalHint: "Gioca in ogni ruolo. +1 di valutazione per ogni nuova divisione raggiunta" },
   informs: {
     intro: (total: number, rounds: number) => `${total} carte Inform da ${rounds} ${rounds === 1 ? "turno" : "turni"}. Le nuove escono ogni venerdì alle 18:00.`,
     thisWeek: "Questa settimana",
