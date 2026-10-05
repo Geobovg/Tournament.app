@@ -261,7 +261,7 @@ export const career = {
     unusableCard: "Truppen innehåller ett kort som du inte kan använda",
     wrongPosition: "En spelare är i en position han inte kan spela",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Kan inte säljas" },
+  special: { badge: { inform: "INFORM", personal: "PERSONLIG" }, name: { inform: "Inform", personal: "Personligt kort" }, untradable: "Kan inte säljas", anyPosition: "ALLA", personalHint: "Spelar alla positioner. +1 i betyg för varje ny division du når" },
   informs: {
     intro: (total: number, rounds: number) => `${total} Informkort från ${rounds} ${rounds === 1 ? "omgång" : "omgångar"}. Nya dras varje fredag kl. 18:00.`,
     thisWeek: "Den här veckan",

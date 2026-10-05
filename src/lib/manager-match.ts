@@ -1,3 +1,5 @@
+import { anyPosition } from "./lineup";
+
 export type ManagerPlayerSnapshot = {
   id: string;
   name: string;
@@ -305,7 +307,9 @@ function lineupAtMinute(team: ManagerTeamSnapshot, substitutions: ManagerSubstit
     const starterIndex = starters.findIndex((player) => player.id === substitution.outId);
     const benchIndex = bench.findIndex((player) => player.id === substitution.inId);
     if (starterIndex < 0 || benchIndex < 0) continue;
-    starters[starterIndex] = bench[benchIndex];
+    // Et personlig kort kan spille alt, og tar over plassen til den som går av.
+    const incoming = bench[benchIndex];
+    starters[starterIndex] = incoming.position === anyPosition ? { ...incoming, position: starters[starterIndex].position } : incoming;
     bench.splice(benchIndex, 1);
   }
   return { ...team, starters, bench };
@@ -765,7 +769,7 @@ export function suggestSubstitutions(matchId: string, events: unknown, side: Mat
     .filter((player) => !sentOff.has(player.id) && player.position !== "GK")
     .flatMap((starter) =>
       team.bench.map((replacement) => {
-        const exact = starter.position === replacement.position;
+        const exact = starter.position === replacement.position || replacement.position === anyPosition;
         const sameGroup = positionGroup[starter.position] === positionGroup[replacement.position];
         if (!exact && !sameGroup) return null;
         const tired = fatigueAt(onPitch.get(starter.id) ?? 0, minute);

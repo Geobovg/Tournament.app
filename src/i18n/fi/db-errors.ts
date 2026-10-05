@@ -86,6 +86,9 @@ export const dbErrors = {
   noSpecialCards: "Nostettavia erikoiskortteja ei ole vielä",
   cardNotTradable: "Tätä korttia ei voi myydä markkinoilla",
   sbcNoAttemptsToday: "Sinulla ei ole tänään enää yrityksiä tähän SBC:hen",
+  personalCardLocked: "Henkilökohtaisia kortteja ei voi myydä, vaihtaa tai luovuttaa",
+  personalCardUserNotFound: (name: string) => `Käyttäjänimellä ei löytynyt manageria: ${name}`,
+  personalCardExists: (name: string) => `${name} omistaa jo henkilökohtaisen kortin`,
 };
 
 export type DbErrorsDict = typeof dbErrors;

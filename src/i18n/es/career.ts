@@ -261,7 +261,7 @@ export const career = {
     unusableCard: "El escuadrón contiene una tarjeta que no puedes usar.",
     wrongPosition: "Un jugador está en una posición en la que no puede jugar.",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "No vendible" },
+  special: { badge: { inform: "INFORM", personal: "PERSONAL" }, name: { inform: "Inform", personal: "Carta personal" }, untradable: "No vendible", anyPosition: "TODAS", personalHint: "Juega en todas las posiciones. +1 de valoración por cada nueva división que alcances" },
   informs: {
     intro: (total: number, rounds: number) => `${total} cartas Inform de ${rounds} ${rounds === 1 ? "ronda" : "rondas"}. Se sortean nuevas cada viernes a las 18:00.`,
     thisWeek: "Esta semana",

@@ -261,7 +261,7 @@ export const career = {
     unusableCard: "小队包含一张你无法使用的卡牌",
     wrongPosition: "球员处于无法上场的位置",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "状态卡" }, untradable: "不可交易" },
+  special: { badge: { inform: "INFORM", personal: "个人" }, name: { inform: "状态卡", personal: "个人卡" }, untradable: "不可交易", anyPosition: "全能", personalHint: "可以踢所有位置。每达到一个新级别，评分 +1" },
   informs: {
     intro: (total: number, rounds: number) => `共 ${rounds} 轮，${total} 张状态卡。每周五 18:00 抽取新卡。`,
     thisWeek: "本周",

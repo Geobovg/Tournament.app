@@ -65,6 +65,10 @@ _Avoid_: Spesialpakke (det er SBC-premien)
 Premien fra spesial-SBC-en (to kort på 88+): ett tilfeldig spesialkort blant alle som noen gang er laget. Kortet kan ikke selges på markedet. Pakken kan ikke kjøpes.
 _Avoid_: Inform-pakke
 
+**Personlig kort**:
+Et kort av en ekte manager i appen, med bilde av personen selv. Hver manager kan ha ett, og bare eieren kan ha det: det kan ikke selges, byttes, leveres i SBC, kastes eller trekkes i pakker. Kortet kan spille alle posisjoner. Det starter på 80 og går opp 1 for hvert nytt nivå man når på AI-stigen; det er det høyeste nivået man har nådd som teller, så nedrykk gjør ikke kortet dårligere, og man får ingen oppgradering for å rykke opp igjen til et nivå man har vært på før. Maks 99. Kortene deles ut for hånd med `grant_personal_card` (migrering 0063).
+_Avoid_: Ikon, Spesialkort (spesialkort er bedre versjoner av ekte spillere, se over)
+
 **Fantasy**:
 En egen modus utenfor Managerkarrieren, som Premier League Fantasy, men for spillere fra alle de fem store ligaene. Du velger et lag av ekte spillere innenfor et budsjett og får poeng etter hva de gjør i ekte kamper. Kampdataene hentes fra API-Football; appen simulerer ingenting her.
 _Avoid_: Managerkarriere, Draft

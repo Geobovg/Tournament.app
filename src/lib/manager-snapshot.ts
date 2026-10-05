@@ -1,6 +1,7 @@
 import "server-only";
 
 import { dbErrorMessage } from "@/i18n/server";
+import { anyPosition, formationNames, formations, type Formation } from "./lineup";
 import type { ManagerPlayerSnapshot, ManagerTeamSnapshot } from "./manager-match";
 import type { supabaseAdmin } from "./supabase/server";
 
@@ -12,7 +13,7 @@ export async function managerTeamSnapshots(db: ReturnType<typeof supabaseAdmin>,
   if (lineupsError) return { error: await dbErrorMessage(lineupsError) };
   const allIds = (lineups ?? []).flatMap((lineup) => [...uniqueIds(lineup.starters), ...uniqueIds(lineup.bench)]);
   // Katalogdataene blir med i laguttaket slik at kampbildet kan tegne spillerkortene uten flere oppslag.
-  const { data: cards, error: cardsError } = allIds.length ? await db.from("manager_cards").select("id, owner_id, name, position, overall, player_catalog(slug, club, accent)").in("id", allIds) : { data: [], error: null };
+  const { data: cards, error: cardsError } = allIds.length ? await db.from("manager_cards").select("id, owner_id, name, position, overall, player_catalog(slug, club, accent), personal_cards(slug)").in("id", allIds) : { data: [], error: null };
   if (cardsError) return { error: await dbErrorMessage(cardsError) };
   const snapshots = new Map<string, ManagerTeamSnapshot>();
   for (const lineup of lineups ?? []) {
@@ -21,9 +22,14 @@ export async function managerTeamSnapshots(db: ReturnType<typeof supabaseAdmin>,
     const owned = new Map<string, ManagerPlayerSnapshot>();
     for (const card of (cards ?? []).filter((card) => card.owner_id === lineup.user_id)) {
       const catalog = Array.isArray(card.player_catalog) ? card.player_catalog[0] : card.player_catalog;
-      owned.set(card.id, { id: card.id, name: card.name, position: card.position, overall: card.overall, slug: catalog?.slug ?? null, club: catalog?.club ?? null, accent: catalog?.accent ?? null });
+      const personal = Array.isArray(card.personal_cards) ? card.personal_cards[0] : card.personal_cards;
+      owned.set(card.id, { id: card.id, name: card.name, position: card.position, overall: card.overall, slug: catalog?.slug ?? personal?.slug ?? null, club: catalog?.club ?? null, accent: catalog?.accent ?? null });
     }
-    const selectedStarters = starters.map((id) => owned.get(id)).filter((card): card is ManagerPlayerSnapshot => Boolean(card));
+    // Et kort som kan spille alt, spiller på plassen det står på i formasjonen. På benken beholder det «ALL»,
+    // og tar posisjonen til den det bytter med (se lineupAtMinute i manager-match.ts).
+    const slots = formations[formationNames.includes(lineup.formation as Formation) ? (lineup.formation as Formation) : "4-3-3"];
+    const selectedStarters = starters.map((id) => owned.get(id)).filter((card): card is ManagerPlayerSnapshot => Boolean(card))
+      .map((card, index) => (card.position === anyPosition ? { ...card, position: slots[index].position } : card));
     const selectedBench = bench.map((id) => owned.get(id)).filter((card): card is ManagerPlayerSnapshot => Boolean(card));
     if (selectedStarters.length === 11 && selectedBench.length === bench.length) snapshots.set(lineup.user_id, { userId: lineup.user_id, formation: lineup.formation, starters: selectedStarters, bench: selectedBench });
   }
