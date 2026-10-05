@@ -260,6 +260,7 @@ export const career = {
     unusableCard: "Holdet indeholder et kort, du ikke kan bruge",
     wrongPosition: "En spiller er i en position, han ikke kan spille",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Kan ikke sælges" },
 };
 
 export type CareerDict = typeof career;

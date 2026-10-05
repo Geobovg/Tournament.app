@@ -81,6 +81,10 @@ export const dbErrors = {
   sbcWrongCardCount: "请为该 SBC 选择正确数量的卡片",
   sbcCardsNotUsable: "部分卡片无法用于 SBC",
   sbcRequirementsNotMet: "这些卡片不符合 SBC 的要求",
+  packNotForSale: "此卡包无法购买",
+  packWeeklyLimit: "你本周已经购买过此卡包",
+  noSpecialCards: "目前还没有可抽取的特殊卡",
+  cardNotTradable: "此卡不能在市场出售",
 };
 
 export type DbErrorsDict = typeof dbErrors;

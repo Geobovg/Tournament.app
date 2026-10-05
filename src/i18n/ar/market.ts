@@ -4,6 +4,8 @@ const packNames: Record<string, string> = {
   solv: "الحزمة الفضية",
   gull: "الحزمة الذهبية",
   elite: "حزمة النخبة",
+  inform: "حزمة الفورمة",
+  spesial: "حزمة خاصة",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -11,6 +13,8 @@ const packDescriptions: Record<string, string> = {
   solv: "خمس بطاقات، مع ضمان 80 بطاقة واحدة على الأقل أو أفضل.",
   gull: "ثماني بطاقات، مع ضمان 83 بطاقة واحدة على الأقل أو أفضل.",
   elite: "اثنتا عشرة بطاقة، مع ضمان بطاقتين من فئة 84+ وبطاقة واحدة من فئة 86+.",
+  inform: "سبع بطاقات: مضمون بطاقة فورمة واحدة، وواحدة 88+، واثنتان 86+، وثلاث 83+. واحدة أسبوعيًا.",
+  spesial: "بطاقة خاصة عشوائية. لا يمكن بيعها في السوق.",
 };
 
 export const market = {
@@ -95,6 +99,15 @@ export const market = {
     openFree: "فتح مجانا",
     openPack: "حزمة مفتوحة",
     tooExpensive: "غالي جدًا",
+    informOdds: "بطاقة الفورمة (لكل بطاقة)",
+    informWeekTitle: "فورمة الأسبوع",
+    informWeekIntro: (count: number) => `${count} لاعبين في قمة الفورمة هذا الأسبوع. قد تظهر بطاقاتهم في الحزم.`,
+    informWeekResets: (when: string) => `بطاقات فورمة جديدة ${when}`,
+    informPulled: "فورمة!",
+    untradable: " · غير قابلة للبيع",
+    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "بطاقة فورمة" : "بطاقة خاصة"}`,
+    weeklyLeft: (left: number, total: number) => `متبقٍ ${left}/${total} هذا الأسبوع`,
+    boughtThisWeek: "تم الشراء هذا الأسبوع",
   },
   chat: {
     title: "دردشة السوق",

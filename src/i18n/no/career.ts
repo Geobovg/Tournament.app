@@ -265,5 +265,6 @@ export const career: CareerDict = {
     unusableCard: "Troppen inneholder et kort du ikke kan bruke",
     wrongPosition: "En spiller står i en posisjon han ikke kan spille",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Kan ikke selges" },
 };
 

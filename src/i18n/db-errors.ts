@@ -9,6 +9,10 @@ type DbErrorRule = { pattern: RegExp; message: (t: Dictionary, ...values: string
 // Ingen av meldingene inneholder kolon, så de overlever også `stripPrefix` i dbErrorMessage uendret.
 export const DB_ERROR_RULES: DbErrorRule[] = [
   { pattern: /^Fant ikke denne SBC-en$/, message: (t) => t.dbErrors.sbcNotFound },
+  { pattern: /^Denne pakken kan ikke kjøpes$/, message: (t) => t.dbErrors.packNotForSale },
+  { pattern: /^Du har allerede kjøpt denne pakken denne uken$/, message: (t) => t.dbErrors.packWeeklyLimit },
+  { pattern: /^Det finnes ingen spesialkort å trekke ennå$/, message: (t) => t.dbErrors.noSpecialCards },
+  { pattern: /^Dette kortet kan ikke selges på markedet$/, message: (t) => t.dbErrors.cardNotTradable },
   { pattern: /^Fantasy-laget må ha 15 spillere fra denne sesongen$/, message: (t) => t.dbErrors.fantasyTeamSize },
   { pattern: /^Laget er for dyrt$/, message: (t) => t.dbErrors.fantasyTooExpensive },
   { pattern: /^Laget kan ikke endres før Free Hit-runden er ferdig$/, message: (t) => t.dbErrors.fantasyFreeHitActive },

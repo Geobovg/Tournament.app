@@ -260,6 +260,7 @@ export const career = {
     unusableCard: "Der Trupp enthält eine Karte, die Sie nicht verwenden können",
     wrongPosition: "Ein Spieler befindet sich auf einer Position, die er nicht spielen kann",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Nicht handelbar" },
 };
 
 export type CareerDict = typeof career;

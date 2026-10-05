@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import type { ManagerPack } from "@/lib/career";
+import type { InformCard, ManagerPack, PackShop } from "@/lib/career";
+import { specialStyles } from "@/lib/special-cards";
 import { openManagerPackAction, type PackActionState, type PackPull } from "@/lib/manager-actions";
 import { useLocale, useT } from "@/i18n/client";
 import { INTL_LOCALES, type Locale } from "@/i18n/locales";
@@ -30,27 +31,55 @@ function oddsLabel(percent: number, locale: Locale) {
   return percent.toLocaleString(INTL_LOCALES[locale], { maximumFractionDigits: percent < 1 ? 2 : 1 });
 }
 
-function PackOdds({ pack }: { pack: ManagerPack }) {
+function PackOdds({ pack, informFactor }: { pack: ManagerPack; informFactor: number }) {
   const tp = useT().market.packs;
   const locale = useLocale();
   const total = pack.odds.reduce((sum, tier) => sum + tier.weight, 0);
+  // Inform-sjansen gjelder hvert kort i pakka, og arenaen du er i løfter den litt.
+  const inform = pack.inform_chance * informFactor * 100;
   return <dl className="grid gap-1 text-xs">
-    {[...pack.odds].reverse().map((tier) => <div key={tier.min} className="flex items-center justify-between gap-3">
+    {pack.special_guarantee ? null : [...pack.odds].reverse().map((tier) => <div key={tier.min} className="flex items-center justify-between gap-3">
       <dt className="text-muted">{tp.rating(tierLabel(tier))}</dt>
       <dd className="font-semibold tabular-nums">{tp.percent(oddsLabel(100 * tier.weight / total, locale))}</dd>
     </div>)}
+    {inform > 0 ? <div className="flex items-center justify-between gap-3 border-t border-border pt-1">
+      <dt className="font-semibold" style={{ color: specialStyles.inform.border }}>{tp.informOdds}</dt>
+      <dd className="font-semibold tabular-nums">{tp.percent(oddsLabel(inform, locale))}</dd>
+    </div> : null}
   </dl>;
 }
 
+/** Ukens inform-kort, som Team of the Week i FC. */
+function InformShowcase({ informs, nextReset }: { informs: InformCard[]; nextReset: string }) {
+  const t = useT(); const tp = t.market.packs; const locale = useLocale();
+  if (!informs.length) return null;
+  let resets = "";
+  try { resets = new Intl.DateTimeFormat(INTL_LOCALES[locale], { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(nextReset)); } catch { resets = ""; }
+  return <div className="grid gap-3 rounded-xl border-2 p-4 text-white" style={{ background: specialStyles.inform.background, borderColor: specialStyles.inform.border }}>
+    <div className="flex flex-wrap items-end justify-between gap-2">
+      <div><p className="text-xs font-black tracking-[.3em]" style={{ color: specialStyles.inform.badge }}>★ {t.career.special.badge.inform}</p><h3 className="text-xl font-black">{tp.informWeekTitle}</h3><p className="text-sm text-white/70">{tp.informWeekIntro(informs.length)}</p></div>
+      {resets ? <p className="text-xs text-white/60" suppressHydrationWarning>{tp.informWeekResets(resets)}</p> : null}
+    </div>
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      {informs.map((card) => <li key={card.id} className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/40 px-2 py-1.5">
+        <b className="w-8 text-center text-lg font-black tabular-nums" style={{ color: specialStyles.inform.badge }}>{card.overall}</b>
+        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{card.name}</span><span className="text-[11px] text-white/60">{card.position} · +{card.boost}</span></span>
+      </li>)}
+    </ul>
+  </div>;
+}
+
 function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName: string; onClose: () => void }) {
-  const tp = useT().market.packs;
+  const t = useT(); const tp = t.market.packs;
   // index -1 mens pakka ryker opp, deretter ett steg per kort, til slutt oppsummeringen.
   // Index og revealed ligger i samme tilstand, slik at et nytt kort alltid starter
   // skjult uten at en effekt må nullstille noe.
   const [phase, setPhase] = useState({ index: -1, revealed: false });
   const { index, revealed } = phase;
   const card = index >= 0 && index < pulls.length ? pulls[index] : null;
-  const walkout = (card?.overall ?? 0) >= walkoutFrom;
+  // Et inform-kort får alltid den store animasjonen, uansett rating.
+  const walkout = (card?.overall ?? 0) >= walkoutFrom || Boolean(card?.special);
+  const glow = card?.special ? specialStyles[card.special].glow : glowFor(card?.overall ?? 0);
 
   useEffect(() => {
     if (index !== -1) return;
@@ -94,13 +123,13 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {pulls.map((pull) => <div key={pull.card_id} className="grid gap-1">
           <PlayerCardFace player={pull} eager />
-          <p className="text-center text-xs text-white/70">{pull.location === "storage" ? tp.toStorage : tp.inSquad}{pull.duplicate ? tp.duplicate : ""}</p>
+          <p className="text-center text-xs text-white/70">{pull.location === "storage" ? tp.toStorage : tp.inSquad}{pull.duplicate ? tp.duplicate : ""}{pull.tradable ? "" : tp.untradable}</p>
         </div>)}
       </div>
     </div> : <button type="button" onClick={next} className="absolute inset-0 grid place-items-center focus:outline-none" aria-label={revealed ? tp.nextCard : tp.openingCard}>
       <div className={revealed && walkout ? "pack-shake grid place-items-center" : "grid place-items-center"}>
-        {card ? <div className="pack-rays" style={{ "--pack-glow": glowFor(card.overall) } as CSSProperties} /> : null}
-        {card && !revealed && walkout ? <div className="pack-door" style={{ "--pack-glow": glowFor(card.overall) } as CSSProperties} /> : null}
+        {card ? <div className="pack-rays" style={{ "--pack-glow": glow } as CSSProperties} /> : null}
+        {card && !revealed && walkout ? <div className="pack-door" style={{ "--pack-glow": glow } as CSSProperties} /> : null}
         {card && revealed && walkout ? <div className="pack-flash" /> : null}
 
         {index === -1 ? <div className="pack-tear grid h-72 w-56 place-items-center rounded-2xl border border-white/25 bg-[linear-gradient(145deg,#12261a,#061009)] text-center text-white shadow-2xl">
@@ -108,13 +137,13 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
         </div> : null}
 
         {card && !revealed ? <div className="relative grid h-[27rem] w-72 place-items-center rounded-2xl border border-white/25 bg-black/50 text-white shadow-2xl">
-          <div className="text-center"><p className="text-5xl font-black">{card.position}</p><p className="mt-2 text-xs font-bold tracking-[.3em] text-white/60">{walkout ? "…" : tp.cardBanner}</p></div>
+          <div className="text-center"><p className="text-5xl font-black">{card.position}</p><p className="mt-2 text-xs font-bold tracking-[.3em] text-white/60">{card.special ? `★ ${t.career.special.badge[card.special]}` : walkout ? "…" : tp.cardBanner}</p></div>
         </div> : null}
 
         {card && revealed ? <div className="relative grid gap-2">
           <div className={walkout ? "pack-card-walkout w-72" : "pack-card-enter w-72"}><PlayerCardFace player={card} eager /></div>
           <p className="pack-label-rise text-center text-sm text-white/75">
-            {walkout ? tp.bigCard : ""} {card.location === "storage" ? tp.placedInStorage : tp.placedInSquad}{card.duplicate ? tp.alreadyOwned : ""}
+            {card.special ? tp.informPulled : walkout ? tp.bigCard : ""} {card.location === "storage" ? tp.placedInStorage : tp.placedInSquad}{card.duplicate ? tp.alreadyOwned : ""}
           </p>
           <p className="text-center text-xs text-white/50">{tp.progress(index + 1, pulls.length)}</p>
         </div> : null}
@@ -123,7 +152,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
   </div>, document.body);
 }
 
-export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; blockedByDuplicate: boolean }) {
+export function PackStore({ packs, freePacks, budget, blockedByDuplicate, shop }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; blockedByDuplicate: boolean; shop: PackShop }) {
   const tp = useT().market.packs;
   const nameOf = (pack: ManagerPack) => tp.name(pack.key, pack.name);
   const [state, action, pending] = useActionState(openManagerPackAction, initial);
@@ -133,6 +162,8 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { pa
   // starter animasjonen på nytt i stedet for å bli stående.
   const showing = state.pulls?.length && state.openedAt && state.openedAt !== shownAt ? state.pulls : null;
   const openedPack = packs.find((pack) => pack.key === state.packKey);
+  // Pakker som ikke kan kjøpes (f.eks. spesialpakken fra SBC) vises bare når man har en gratis å åpne.
+  const visible = packs.filter((pack) => pack.purchasable || freePacks[pack.key]);
 
   return <section className={`${cardClass} grid gap-4`}>
     <div className="flex flex-wrap items-end justify-between gap-3">
@@ -148,22 +179,28 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { pa
 
     {blockedByDuplicate ? <p className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{tp.blockedByDuplicate}</p> : null}
 
+    <InformShowcase informs={shop.informs} nextReset={shop.nextReset} />
+
     <div className="grid gap-3 sm:grid-cols-2">
-      {packs.map((pack) => {
+      {visible.map((pack) => {
         const affordable = budget >= pack.price;
         const free = freePacks[pack.key] ?? 0;
-        return <div key={pack.key} className="grid gap-3 rounded-xl border border-border bg-surface-raised p-4" style={{ borderTopColor: pack.accent, borderTopWidth: 3 }}>
+        const left = pack.weekly_limit === null ? null : Math.max(0, pack.weekly_limit - (shop.purchasedThisWeek[pack.key] ?? 0));
+        const canBuy = pack.purchasable && affordable && left !== 0;
+        const special = pack.special_guarantee > 0;
+        return <div key={pack.key} className="grid gap-3 rounded-xl border border-border bg-surface-raised p-4" style={special ? { borderColor: specialStyles.inform.border, borderWidth: 2, background: specialStyles.inform.background, color: "white" } : { borderTopColor: pack.accent, borderTopWidth: 3 }}>
           <div>
-            <h3 className="text-lg font-bold">{nameOf(pack)}</h3>
-            <p className="text-sm text-muted">{tp.description(pack.key, pack.description)}</p>
-            <p className="mt-2 text-sm">{tp.cardCount(pack.card_count)} · {pack.guarantees.length ? tp.guarantee(pack.guarantees.map((guarantee) => `${guarantee.count}× ${guarantee.min}+`).join(", ")) : tp.noGuarantee}</p>
+            <h3 className="text-lg font-bold">{special ? <span style={{ color: specialStyles.inform.badge }}>★ </span> : null}{nameOf(pack)}</h3>
+            <p className={`text-sm ${special ? "text-white/70" : "text-muted"}`}>{tp.description(pack.key, pack.description)}</p>
+            <p className="mt-2 text-sm">{tp.cardCount(pack.card_count)} · {pack.guarantees.length || special ? tp.guarantee([...(special ? [tp.specialGuarantee(pack.special_guarantee, pack.special_scope)] : []), ...pack.guarantees.map((guarantee) => `${guarantee.count}× ${guarantee.min}+`)].join(", ")) : tp.noGuarantee}</p>
+            {left !== null ? <p className={`mt-1 text-xs font-bold ${left ? "" : "text-danger"}`}>{tp.weeklyLeft(left, pack.weekly_limit ?? 0)}</p> : null}
           </div>
-          <button type="button" className="justify-self-start text-xs underline" onClick={() => setOpenOdds((current) => current === pack.key ? null : pack.key)} aria-expanded={openOdds === pack.key}>
+          {pack.purchasable ? <button type="button" className="justify-self-start text-xs underline" onClick={() => setOpenOdds((current) => current === pack.key ? null : pack.key)} aria-expanded={openOdds === pack.key}>
             {openOdds === pack.key ? tp.hideOdds : tp.showOdds}
-          </button>
+          </button> : null}
           {openOdds === pack.key ? <div className="grid gap-2 rounded-lg border border-border p-3">
-            <PackOdds pack={pack} />
-            <p className="text-xs text-muted">{tp.oddsNote}</p>
+            <PackOdds pack={pack} informFactor={shop.informFactor} />
+            <p className={`text-xs ${special ? "text-white/60" : "text-muted"}`}>{tp.oddsNote}</p>
           </div> : null}
           <div className="mt-auto grid gap-2">
             {free ? <form action={action} className="flex items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2">
@@ -172,13 +209,13 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate }: { pa
               <span className="text-sm font-bold text-accent">{tp.freeCount(free)}</span>
               <button className={buttonClass} disabled={pending || blockedByDuplicate}>{pending ? tp.openingShort : tp.openFree}</button>
             </form> : null}
-            <form action={action} className="flex items-center justify-between gap-3">
+            {pack.purchasable ? <form action={action} className="flex items-center justify-between gap-3">
               <input type="hidden" name="pack_key" value={pack.key} />
               <span className="rounded-full bg-black/10 px-3 py-1 text-sm font-bold">{pack.price} MB</span>
-              <button className={affordable ? buttonClass : secondaryButtonClass} disabled={!affordable || pending || blockedByDuplicate}>
-                {pending ? tp.openingShort : affordable ? tp.openPack : tp.tooExpensive}
+              <button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending || blockedByDuplicate}>
+                {pending ? tp.openingShort : left === 0 ? tp.boughtThisWeek : affordable ? tp.openPack : tp.tooExpensive}
               </button>
-            </form>
+            </form> : null}
           </div>
         </div>;
       })}

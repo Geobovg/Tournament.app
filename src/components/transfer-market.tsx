@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import type { ActionState } from "@/lib/actions";
 import type { ManagerCard, MarketListing } from "@/lib/career";
 import { marketListingLimit, marketPriceRange } from "@/lib/manager-limits";
+import { specialStyles } from "@/lib/special-cards";
 import { buyNowMarketAction, createMarketListingAction, placeMarketBidAction } from "@/lib/market-actions";
 import { useLocale, useT } from "@/i18n/client";
 import { INTL_LOCALES } from "@/i18n/locales";
@@ -25,13 +26,13 @@ function ListCardForm({ cards, values, activeCount }: { cards: ManagerCard[]; va
   const [state, action, pending] = useActionState(createMarketListingAction, initial);
   const [cardId, setCardId] = useState(cards[0]?.id ?? "");
   const card = cards.find((item) => item.id === cardId) ?? cards[0];
-  const value = card?.catalog_id ? values.get(card.catalog_id) ?? 0 : 0;
+  const value = card ? values.get(card.id) ?? 0 : 0;
   const { min, max } = marketPriceRange(value);
   const full = activeCount >= marketListingLimit;
   if (!card) return <p className="text-sm text-muted">{tm.noSellableCards}</p>;
   return <form key={card.id} action={action} className="grid gap-3 rounded-xl border border-border bg-surface-raised p-3">
     <div className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
-      <label className="text-xs text-muted">{tm.card}<select className="mt-1 w-full" name="card_id" value={card.id} onChange={(event) => setCardId(event.target.value)}>{cards.map((item) => <option key={item.id} value={item.id}>{item.overall} {item.position} · {item.name}</option>)}</select></label>
+      <label className="text-xs text-muted">{tm.card}<select className="mt-1 w-full" name="card_id" value={card.id} onChange={(event) => setCardId(event.target.value)}>{cards.map((item) => <option key={item.id} value={item.id}>{item.overall} {item.position} · {item.name}{item.special ? ` (${t.career.special.name[item.special]})` : ""}</option>)}</select></label>
       <label className="text-xs text-muted">{tm.startPrice}<input className="mt-1 w-full" name="start_price" type="number" min={min} max={max} defaultValue={value || min} /></label>
       <label className="text-xs text-muted">{tm.buyNow}<input className="mt-1 w-full" name="buy_now_price" type="number" min={min} max={max} defaultValue={Math.min(max, value * 2) || max} /></label>
       <label className="text-xs text-muted">{tm.duration}<select className="mt-1 w-full" name="duration_hours" defaultValue="24">{[1, 6, 24].map((hours) => <option key={hours} value={hours}>{tm.durationHours(hours)}</option>)}</select></label>
@@ -71,7 +72,7 @@ function ListingCard({ listing, budget, own }: { listing: MarketListing; budget:
   const [buyState, buyAction, buying] = useActionState(buyNowMarketAction, initial);
   const minimum = Math.max(listing.starting_price, (listing.highest_bid ?? 0) + 1);
   return <article className="rounded-xl border border-border bg-surface-raised p-4">
-    <div className="flex justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold text-muted">{listing.card.position}{listing.card.club ? ` · ${listing.card.club}` : ""}</p><h3 className="truncate font-bold">{listing.card.name}</h3><p className="text-sm text-muted">{own ? tm.yourListing : tm.from(listing.seller_name)} · <span suppressHydrationWarning>{timeLeft(listing.ends_at, t)}</span> {tm.left}</p></div><b className="text-3xl">{listing.card.overall}</b></div>
+    <div className="flex justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold text-muted">{listing.card.position}{listing.card.club ? ` · ${listing.card.club}` : ""}</p><h3 className="truncate font-bold">{listing.card.name}{listing.card.special ? <span className="ml-2 rounded px-1.5 py-0.5 align-middle text-[10px] font-black tracking-wider text-black" style={{ background: specialStyles[listing.card.special].badge }}>{t.career.special.badge[listing.card.special]}</span> : null}</h3><p className="text-sm text-muted">{own ? tm.yourListing : tm.from(listing.seller_name)} · <span suppressHydrationWarning>{timeLeft(listing.ends_at, t)}</span> {tm.left}</p></div><b className="text-3xl" style={listing.card.special ? { color: specialStyles[listing.card.special].border } : undefined}>{listing.card.overall}</b></div>
     <p className="mt-3 text-sm">{tm.highestBid} <b>{listing.highest_bid ?? tm.noBids}</b> · {tm.buyNow}: <b className="text-accent">{listing.buy_now_price} MB</b></p>
     {own ? null : <div className="mt-3 flex gap-2"><form action={bidAction} className="flex min-w-0 flex-1 gap-2"><input type="hidden" name="listing_id" value={listing.id} /><input className="w-full min-w-0" name="amount" type="number" min={minimum} defaultValue={minimum} aria-label={tm.bid} /><button className={secondaryButtonClass} disabled={bidding || budget < minimum || minimum >= listing.buy_now_price}>{tm.placeBid}</button></form><form action={buyAction}><input type="hidden" name="listing_id" value={listing.id} /><button className={buttonClass} disabled={buying || budget < listing.buy_now_price}>{tm.buyNow}</button></form></div>}
     {bidState.error || buyState.error ? <p className="mt-2 text-sm text-danger">{bidState.error ?? buyState.error}</p> : bidState.ok ? <p className="mt-2 text-sm text-success">{tm.bidPlaced}</p> : buyState.ok ? <p className="mt-2 text-sm text-success">{tm.bought}</p> : null}
@@ -81,7 +82,8 @@ function ListingCard({ listing, budget, own }: { listing: MarketListing; budget:
 export function TransferMarket({ cards, listings, userId, budget }: { cards: ManagerCard[]; listings: MarketListing[]; userId: string; budget: number }) {
   const tm = useT().market.transfer;
   const locale = useLocale(); const intl = INTL_LOCALES[locale];
-  const values = useMemo(() => new Map(cards.flatMap((card) => card.catalog_id ? [[card.catalog_id, card.value] as const] : [])), [cards]);
+  // Verdien hører til kortet, ikke spilleren: et inform-kort er verdt mer enn vanlig-kortet.
+  const values = useMemo(() => new Map(cards.flatMap((card) => card.catalog_id ? [[card.id, card.value] as const] : [])), [cards]);
   const own = listings.filter((listing) => listing.seller_id === userId);
   const listedIds = new Set(own.map((listing) => listing.card_id));
   const sellable = cards.filter((card) => card.tradable && !listedIds.has(card.id));
