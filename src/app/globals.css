@@ -460,6 +460,12 @@ body:has(.manager-bottom-nav) .audio-fab {
   bottom: calc(4.75rem + env(safe-area-inset-bottom));
 }
 
+/* Mens tastaturet er åpent skal ikke fanelinjen eller musikkknappen flyte oppå det (se FixedPositionRepair). */
+[data-keyboard-open] .manager-bottom-nav,
+[data-keyboard-open] .audio-fab {
+  display: none;
+}
+
 .theme-fade {
   animation: theme-fade 0.55s ease-out both;
 }
