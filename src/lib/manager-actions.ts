@@ -93,11 +93,18 @@ export async function autoPickBestSquadAction(_prev: ActionState, formData: Form
   const formation = String(formData.get("formation") ?? "4-3-3") as Formation;
   if (!formationNames.includes(formation)) return { error: (await getT()).career.errors.invalidFormation };
   const db = supabaseAdmin();
-  const { data: cards, error: cardsError } = await db.from("manager_cards").select("id, catalog_id, position, overall, location").eq("owner_id", user.id);
-  if (cardsError) return { error: await dbErrorMessage(cardsError) };
-  // Bare ett kort per spiller kan være i troppen. Har man flere, velges det som allerede ligger der.
+  const [{ data: cards, error: cardsError }, { data: listings, error: listingsError }] = await Promise.all([
+    db.from("manager_cards").select("id, catalog_id, position, overall, location").eq("owner_id", user.id),
+    db.from("market_listings").select("card_id").eq("seller_id", user.id).eq("status", "active"),
+  ]);
+  if (cardsError || listingsError) return { error: await dbErrorMessage((cardsError ?? listingsError)!) };
+  // Kort som ligger ute på markedet, kan ikke spilles.
+  const listed = new Set((listings ?? []).map((listing) => listing.card_id));
+  // Bare ett kort per spiller kan være i troppen. Har man flere (f.eks. vanlig-kortet og informen),
+  // velges det beste, og ved lik rating det som allerede ligger der.
   const oneCopyEach = new Map<string, NonNullable<typeof cards>[number]>();
-  for (const card of [...(cards ?? [])].sort((a, b) => Number(b.location === "squad") - Number(a.location === "squad"))) {
+  const candidates = (cards ?? []).filter((card) => !listed.has(card.id));
+  for (const card of candidates.sort((a, b) => b.overall - a.overall || Number(b.location === "squad") - Number(a.location === "squad"))) {
     const key = card.catalog_id ?? card.id;
     if (!oneCopyEach.has(key)) oneCopyEach.set(key, card);
   }

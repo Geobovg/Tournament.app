@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionState } from "@/lib/actions";
 import { chooseShotCellAction, completeManagerMatchAction, makeManagerSubstitutionAction, resolveShotAction } from "@/lib/career-actions";
@@ -44,6 +44,7 @@ import {
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/client";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
+import { useScrollLock } from "./use-scroll-lock";
 
 const initial: ActionState = {};
 
@@ -359,8 +360,10 @@ function GoalGrid({
   );
 }
 
-export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: { match: ManagerMatch; userId: string; returnAfterComplete?: boolean }) {
+export function LiveManagerMatch({ match, userId, returnAfterComplete = true, header }: { match: ManagerMatch; userId: string; returnAfterComplete?: boolean; header?: ReactNode }) {
   const t = useT();
+  // Kampen fyller skjermen og står stille, som pakkeåpningen. Bare hendelseslista ruller.
+  useScrollLock();
   const router = useRouter();
   const finishFormRef = useRef<HTMLFormElement>(null);
   const resolveFormRef = useRef<HTMLFormElement>(null);
@@ -521,7 +524,9 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
   const shotSeconds = activeShot ? Math.max(0, Math.ceil((SHOT_CHOICE_MS - clock.shotElapsedMs) / 1000)) : 0;
 
   return (
-    <section className="grid gap-4">
+    <section className="match-stage">
+      <div className="match-stage__column">
+      {header ? <div className="grid gap-3">{header}</div> : null}
       <div className={`${cardClass} grid gap-3 p-4`}>
         <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.2em] text-muted">
           <span>{statusLabel}</span>
@@ -677,8 +682,8 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
       </div>
 
       {match.status === "live" && fullTime ? <p className="text-center text-sm text-muted">{t.match.feed.savingAutomatically}</p> : null}
-      <form ref={finishFormRef} action={finishAction}><input type="hidden" name="match_id" value={match.id} /></form>
-      <form ref={resolveFormRef} action={resolveAction}>
+      <form ref={finishFormRef} action={finishAction} hidden><input type="hidden" name="match_id" value={match.id} /></form>
+      <form ref={resolveFormRef} action={resolveAction} hidden>
         <input type="hidden" name="match_id" value={match.id} />
         <input type="hidden" name="minute" value={activeShot?.minute ?? ""} />
       </form>
@@ -708,6 +713,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true }: 
 
       {/* Mens vi venter på serveren prøves det på nytt, så da holder «lagres automatisk» over. */}
       {state.error && !(match.status === "live" && fullTime) ? <p className="text-sm text-danger">{state.error}</p> : complete ? <p className="text-sm text-success">{t.match.summary.resultSaved}</p> : null}
+      </div>
     </section>
   );
 }

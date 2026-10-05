@@ -480,9 +480,43 @@ body:has(.manager-bottom-nav) .audio-fab {
 /* Kampbildet i managerkarriere: en høy rute der hendelsene ruller nedover. */
 /* Ingen scroll-behavior: smooth her. Kampbildet setter posisjonen på nytt flere ganger i
    sekundet, og en myk rulling rekker aldri fram før den blir startet på nytt. */
-.match-feed {
-  height: min(58vh, 30rem);
+/* Kampsiden står fast og fyller skjermen, som pakkeåpningen. Resultattavla og panelene beholder
+   høyden sin, og hendelseslista tar resten og ruller selv. Musikkknappen (z-index 40) ligger over. */
+.match-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--background);
+  padding: calc(env(safe-area-inset-top) + 1rem) calc(env(safe-area-inset-right) + 1rem) calc(env(safe-area-inset-bottom) + 1rem) calc(env(safe-area-inset-left) + 1rem);
+}
+
+/* Er skjermen for lav til alt, ruller kolonnen inne i rammen i stedet for at siden gjør det. */
+.match-stage__column {
+  margin-inline: auto;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  max-width: 42rem;
+  flex-direction: column;
+  gap: 0.75rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.match-stage__column > * {
+  flex-shrink: 0;
+}
+
+.match-feed {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.match-stage__column > .match-feed {
+  flex: 1 1 0;
+  min-height: 8rem;
 }
 
 .event-pop {

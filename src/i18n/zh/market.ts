@@ -87,7 +87,6 @@ export const market = {
     title: "使用经理积分购买礼包",
     intro: "价格较高的套装提供更多卡牌和更好的赔率。卡牌会进入你的小队，或者如果小队已满则进入存储。",
     freePacks: (list: string) => `您拥有俱乐部级别的免费包：${list}。`,
-    blockedByDuplicate: "在打开更多包之前，您需要出售或丢弃重复的包。",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `保证：${list}`,
     noGuarantee: "没有保证",

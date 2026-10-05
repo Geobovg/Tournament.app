@@ -87,7 +87,6 @@ export const market = {
     title: "Käytä manageripisteitä pakkauksiin",
     intro: "Kalliimpia paketteja saa enemmän kortteja ja parempia kertoimia. Kortit menevät joukkueellesi tai varastoon, jos joukkue on täynnä.",
     freePacks: (list: string) => `Sinulla on ilmaisia paketteja klubitasoltasi: ${list}.`,
-    blockedByDuplicate: "Sinun on myytävä tai hävitettävä kaksoiskappaleet, ennen kuin voit avata lisää pakkauksia.",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `taattu: ${list}`,
     noGuarantee: "ei takuuta",

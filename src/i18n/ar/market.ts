@@ -87,7 +87,6 @@ export const market = {
     title: "إنفاق نقاط المدير على الحزم",
     intro: "توفر الحزم الأعلى سعرًا المزيد من البطاقات واحتمالات أفضل. تذهب البطاقات إلى فريقك، أو إلى مخزنها إذا كانت الفرقة ممتلئة.",
     freePacks: (list: string) => `لديك حزم مجانية من مستوى ناديك: ${list}.`,
-    blockedByDuplicate: "لديك نسخ مكررة لبيعها أو التخلص منها قبل أن تتمكن من فتح المزيد من الحزم.",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `مضمون: ${list}`,
     noGuarantee: "لا يوجد ضمان",

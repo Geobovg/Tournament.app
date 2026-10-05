@@ -12,7 +12,6 @@ import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filter
 import { catalogBuyMaxOverall, quickSellValue, squadCapacity } from "@/lib/manager-limits";
 import { autoPickBestSquadAction, buyCatalogCardAction, loadCatalogClubsAction, loadCatalogPageAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
 import { PackStore } from "./pack-store";
-import { ListSingleCardButton } from "./transfer-market";
 import { PlayerCardFace } from "./player-card-face";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 import { clubCrest } from "@/lib/club-crests";
@@ -134,6 +133,8 @@ function SwapSheet({ card, role, groups, onSwap, onClose }: { card: ManagerCard;
   const text = useT().career.squad;
   const positionLabel = usePositionLabel();
   const [choosing, setChoosing] = useState(false);
+  // Kortet flyttes til lageret på serveren med en gang. Står det i elleveren eller på benken, tas det ut der også.
+  const [storeState, storeAction, storing] = useActionState(moveManagerCardAction, initial);
   useScrollLock();
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -147,7 +148,7 @@ function SwapSheet({ card, role, groups, onSwap, onClose }: { card: ManagerCard;
         {groups.filter((group) => group.options.length).map((group) => <div key={group.title} className="grid gap-2"><h4 className="text-xs font-black tracking-[.18em] text-cyan-300">{group.title}</h4>
           {group.options.map(({ card: option, position, blocker }) => <button key={option.id} type="button" disabled={Boolean(blocker)} onClick={() => onSwap(option.id)} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left transition hover:border-cyan-300/60 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"><span className="w-11 shrink-0 rounded bg-white/10 py-1 text-center text-xs font-black">{positionLabel(position)}</span><b className="w-7 shrink-0 text-center tabular-nums">{option.overall}</b><span className="min-w-0 flex-1"><span className="block truncate font-semibold">{option.name}</span>{blocker ? <span className="block truncate text-xs text-white/60">{blocker}</span> : null}</span></button>)}
         </div>)}
-      </div> : <div className="grid gap-3 p-4"><div className="grid grid-cols-3 gap-2 text-center">{Object.entries(card.attributes).slice(0, 6).map(([key, value]) => <div key={key} className="rounded-lg bg-white/8 p-2"><b className="block text-lg">{value}</b><span className="text-[10px] font-bold text-white/45">{key.slice(0, 3).toUpperCase()}</span></div>)}</div><button type="button" autoFocus onClick={() => setChoosing(true)} className={buttonClass}>{text.swapPlayer}</button></div>}
+      </div> : <div className="grid gap-3 p-4"><div className="grid grid-cols-3 gap-2 text-center">{Object.entries(card.attributes).slice(0, 6).map(([key, value]) => <div key={key} className="rounded-lg bg-white/8 p-2"><b className="block text-lg">{value}</b><span className="text-[10px] font-bold text-white/45">{key.slice(0, 3).toUpperCase()}</span></div>)}</div><button type="button" autoFocus onClick={() => setChoosing(true)} className={buttonClass}>{text.swapPlayer}</button><form action={storeAction} className="grid"><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="storage" /><button className={secondaryButtonClass} disabled={storing}>{storing ? text.sendingToStorage : text.sendToStorage}</button></form>{storeState.error ? <p className="text-sm text-danger">{storeState.error}</p> : null}</div>}
     </div>
   </div>, document.body);
 }
@@ -171,7 +172,9 @@ function Squad({ cards, lineup }: { cards: ManagerCard[]; lineup: ManagerLineup 
   const suppressClickRef = useRef(false);
   const [notice, setNotice] = useState("");
   const t = useT(); const text = t.career.squad;
-  const [savedSnapshot] = useState(`${savedFormation}|${initialLineup.starters.join(",")}|${initialLineup.bench.join(",")}`);
+  // Det som faktisk er lagret. Mangler det en spiller (f.eks. etter at et kort er sendt til lageret),
+  // fylles laget ut her, og da kan det lagres med en gang.
+  const [savedSnapshot] = useState(`${lineup?.formation ?? ""}|${lineup?.starters.join(",") ?? ""}|${lineup?.bench.join(",") ?? ""}`);
   const [state, action, pending] = useActionState(saveManagerLineupAction, initial);
   // Egen handling: «Velg beste tropp» henter fra hele klubben og må derfor flytte kort på serveren.
   const [autoState, autoAction, autoPending] = useActionState(autoPickBestSquadAction, initial);
@@ -316,8 +319,9 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
   const [moveState, moveAction, movePending] = useActionState(moveManagerCardAction, initial);
   const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
   const roomInSquad = squad.length < squadCapacity;
-  // Maks ett kort av hver spiller i troppen, så et lagerkort av en spiller som allerede er der kan ikke flyttes inn.
-  const squadCatalogIds = new Set(squad.map((card) => card.catalog_id));
+  // Maks ett kort av hver spiller i troppen. Har troppen allerede spilleren (f.eks. vanlig-kortet når
+  // informen ligger her), byttes de to i stedet, og lagerkortet tar plassen i elleveren eller på benken.
+  const squadCopyOf = new Map(squad.flatMap((card) => card.catalog_id ? [[card.catalog_id, card] as const] : []));
   const t = useT(); const text = t.career.storage; const filterText = t.career.filters; const clubName = t.career.clubName;
   const locale = useLocale(); const intl = INTL_LOCALES[locale];
   const message = moveState.error ?? swapState.error;
@@ -344,28 +348,13 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
     {cards.length ? <div className="grid gap-2">{cards.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
       <div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold" style={card.special ? { background: specialStyles[card.special].background, color: specialStyles[card.special].badge, border: `1px solid ${specialStyles[card.special].border}` } : undefined}>{card.overall}</div>
       <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}{card.special ? <span className="ml-2 rounded px-1.5 py-0.5 align-middle text-[10px] font-black tracking-wider text-black" style={{ background: specialStyles[card.special].badge }}>{t.career.special.badge[card.special]}</span> : null}</b><span className="text-xs text-muted">{card.position === anyPosition ? t.career.special.anyPosition : card.position} · {clubName(card.club)}{card.special && !card.tradable ? ` · ${t.career.special.untradable}` : ""}</span>{card.special === "personal" ? <span className="block text-xs text-muted">{t.career.special.personalHint}</span> : null}</div>
-      {card.catalog_id && squadCatalogIds.has(card.catalog_id) ? <span className="text-xs text-muted">{text.alreadyInSquad}</span>
+      {listedCardIds.has(card.id) ? null
+        : card.catalog_id && squadCopyOf.has(card.catalog_id) ? <form action={swapAction}><input type="hidden" name="storage_card" value={card.id} /><input type="hidden" name="squad_card" value={squadCopyOf.get(card.catalog_id)!.id} /><button className={secondaryButtonClass} disabled={swapPending}>{text.swapWithSquadCopy}</button></form>
         : roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>{text.moveToSquad}</button></form>
         : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={text.swapWith(card.name)} defaultValue="">{<option value="" disabled>{text.swapWithPlaceholder}</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>{text.swap}</button></form>}
       {(card.tradable || card.special) && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">{text.listed}</span> : <QuickSellButton card={card} value={card.value} /> : null}
     </div>)}</div> : storage.length ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.empty}</p>}
     {message ? <p className="text-sm text-danger">{message}</p> : null}
-  </section>;
-}
-
-function Duplicates({ groups }: { groups: ManagerCard[][] }) {
-  const text = useT().career.duplicates;
-  if (groups.length === 0) return null;
-  return <section className={`${cardClass} grid gap-4 border-danger/40`}>
-    <div><h2 className="text-lg font-semibold">{text.heading}</h2><p className="text-sm text-muted">{text.intro}</p></div>
-    {groups.map((group) => <div key={`${group[0].catalog_id}:${group[0].special_card_id ?? ""}`} className="grid gap-2 rounded-lg border border-border p-3">
-      <b className="text-sm">{text.copies(group[0].name, group.length)}</b>
-      {group.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="flex-1 text-muted">{text.card(card.overall, card.position, card.location === "squad", card.acquired_price)}</span>
-        {card.tradable ? <ListSingleCardButton card={card} /> : null}
-        <QuickSellButton card={card} value={card.value} />
-      </div>)}
-    </div>)}
   </section>;
 }
 
@@ -376,20 +365,9 @@ const emptyShop: PackShop = { purchasedThisWeek: {}, informFactor: 1, informs: [
 export function ManagerCareer({ cards, catalogPage = { cards: [], total: 0 }, lineup, packs, listedCardIds, freePacks = {}, budget, section, shop = emptyShop }: { cards: ManagerCard[]; catalogPage?: { cards: CatalogCard[]; total: number }; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks?: Record<string, number>; budget: number; section: ManagerCareerSection; shop?: PackShop }) {
   const squad = cards.filter((card) => card.location === "squad");
   const storage = cards.filter((card) => card.location === "storage");
-  // Et kort som ligger ute for salg teller ikke som duplikat: da er valget allerede tatt.
-  // Vanlig-kortet og informen til samme spiller er ikke duplikater av hverandre.
-  const duplicateGroups = useMemo(() => {
-    const listed = new Set(listedCardIds);
-    const byCatalog = new Map<string, ManagerCard[]>();
-    for (const card of cards) {
-      if (!card.catalog_id || listed.has(card.id)) continue;
-      const key = `${card.catalog_id}:${card.special_card_id ?? ""}`;
-      byCatalog.set(key, [...(byCatalog.get(key) ?? []), card]);
-    }
-    return [...byCatalog.values()].filter((group) => group.length > 1);
-  }, [cards, listedCardIds]);
   if (section === "squad") return <Squad key={lineup?.updated_at ?? "new-lineup"} cards={squad} lineup={lineup} />;
   if (section === "storage") return <Storage storage={storage} squad={squad} listedCardIds={new Set(listedCardIds)} />;
-  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} shop={shop} /></div>;
+  // Duplikater stopper ikke pakkene: et kort av en spiller man allerede har i troppen, havner på lageret.
+  if (section === "packs") return <PackStore packs={packs} freePacks={freePacks} budget={budget} shop={shop} />;
   return <Catalog initialPage={catalogPage} owned={new Set(cards.filter((card) => !card.special_card_id).map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />;
 }
