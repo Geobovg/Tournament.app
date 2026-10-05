@@ -158,7 +158,8 @@ export async function resolveShotAction(_prev: ActionState, formData: FormData):
   // Rakk man ikke å trykke, velges det for en – ellers ville en motstander som ikke fulgte med
   // gjort straffen til en gratis scoring.
   const shooterCell = row?.shooter_cell ?? autoShotCell(matchId, shot, "shooter");
-  const keeperCell = shot.kind === "penalty" ? (row?.keeper_cell ?? autoShotCell(matchId, shot, "keeper")) : null;
+  // På en stor sjanse kaster keeperen seg av seg selv, så skytteren ser hvor han gikk.
+  const keeperCell = shot.kind === "penalty" || shot.keeperId !== undefined ? (row?.keeper_cell ?? autoShotCell(matchId, shot, "keeper")) : null;
   const players = playersById(events);
   const taker = players.get(shot.takerId);
   const outcome = resolveShot(matchId, shot, taker ? shootingOf(taker) : 70, shotKeeperRating(shot, players), shooterCell, keeperCell);

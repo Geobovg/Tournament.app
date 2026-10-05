@@ -10,6 +10,7 @@ import { clubCrest } from "@/lib/club-crests";
 import { playerPhoto } from "@/lib/player-photos";
 import {
   cellGoalChance,
+  chanceCellChance,
   penaltyCellChance,
   EXTRA_TIME_END,
   getManagerKickoff,
@@ -587,7 +588,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
             <div className="grid min-w-0 flex-1 gap-2">
               <GoalGrid
                 options={activeShot.options}
-                chanceFor={iAmShooting && taker ? (cell) => (activeShot.kind === "penalty" ? penaltyCellChance(activeShot, cell) : cellGoalChance(shootingOf(taker), cell, keeperRating)) : null}
+                chanceFor={iAmShooting && taker ? (cell) => (activeShot.kind === "penalty" ? penaltyCellChance(activeShot, cell) : activeShot.keeperId !== undefined ? chanceCellChance(activeShot, shootingOf(taker), cell, keeperRating) : cellGoalChance(shootingOf(taker), cell, keeperRating)) : null}
                 myCells={myCells}
                 otherCells={otherCells}
                 otherLabel={iAmShooting ? t.match.grid.keeper : t.match.grid.shot}
