@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AudioPlayer } from "@/components/audio-player";
+import { FixedPositionRepair } from "@/components/fixed-position-repair";
 import { LanguageSwitch } from "@/components/language-switch";
 import { listTracks } from "@/lib/audio";
 import { currentUser } from "@/lib/auth";
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-8">{children}</main>
         <AudioPlayer tracks={tracks} />
+        <FixedPositionRepair />
         </I18nProvider>
         <SpeedInsights />
       </body>
