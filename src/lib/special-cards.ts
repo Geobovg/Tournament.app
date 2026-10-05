@@ -12,11 +12,12 @@ export const specialStyles: Record<SpecialKind, { background: string; border: st
     badge: "#f2c94c",
     glow: "#f2c94c",
   },
+  // Inspirert av FUTTIES i FC: sommerlig rosa, oransje og gult, med solstråler fra øvre hjørne.
   personal: {
-    background: "radial-gradient(circle at 15% 0%, rgba(126,249,255,.42), transparent 40%), radial-gradient(circle at 95% 100%, rgba(214,92,255,.45), transparent 45%), linear-gradient(160deg, #1a0b2e 0%, #0b0618 55%, #062a33 100%)",
-    border: "#b9f6ff",
-    badge: "#7ef9ff",
-    glow: "#c46bff",
+    background: "repeating-conic-gradient(from 200deg at 88% 6%, rgba(255,255,255,.16) 0deg 7deg, transparent 7deg 18deg), radial-gradient(circle at 88% 6%, rgba(255,250,200,.75), transparent 34%), linear-gradient(165deg, #ff2e93 0%, #ff5f6d 38%, #ff9a3c 70%, #ffd23f 100%)",
+    border: "#fff6a8",
+    badge: "#fff35c",
+    glow: "#ff2e93",
   },
 };
 
