@@ -87,7 +87,6 @@ export const market = {
     title: "Gasta puntos de administrador en paquetes",
     intro: "Los paquetes más caros ofrecen más cartas y mejores probabilidades. Las tarjetas van a tu escuadrón o al almacenamiento si el escuadrón está lleno.",
     freePacks: (list: string) => `Tienes packs gratuitos de tu nivel club: ${list}.`,
-    blockedByDuplicate: "Tienes duplicados para vender o descartar antes de poder abrir más paquetes.",
     cardCount: (count: number) => `${count} ${count === 1 ? "carta" : "cartas"}`,
     guarantee: (list: string) => `garantizado: ${list}`,
     noGuarantee: "sin garantía",

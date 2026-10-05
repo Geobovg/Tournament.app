@@ -87,7 +87,6 @@ export const market = {
     title: "Spendi i punti manager sui pacchetti",
     intro: "I pacchetti più costosi offrono più carte e probabilità migliori. Le carte vanno nella tua squadra o nel deposito se la squadra è piena.",
     freePacks: (list: string) => `Hai pacchetti gratuiti dal livello del tuo club: ${list}.`,
-    blockedByDuplicate: "Hai duplicati da vendere o scartare prima di poter aprire altri pacchetti.",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `garantito: ${list}`,
     noGuarantee: "nessuna garanzia",

@@ -87,7 +87,6 @@ export const market = {
     title: "Geben Sie Manager-Punkte für Pakete aus",
     intro: "Teurere Pakete bieten mehr Karten und bessere Gewinnchancen. Karten gehen zu Ihrem Trupp oder in den Speicher, wenn der Trupp voll ist.",
     freePacks: (list: string) => `Sie haben kostenlose Pakete von Ihrem Clublevel: ${list}.`,
-    blockedByDuplicate: "Sie müssen Duplikate verkaufen oder entsorgen, bevor Sie weitere Packungen öffnen können.",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `garantiert: ${list}`,
     noGuarantee: "keine Garantie",

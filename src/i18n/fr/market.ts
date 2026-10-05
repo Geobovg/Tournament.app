@@ -87,7 +87,6 @@ export const market = {
     title: "Dépenser des points de gestionnaire sur des packs",
     intro: "Les packs plus chers donnent plus de cartes et de meilleures cotes. Les cartes vont dans votre équipe ou dans le stockage si l'équipe est pleine.",
     freePacks: (list: string) => `Vous disposez de packs gratuits de votre niveau de club : ${list}.`,
-    blockedByDuplicate: "Vous avez des doublons à vendre ou à jeter avant de pouvoir ouvrir davantage de packs.",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `garanti : ${list}`,
     noGuarantee: "aucune garantie",

@@ -90,7 +90,6 @@ export const market: MarketDict = {
     title: "Bruk managerpoeng på pakker",
     intro: "Dyrere pakke gir flere kort og bedre odds. Kortene havner i troppen, eller på lageret hvis troppen er full.",
     freePacks: (list: string) => `Du har gratis pakker fra klubbnivå: ${list}.`,
-    blockedByDuplicate: "Du har duplikater som må selges eller kastes før du kan åpne flere pakker.",
     cardCount: (count: number) => `${count} kort`,
     guarantee: (list: string) => `garanti: ${list}`,
     noGuarantee: "ingen garanti",

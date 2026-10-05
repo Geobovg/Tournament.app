@@ -87,7 +87,6 @@ export const market = {
     title: "Spend manager points on packs",
     intro: "Pricier packs give more cards and better odds. Cards go to your squad, or to storage if the squad is full.",
     freePacks: (list: string) => `You have free packs from your club level: ${list}.`,
-    blockedByDuplicate: "You have duplicates to sell or discard before you can open more packs.",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `guaranteed: ${list}`,
     noGuarantee: "no guarantee",

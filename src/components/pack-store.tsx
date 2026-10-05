@@ -153,7 +153,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
   </div>, document.body);
 }
 
-export function PackStore({ packs, freePacks, budget, blockedByDuplicate, shop }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; blockedByDuplicate: boolean; shop: PackShop }) {
+export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPack[]; freePacks: Record<string, number>; budget: number; shop: PackShop }) {
   const tp = useT().market.packs;
   const nameOf = (pack: ManagerPack) => tp.name(pack.key, pack.name);
   const [state, action, pending] = useActionState(openManagerPackAction, initial);
@@ -178,7 +178,6 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate, shop }
 
     {Object.values(freePacks).some(Boolean) ? <p className="rounded-lg border border-accent/40 bg-accent-soft p-3 text-sm font-semibold text-accent">{tp.freePacks(packs.filter((pack) => freePacks[pack.key]).map((pack) => `${freePacks[pack.key]}× ${nameOf(pack)}`).join(", "))}</p> : null}
 
-    {blockedByDuplicate ? <p className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{tp.blockedByDuplicate}</p> : null}
 
     <InformShowcase informs={shop.informs} nextReset={shop.nextReset} />
 
@@ -208,12 +207,12 @@ export function PackStore({ packs, freePacks, budget, blockedByDuplicate, shop }
               <input type="hidden" name="pack_key" value={pack.key} />
               <input type="hidden" name="free" value="1" />
               <span className="text-sm font-bold text-accent">{tp.freeCount(free)}</span>
-              <button className={buttonClass} disabled={pending || blockedByDuplicate}>{pending ? tp.openingShort : tp.openFree}</button>
+              <button className={buttonClass} disabled={pending}>{pending ? tp.openingShort : tp.openFree}</button>
             </form> : null}
             {pack.purchasable ? <form action={action} className="flex items-center justify-between gap-3">
               <input type="hidden" name="pack_key" value={pack.key} />
               <span className="rounded-full bg-black/10 px-3 py-1 text-sm font-bold">{pack.price} MB</span>
-              <button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending || blockedByDuplicate}>
+              <button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending}>
                 {pending ? tp.openingShort : left === 0 ? tp.boughtThisWeek : affordable ? tp.openPack : tp.tooExpensive}
               </button>
             </form> : null}

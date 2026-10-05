@@ -87,7 +87,6 @@ export const market = {
     title: "Spendera managerpoäng på förpackningar",
     intro: "Dyrare paket ger fler kort och bättre odds. Korten går till ditt lag, eller till förvaring om laget är fullt.",
     freePacks: (list: string) => `Du har gratispaket från din klubbnivå: ${list}.`,
-    blockedByDuplicate: "Du har dubbletter att sälja eller kassera innan du kan öppna fler förpackningar.",
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `garanterat: ${list}`,
     noGuarantee: "ingen garanti",
