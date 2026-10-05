@@ -174,6 +174,35 @@ export async function getPackShop(userId: string): Promise<PackShop> {
   };
 }
 
+export type InformRound = { id: string; startsAt: string; current: boolean; cards: InformCard[] };
+
+/**
+ * Alle inform-rundene som er trukket, nyeste først, med kortene sortert etter rating.
+ * Ukens runde lages her hvis den ikke finnes ennå, slik som i pakkebutikken.
+ */
+export async function getInformHistory(): Promise<InformRound[]> {
+  const db = supabaseAdmin();
+  const { error: roundError } = await db.rpc("ensure_special_round");
+  if (roundError) throw new Error(roundError.message);
+  const { data: rounds, error } = await db.from("special_rounds").select("id, starts_at, ends_at").eq("kind", "inform").order("starts_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  // 25 kort per uke passerer grensa på 1000 rader etter et snaut år, så kortene hentes i biter.
+  const cards: InformCard[] = []; const roundOf = new Map<string, string>();
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error: cardsError } = await db.from("special_cards").select("id, round_id, kind, overall, boost, attributes, player_catalog(slug, name, position, accent, club)").eq("kind", "inform").order("overall", { ascending: false }).order("id").range(offset, offset + 999);
+    if (cardsError) throw new Error(cardsError.message);
+    for (const row of data ?? []) {
+      const catalog = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
+      if (!catalog) continue;
+      roundOf.set(row.id, row.round_id);
+      cards.push({ id: row.id, slug: catalog.slug, name: catalog.name, position: catalog.position, overall: row.overall, boost: row.boost, accent: catalog.accent, club: catalog.club, attributes: row.attributes as Record<string, number>, special: row.kind as SpecialKind });
+    }
+    if ((data ?? []).length < 1000) break;
+  }
+  const now = Date.now();
+  return (rounds ?? []).map((round) => ({ id: round.id, startsAt: round.starts_at, current: new Date(round.starts_at).getTime() <= now && now < new Date(round.ends_at).getTime(), cards: cards.filter((card) => roundOf.get(card.id) === round.id) })).filter((round) => round.cards.length);
+}
+
 // Katalogen har 1300+ kort, og databasen gir maks 1000 rader per spørring. Derfor søkes,
 // filtreres og sorteres det her, og bare én side med kort hentes om gangen.
 export async function getCatalogPage(filters: CatalogFilters, offset = 0): Promise<{ cards: CatalogCard[]; total: number }> {

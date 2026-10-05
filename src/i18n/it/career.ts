@@ -17,6 +17,7 @@ export const career = {
     kamplobby: "Amichevole",
     karrierehistorikk: "Cronologia delle partite",
     sbc: "SBC",
+    informs: "Inform",
   },
   subTabs: {
     squad: "Squadra",
@@ -261,6 +262,14 @@ export const career = {
     wrongPosition: "Un giocatore è in una posizione in cui non può giocare",
   },
   special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Non scambiabile" },
+  informs: {
+    intro: (total: number, rounds: number) => `${total} carte Inform da ${rounds} ${rounds === 1 ? "turno" : "turni"}. Le nuove escono ogni venerdì alle 18:00.`,
+    thisWeek: "Questa settimana",
+    week: (date: string) => `Settimana dal ${date}`,
+    count: (count: number) => `${count} ${count === 1 ? "carta" : "carte"}`,
+    boost: (boost: number) => `+${boost} rispetto alla carta precedente`,
+    empty: "Non è ancora stato estratto nessun Inform. Il primo turno arriva venerdì alle 18:00.",
+  },
 };
 
 export type CareerDict = typeof career;

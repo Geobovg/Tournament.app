@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import type { InformCard, ManagerPack, PackShop } from "@/lib/career";
 import { specialStyles } from "@/lib/special-cards";
 import { openManagerPackAction, type PackActionState, type PackPull } from "@/lib/manager-actions";
@@ -58,7 +59,7 @@ function InformShowcase({ informs, nextReset }: { informs: InformCard[]; nextRes
   return <div className="grid gap-3 rounded-xl border-2 p-4 text-white" style={{ background: specialStyles.inform.background, borderColor: specialStyles.inform.border }}>
     <div className="flex flex-wrap items-end justify-between gap-2">
       <div><p className="text-xs font-black tracking-[.3em]" style={{ color: specialStyles.inform.badge }}>★ {t.career.special.badge.inform}</p><h3 className="text-xl font-black">{tp.informWeekTitle}</h3><p className="text-sm text-white/70">{tp.informWeekIntro(informs.length)}</p></div>
-      {resets ? <p className="text-xs text-white/60" suppressHydrationWarning>{tp.informWeekResets(resets)}</p> : null}
+      <div className="grid justify-items-end gap-1">{resets ? <p className="text-xs text-white/60" suppressHydrationWarning>{tp.informWeekResets(resets)}</p> : null}<Link href="/managerkarriere/informs" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.inform.badge }}>{tp.allInforms} →</Link></div>
     </div>
     <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
       {informs.map((card) => <li key={card.id} className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/40 px-2 py-1.5">

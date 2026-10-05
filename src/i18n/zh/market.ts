@@ -103,6 +103,7 @@ export const market = {
     informWeekTitle: "本周状态卡",
     informWeekIntro: (count: number) => `本周有 ${count} 名球员状态火热。他们的状态卡可能出现在卡包中。`,
     informWeekResets: (when: string) => `新状态卡 ${when}`,
+    allInforms: "查看全部状态卡",
     informPulled: "状态卡！",
     untradable: " · 不可交易",
     specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "状态卡" : "特殊卡"}`,
