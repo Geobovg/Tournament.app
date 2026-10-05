@@ -6,7 +6,8 @@ import { createPortal } from "react-dom";
 import { useLocale, useT } from "@/i18n/client";
 import { INTL_LOCALES } from "@/i18n/locales";
 import type { ActionState } from "@/lib/actions";
-import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard } from "@/lib/career";
+import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard, PackShop } from "@/lib/career";
+import { specialStyles } from "@/lib/special-cards";
 import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filters";
 import { catalogBuyMaxOverall, quickSellValue, squadCapacity } from "@/lib/manager-limits";
 import { autoPickBestSquadAction, buyCatalogCardAction, loadCatalogClubsAction, loadCatalogPageAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
@@ -102,11 +103,11 @@ function SquadCard({ card, position, active, dimmed = false, dropTarget = false,
   const outOfPosition = position !== card.position;
   // Som i FC: lange navn vises uten fornavn ("Virgil van Dijk" -> "van Dijk"), fullt navn står i spillerdetaljene.
   const shortName = card.name.length > 13 && card.name.includes(" ") ? card.name.slice(card.name.indexOf(" ") + 1) : card.name;
-  return <button type="button" data-lineup-card={card.id} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel} onClick={onClick} className={`@container relative block aspect-[100/136] w-full select-none overflow-hidden rounded-[9%/7%] border-2 text-white shadow-[0_8px_18px_rgba(0,0,0,.45)] transition ${dimmed ? "border-dashed border-white/60 opacity-35" : dropTarget ? "z-10 scale-105 border-cyan-300 ring-4 ring-cyan-300/70" : active ? "z-10 scale-105 border-cyan-300 ring-2 ring-cyan-300/60" : "border-amber-200/80 hover:-translate-y-1 hover:border-white"} ${selected && !dimmed ? "ring-[3px] ring-white" : ""}`} style={{ background: `radial-gradient(circle at 85% 0%, ${card.accent}cc, transparent 45%), linear-gradient(160deg, #f3d57a 0%, #d3a13a 30%, #8a5a17 70%, #3a230c 100%)`, touchAction: "none" }} aria-label={`${card.name}, ${card.overall}, ${position}`}>
+  return <button type="button" data-lineup-card={card.id} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel} onClick={onClick} className={`@container relative block aspect-[100/136] w-full select-none overflow-hidden rounded-[9%/7%] border-2 text-white shadow-[0_8px_18px_rgba(0,0,0,.45)] transition ${dimmed ? "border-dashed border-white/60 opacity-35" : dropTarget ? "z-10 scale-105 border-cyan-300 ring-4 ring-cyan-300/70" : active ? "z-10 scale-105 border-cyan-300 ring-2 ring-cyan-300/60" : "border-amber-200/80 hover:-translate-y-1 hover:border-white"} ${selected && !dimmed ? "ring-[3px] ring-white" : ""}`} style={{ background: card.special ? specialStyles[card.special].background : `radial-gradient(circle at 85% 0%, ${card.accent}cc, transparent 45%), linear-gradient(160deg, #f3d57a 0%, #d3a13a 30%, #8a5a17 70%, #3a230c 100%)`, ...(card.special ? { borderColor: specialStyles[card.special].border } : {}), touchAction: "none" }} aria-label={`${card.name}, ${card.overall}, ${position}`}>
     <span className="absolute inset-0 bg-[linear-gradient(125deg,rgba(255,255,255,.35),transparent_32%,transparent_60%,rgba(0,0,0,.25))]" />
     {photo ? <Image src={photo} alt="" width={256} height={256} draggable={false} className="pointer-events-none absolute bottom-[21%] right-[-12%] h-[90cqw] w-[90cqw] object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,.45)]" /> : <span className="absolute bottom-[30%] right-[12%] text-[34cqw] leading-none opacity-80">⚽</span>}
     <span className="absolute left-[6cqw] top-[6cqw] flex w-[24cqw] flex-col items-center gap-[2.5cqw] drop-shadow-[0_1px_2px_rgba(0,0,0,.6)]">
-      <b className="text-[27cqw] font-black leading-[.85] tracking-tighter">{card.overall}</b>
+      <b className="text-[27cqw] font-black leading-[.85] tracking-tighter" style={card.special ? { color: specialStyles[card.special].badge } : undefined}>{card.overall}</b>
       <span className={`text-[max(7px,12cqw)] font-black leading-none tracking-wide ${outOfPosition ? "text-cyan-100" : ""}`}>{position}</span>
       {flag ? <Image src={flag} alt="" width={32} height={24} unoptimized draggable={false} className="mt-[1cqw] h-[13cqw] w-[18cqw] rounded-[2px] object-cover ring-1 ring-black/30" /> : null}
       {crest ? <Image src={crest} alt="" width={32} height={32} draggable={false} className="h-[18cqw] w-[18cqw] object-contain" /> : null}
@@ -334,12 +335,12 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
     {storage.length && cards.length !== storage.length ? <p className="text-sm text-muted">{filterText.showing(cards.length, storage.length)}</p> : null}
     {storage.length && !cards.length ? <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.noMatches}</p> : null}
     {cards.length ? <div className="grid gap-2">{cards.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
-      <div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold">{card.overall}</div>
-      <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}</b><span className="text-xs text-muted">{card.position} · {clubName(card.club)}</span></div>
+      <div className="grid h-9 w-9 place-items-center rounded bg-accent-soft font-bold" style={card.special ? { background: specialStyles[card.special].background, color: specialStyles[card.special].badge, border: `1px solid ${specialStyles[card.special].border}` } : undefined}>{card.overall}</div>
+      <div className="min-w-0 flex-1"><b className="block truncate text-sm">{card.name}{card.special ? <span className="ml-2 rounded px-1.5 py-0.5 align-middle text-[10px] font-black tracking-wider text-black" style={{ background: specialStyles[card.special].badge }}>{t.career.special.badge[card.special]}</span> : null}</b><span className="text-xs text-muted">{card.position} · {clubName(card.club)}{card.special && !card.tradable ? ` · ${t.career.special.untradable}` : ""}</span></div>
       {card.catalog_id && squadCatalogIds.has(card.catalog_id) ? <span className="text-xs text-muted">{text.alreadyInSquad}</span>
         : roomInSquad ? <form action={moveAction}><input type="hidden" name="card_id" value={card.id} /><input type="hidden" name="location" value="squad" /><button className={secondaryButtonClass} disabled={movePending}>{text.moveToSquad}</button></form>
         : <form action={swapAction} className="flex items-center gap-2"><input type="hidden" name="storage_card" value={card.id} /><select name="squad_card" className="text-sm" aria-label={text.swapWith(card.name)} defaultValue="">{<option value="" disabled>{text.swapWithPlaceholder}</option>}{squad.map((option) => <option key={option.id} value={option.id}>{option.overall} {option.name}</option>)}</select><button className={secondaryButtonClass} disabled={swapPending}>{text.swap}</button></form>}
-      {card.tradable && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">{text.listed}</span> : <QuickSellButton card={card} value={card.value} /> : null}
+      {(card.tradable || card.special) && card.catalog_id ? listedCardIds.has(card.id) ? <span className="text-xs text-muted">{text.listed}</span> : <QuickSellButton card={card} value={card.value} /> : null}
     </div>)}</div> : storage.length ? null : <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted">{text.empty}</p>}
     {message ? <p className="text-sm text-danger">{message}</p> : null}
   </section>;
@@ -350,7 +351,7 @@ function Duplicates({ groups }: { groups: ManagerCard[][] }) {
   if (groups.length === 0) return null;
   return <section className={`${cardClass} grid gap-4 border-danger/40`}>
     <div><h2 className="text-lg font-semibold">{text.heading}</h2><p className="text-sm text-muted">{text.intro}</p></div>
-    {groups.map((group) => <div key={group[0].catalog_id} className="grid gap-2 rounded-lg border border-border p-3">
+    {groups.map((group) => <div key={`${group[0].catalog_id}:${group[0].special_card_id ?? ""}`} className="grid gap-2 rounded-lg border border-border p-3">
       <b className="text-sm">{text.copies(group[0].name, group.length)}</b>
       {group.map((card) => <div key={card.id} className="flex flex-wrap items-center gap-3 text-sm">
         <span className="flex-1 text-muted">{text.card(card.overall, card.position, card.location === "squad", card.acquired_price)}</span>
@@ -363,21 +364,25 @@ function Duplicates({ groups }: { groups: ManagerCard[][] }) {
 
 export type ManagerCareerSection = "squad" | "storage" | "packs" | "catalog";
 
-export function ManagerCareer({ cards, catalogPage = { cards: [], total: 0 }, lineup, packs, listedCardIds, freePacks = {}, budget, section }: { cards: ManagerCard[]; catalogPage?: { cards: CatalogCard[]; total: number }; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks?: Record<string, number>; budget: number; section: ManagerCareerSection }) {
+const emptyShop: PackShop = { purchasedThisWeek: {}, informFactor: 1, informs: [], nextReset: "" };
+
+export function ManagerCareer({ cards, catalogPage = { cards: [], total: 0 }, lineup, packs, listedCardIds, freePacks = {}, budget, section, shop = emptyShop }: { cards: ManagerCard[]; catalogPage?: { cards: CatalogCard[]; total: number }; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks?: Record<string, number>; budget: number; section: ManagerCareerSection; shop?: PackShop }) {
   const squad = cards.filter((card) => card.location === "squad");
   const storage = cards.filter((card) => card.location === "storage");
   // Et kort som ligger ute for salg teller ikke som duplikat: da er valget allerede tatt.
+  // Vanlig-kortet og informen til samme spiller er ikke duplikater av hverandre.
   const duplicateGroups = useMemo(() => {
     const listed = new Set(listedCardIds);
     const byCatalog = new Map<string, ManagerCard[]>();
     for (const card of cards) {
       if (!card.catalog_id || listed.has(card.id)) continue;
-      byCatalog.set(card.catalog_id, [...(byCatalog.get(card.catalog_id) ?? []), card]);
+      const key = `${card.catalog_id}:${card.special_card_id ?? ""}`;
+      byCatalog.set(key, [...(byCatalog.get(key) ?? []), card]);
     }
     return [...byCatalog.values()].filter((group) => group.length > 1);
   }, [cards, listedCardIds]);
   if (section === "squad") return <Squad key={lineup?.updated_at ?? "new-lineup"} cards={squad} lineup={lineup} />;
   if (section === "storage") return <Storage storage={storage} squad={squad} listedCardIds={new Set(listedCardIds)} />;
-  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} /></div>;
-  return <Catalog initialPage={catalogPage} owned={new Set(cards.map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />;
+  if (section === "packs") return <div className="grid gap-6"><Duplicates groups={duplicateGroups} /><PackStore packs={packs} freePacks={freePacks} budget={budget} blockedByDuplicate={duplicateGroups.length > 0} shop={shop} /></div>;
+  return <Catalog initialPage={catalogPage} owned={new Set(cards.filter((card) => !card.special_card_id).map((card) => card.catalog_id).filter((id): id is string => Boolean(id)))} budget={budget} />;
 }

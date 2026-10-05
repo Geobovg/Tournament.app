@@ -260,6 +260,7 @@ export const career = {
     unusableCard: "小队包含一张你无法使用的卡牌",
     wrongPosition: "球员处于无法上场的位置",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "状态卡" }, untradable: "不可交易" },
 };
 
 export type CareerDict = typeof career;

@@ -2,7 +2,7 @@ function ordinal(n: number) { return `${n}`; }
 
 export const seasons = {
   division: (division: number) => `القسم ${division}`,
-  outcome: { promoted: "تمت ترقيته", relegated: "هبط", stayed: "سهر" },
+  outcome: { promoted: "تمت ترقيته", relegated: "هبط", stayed: "سهر", champion: "بطل" },
   table: { club: "النادي", played: "ص", wins: "دبليو", draws: "د", losses: "ل", goalDifference: "جي دي", points: "نقطة" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -73,6 +73,26 @@ export const seasons = {
     inviteAtLeastOne: "قم بدعوة صديق واحد على الأقل",
     friendsOnly: "يمكنك فقط دعوة الأصدقاء",
     seasonAlreadyStarted: "لقد بدأ الموسم بالفعل",
+  },
+  arena: {
+    eyebrow: (arena: number) => `الساحة ${arena}`,
+    roadEyebrow: "طريق الساحات",
+    roadTitle: "خمسة ملاعب، 50 درجة",
+    roadIntro: "افز بالدرجة 1 لتصعد إلى الساحة التالية. لا تهبط أبدًا من ساحة وصلت إليها.",
+    current: "أنت هنا",
+    reached: "تم الوصول",
+    locked: "مقفلة",
+    aiRange: (low: number, high: number) => `الذكاء الاصطناعي ${low}–${high}`,
+    divisionOneWin: (packs: number) => `الفوز بالدرجة 1: ${packs}× حزمة النخبة`,
+    unlockReward: (rewards: string) => `أول مرة هنا: ${rewards}`,
+    championTitles: (count: number) => `${count} لقب بطل`,
+    unlockedTitle: "ساحة جديدة",
+    unlockedBody: (name: string) => `مرحبًا بك في ${name}. أندية الذكاء الاصطناعي أقوى هنا، والجوائز أكبر.`,
+    continue: "هيا بنا",
+    toNextArena: (name: string) => `الفائز فقط يصعد إلى ${name}`,
+    toChampion: "الفائز يحصل على لقب البطل",
+    playoffInfo: (name: string) => `الملحق: مباراة واحدة ضد نادٍ من ${name}. يجب أن تفوز.`,
+    prizeFactor: (factor: number) => factor > 1 ? `في هذه الساحة تتضاعف كل الجوائز ×${factor}.` : "",
   },
 };
 

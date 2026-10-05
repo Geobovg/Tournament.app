@@ -260,6 +260,7 @@ export const career = {
     unusableCard: "Joukkueessa on kortti, jota et voi käyttää",
     wrongPosition: "Pelaaja on tilanteessa, jossa hän ei voi pelata",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Ei myytävissä" },
 };
 
 export type CareerDict = typeof career;

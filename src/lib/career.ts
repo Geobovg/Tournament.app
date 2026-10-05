@@ -4,6 +4,7 @@ import { getT } from "@/i18n/server";
 import { formationNames, pickBestLineup, type Formation } from "./lineup";
 import { catalogPageSize, type CatalogFilters } from "./catalog-filters";
 import { catalogBuyMaxOverall } from "./manager-limits";
+import type { SpecialKind } from "./special-cards";
 import { supabaseAdmin } from "./supabase/server";
 
 export type CareerProfile = { user_id: string; manager_budget: number; manager_budget_earned: number; club_name: string; tournament_wins: number; tournament_draws: number; tournament_losses: number; manager_career_wins: number; manager_career_draws: number; manager_career_losses: number; club_xp: number };
@@ -54,11 +55,14 @@ export async function getCareerMatch(matchId: string, userId: string) {
   if (!data) return null;
   // Kampbildet viser managernavn og klubbnavn i stedet for «Hjemme» og «Borte».
   const userIds = [data.home_user_id, data.away_user_id].filter((id): id is string => Boolean(id));
-  const [{ data: profiles }, { data: careers }, { data: shots }] = await Promise.all([
+  const [{ data: profiles }, { data: careers }, { data: shots }, { data: fixture }] = await Promise.all([
     db.from("profiles").select("id, username").in("id", userIds),
     db.from("player_profiles").select("user_id, club_name").in("user_id", userIds),
     db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome").eq("match_id", matchId).order("minute", { ascending: true }),
+    // Kamper i AI-sesongen spilles i en arena, og kampskjermen får arenaens stadion og farger.
+    db.from("career_season_matches").select("career_ai_seasons(arena)").eq("match_id", matchId).not("ai_season_id", "is", null).maybeSingle(),
   ]);
+  const aiSeason = fixture ? (Array.isArray(fixture.career_ai_seasons) ? fixture.career_ai_seasons[0] : fixture.career_ai_seasons) : null;
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
   const clubs = new Map((careers ?? []).map((career) => [career.user_id, career.club_name]));
   const { fallback, clubName } = (await getT()).career;
@@ -71,14 +75,16 @@ export async function getCareerMatch(matchId: string, userId: string) {
     away: data.away_user_id ? sideFor(data.away_user_id) : aiSide,
     // Klokka forankres i serverens tid, så en nettleser som går feil ikke flytter kampminuttet.
     serverNow: Date.now(),
+    arena: (aiSeason?.arena as number | undefined) ?? null,
     shots: (shots ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome })),
   };
 }
 
-export type ManagerCard = { id: string; catalog_id: string | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number>; value: number };
+export type ManagerCard = { id: string; catalog_id: string | null; special_card_id: string | null; special: SpecialKind | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number>; value: number };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
-export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string };
+export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; special_guarantee: number; special_scope: "current" | "all"; purchasable: boolean; weekly_limit: number | null };
+const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, special_guarantee, special_scope, purchasable, weekly_limit";
 
 /**
  * Bare det toppfeltet trenger for å vise lagrating: elleveren og hvilke kort som står i den.
@@ -108,7 +114,7 @@ export async function getManagerHome(userId: string): Promise<{ formation: strin
   const db = supabaseAdmin();
   const [ratingInfo, { data: packs, error: packsError }, { data: inventory, error: inventoryError }] = await Promise.all([
     getManagerRating(userId),
-    db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
+    db.from("manager_packs").select(packColumns).eq("active", true).order("sort_order", { ascending: true }),
     db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
   ]);
   if (packsError || inventoryError) throw new Error(packsError?.message ?? inventoryError?.message);
@@ -119,9 +125,9 @@ export async function getManagerHome(userId: string): Promise<{ formation: strin
 export async function getManagerCareer(userId: string): Promise<{ cards: ManagerCard[]; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks: Record<string, number> }> {
   const db = supabaseAdmin();
   const [{ data: cards, error: cardsError }, { data: lineup, error: lineupError }, { data: packs, error: packsError }, { data: listings, error: listingsError }, { data: inventory, error: inventoryError }] = await Promise.all([
-    db.from("manager_cards").select("id, catalog_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club, price)").eq("owner_id", userId).order("overall", { ascending: false }),
+    db.from("manager_cards").select("id, catalog_id, special_card_id, name, position, overall, tradable, is_starter, acquired_price, attributes, location, player_catalog(slug, accent, club, price), special_cards(kind, price)").eq("owner_id", userId).order("overall", { ascending: false }),
     db.from("manager_lineups").select("formation, starters, bench, updated_at").eq("user_id", userId).maybeSingle(),
-    db.from("manager_packs").select("key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent").eq("active", true).order("sort_order", { ascending: true }),
+    db.from("manager_packs").select(packColumns).eq("active", true).order("sort_order", { ascending: true }),
     db.from("market_listings").select("card_id").eq("seller_id", userId).eq("status", "active"),
     db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
   ]);
@@ -130,9 +136,42 @@ export async function getManagerCareer(userId: string): Promise<{ cards: Manager
   // «Academy» er en fast verdi her; den oversettes ved visning med t.career.clubName.
   const owned = (cards ?? []).map((row) => {
     const source = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
-    return { ...row, player_catalog: undefined, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Academy", value: source?.price ?? 0 };
+    // Et spesialkort har sin egen verdi og type. Spiller, klubb og bilde kommer fortsatt fra katalogen.
+    const special = Array.isArray(row.special_cards) ? row.special_cards[0] : row.special_cards;
+    return { ...row, player_catalog: undefined, special_cards: undefined, special: special?.kind ?? null, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Academy", value: special?.price ?? source?.price ?? 0 };
   });
   return { cards: owned as unknown as ManagerCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
+}
+
+export type InformCard = { id: string; slug: string; name: string; position: string; overall: number; boost: number; accent: string; club: string; attributes: Record<string, number>; special: SpecialKind };
+export type PackShop = { purchasedThisWeek: Record<string, number>; informFactor: number; informs: InformCard[]; nextReset: string };
+
+/**
+ * Det pakkebutikken trenger i tillegg: ukens inform-kort (runden lages her hvis den ikke finnes ennå),
+ * hvor mange av hver pakke som er kjøpt denne uken, og hvor mye arenaen løfter inform-sjansen.
+ */
+export async function getPackShop(userId: string): Promise<PackShop> {
+  const db = supabaseAdmin();
+  const [{ data: roundId, error: roundError }, { data: bounds, error: boundsError }, { data: factor, error: factorError }] = await Promise.all([
+    db.rpc("ensure_special_round"),
+    db.rpc("sbc_week_bounds"),
+    db.rpc("manager_inform_factor", { target_user: userId }),
+  ]);
+  if (roundError || boundsError || factorError) throw new Error(roundError?.message ?? boundsError?.message ?? factorError?.message);
+  const [{ data: informs, error: informsError }, { data: openings, error: openingsError }] = await Promise.all([
+    db.from("special_cards").select("id, kind, overall, boost, attributes, player_catalog(slug, name, position, accent, club)").eq("round_id", roundId).order("overall", { ascending: false }),
+    db.from("pack_openings").select("pack_key").eq("user_id", userId).gt("price", 0).gte("created_at", bounds.week_start),
+  ]);
+  if (informsError || openingsError) throw new Error(informsError?.message ?? openingsError?.message);
+  const purchasedThisWeek: Record<string, number> = {};
+  for (const row of openings ?? []) purchasedThisWeek[row.pack_key] = (purchasedThisWeek[row.pack_key] ?? 0) + 1;
+  return {
+    purchasedThisWeek, informFactor: Number(factor ?? 1), nextReset: bounds.next_reset,
+    informs: (informs ?? []).flatMap((row) => {
+      const catalog = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
+      return catalog ? [{ id: row.id, slug: catalog.slug, name: catalog.name, position: catalog.position, overall: row.overall, boost: row.boost, accent: catalog.accent, club: catalog.club, attributes: row.attributes as Record<string, number>, special: row.kind as SpecialKind }] : [];
+    }),
+  };
 }
 
 // Katalogen har 1300+ kort, og databasen gir maks 1000 rader per spørring. Derfor søkes,
@@ -166,19 +205,20 @@ export async function listCatalogClubs(): Promise<string[]> {
   return [...clubs].sort((first, second) => first.localeCompare(second, "nb-NO"));
 }
 
-export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number; club: string }; seller_name: string; highest_bid: number | null };
+export type MarketListing = { id: string; seller_id: string; card_id: string; starting_price: number; buy_now_price: number; ends_at: string; card: { name: string; position: string; overall: number; club: string; special: SpecialKind | null }; seller_name: string; highest_bid: number | null };
 // Overgangsmarkedet er åpent for alle brukere, også egne annonser vises (de kan ikke kjøpes av selgeren).
 export async function listTransferMarket(): Promise<MarketListing[]> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("market_listings").select("id, seller_id, card_id, starting_price, buy_now_price, ends_at, manager_cards(name, position, overall, player_catalog(club)), profiles!market_listings_seller_id_fkey(username), market_bids(amount)").eq("status", "active").gt("ends_at", new Date().toISOString()).order("ends_at", { ascending: true });
+  const { data, error } = await db.from("market_listings").select("id, seller_id, card_id, starting_price, buy_now_price, ends_at, manager_cards(name, position, overall, player_catalog(club), special_cards(kind)), profiles!market_listings_seller_id_fkey(username), market_bids(amount)").eq("status", "active").gt("ends_at", new Date().toISOString()).order("ends_at", { ascending: true });
   if (error) throw new Error(error.message);
   const fallback = (await getT()).career.fallback;
   return (data ?? []).map((row) => {
     const card = Array.isArray(row.manager_cards) ? row.manager_cards[0] : row.manager_cards;
     const catalog = card ? (Array.isArray(card.player_catalog) ? card.player_catalog[0] : card.player_catalog) : null;
+    const special = card ? (Array.isArray(card.special_cards) ? card.special_cards[0] : card.special_cards) : null;
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     const bids = (row.market_bids ?? []) as { amount: number }[];
-    return { id: row.id, seller_id: row.seller_id, card_id: row.card_id, starting_price: row.starting_price, buy_now_price: row.buy_now_price, ends_at: row.ends_at, card: { name: card?.name ?? fallback.unknown, position: card?.position ?? "", overall: card?.overall ?? 0, club: catalog?.club ?? "" }, seller_name: profile?.username ?? "Manager", highest_bid: bids.length ? Math.max(...bids.map((bid) => bid.amount)) : null };
+    return { id: row.id, seller_id: row.seller_id, card_id: row.card_id, starting_price: row.starting_price, buy_now_price: row.buy_now_price, ends_at: row.ends_at, card: { name: card?.name ?? fallback.unknown, position: card?.position ?? "", overall: card?.overall ?? 0, club: catalog?.club ?? "", special: special?.kind ?? null }, seller_name: profile?.username ?? "Manager", highest_bid: bids.length ? Math.max(...bids.map((bid) => bid.amount)) : null };
   }) as MarketListing[];
 }
 

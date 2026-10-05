@@ -5,6 +5,8 @@ export const sbc: SbcDict = {
   intro: "Geben Sie Karten ab, die die Anforderungen erfüllen, und erhalten Sie eine Belohnung. Die abgegebenen Karten sind für immer weg.",
   resets: (when: string) => `Neue Versuche ${when}`,
   attempts: (left: number, total: number) => `${left}/${total} diese Woche übrig`,
+  attemptsToday: (left: number, total: number) => `Noch ${left}/${total} heute`,
+  resetsDaily: (time: string) => `Tägliche Versuche werden um ${time} zurückgesetzt`,
   unlimited: "Unbegrenzt",
   completedBadge: "Abgeschlossen",
   cardCount: (count: number) => `${count} ${count === 1 ? "Karte" : "Karten"}`,
@@ -17,7 +19,8 @@ export const sbc: SbcDict = {
     defensive_wall: { title: "Abwehrwall", description: "Geben Sie fünf Karten mit mindestens vier Verteidigern ab." },
     club_mates: { title: "Vereinskameraden", description: "Drei Spieler vom selben Verein." },
     english_invasion: { title: "Englische Invasion", description: "Sechs Karten, die meisten aus der Premier League." },
-    top_class: { title: "Weltklasse", description: "Ein Elite-Team aus Karten mit Wertung 84 für ein Elite-Paket." },
+    top_class: { title: "Weltklasse", description: "Ein Elite-Team aus Karten mit Wertung 85 für ein Elite-Paket." },
+    special_swap: { title: "Spezialtausch", description: "Gib zwei 88+-Karten ab und erhalte ein Spezialpaket mit einer zufälligen Spezialkarte." },
   } as Record<string, { title: string; description: string }>,
   leagues: {
     premier_league: "Premier League",

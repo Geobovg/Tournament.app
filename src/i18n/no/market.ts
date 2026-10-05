@@ -7,6 +7,8 @@ const packNames: Record<string, string> = {
   solv: "Sølvpakke",
   gull: "Gullpakke",
   elite: "Elitepakke",
+  inform: "Inform-pakke",
+  spesial: "Spesialpakke",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -14,6 +16,8 @@ const packDescriptions: Record<string, string> = {
   solv: "Fem kort, garantert minst ett på 80 eller bedre.",
   gull: "Åtte kort, garantert minst ett på 83 eller bedre.",
   elite: "Tolv kort, garantert to på 84+ og ett på 86+.",
+  inform: "Sju kort: garantert én inform, én 88+, to 86+ og tre 83+. Én per uke.",
+  spesial: "Ett tilfeldig spesialkort. Kan ikke selges på markedet.",
 };
 
 export const market: MarketDict = {
@@ -98,6 +102,15 @@ export const market: MarketDict = {
     openFree: "Åpne gratis",
     openPack: "Åpne pakke",
     tooExpensive: "For dyr",
+    informOdds: "Inform (per kort)",
+    informWeekTitle: "Ukens inform",
+    informWeekIntro: (count) => `${count} spillere er i form denne uken. Inform-kortene deres kan dukke opp i pakker.`,
+    informWeekResets: (when) => `Nye informs ${when}`,
+    informPulled: "INFORM!",
+    untradable: " · kan ikke selges",
+    specialGuarantee: (count, scope) => `${count}× ${scope === "current" ? "inform" : "spesialkort"}`,
+    weeklyLeft: (left, total) => `${left}/${total} igjen denne uken`,
+    boughtThisWeek: "Kjøpt denne uken",
   },
   chat: {
     title: "Markedschat",

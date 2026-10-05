@@ -8,6 +8,7 @@ import { getCatalogPage, listCatalogClubs, type CatalogCard } from "./career";
 import type { CatalogFilters } from "./catalog-filters";
 import { canPlayPosition, formationNames, formations, pickBestSquad, type Formation } from "./lineup";
 import { squadCapacity } from "./manager-limits";
+import type { SpecialKind } from "./special-cards";
 import { supabaseAdmin } from "./supabase/server";
 
 export async function buyCatalogCardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -33,7 +34,7 @@ export async function loadCatalogClubsAction(): Promise<string[]> {
   return listCatalogClubs();
 }
 
-export type PackPull = { card_id: string; catalog_id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number>; location: "squad" | "storage"; duplicate: boolean };
+export type PackPull = { card_id: string; catalog_id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number>; location: "squad" | "storage"; duplicate: boolean; special: SpecialKind | null; tradable: boolean };
 export type PackActionState = ActionState & { pulls?: PackPull[]; openedAt?: number; packKey?: string };
 
 export async function openManagerPackAction(_prev: PackActionState, formData: FormData): Promise<PackActionState> {

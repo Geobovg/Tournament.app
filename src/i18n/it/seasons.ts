@@ -2,7 +2,7 @@ function ordinal(n: number) { return `${n}°`; }
 
 export const seasons = {
   division: (division: number) => `Divisione ${division}`,
-  outcome: { promoted: "Promosso", relegated: "Retrocesso", stayed: "Sono rimasto sveglio" },
+  outcome: { promoted: "Promosso", relegated: "Retrocesso", stayed: "Sono rimasto sveglio", champion: "Campione" },
   table: { club: "CLUB", played: "p", wins: "W", draws: "D", losses: "l", goalDifference: "GD", points: "PTS" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -73,6 +73,26 @@ export const seasons = {
     inviteAtLeastOne: "Invita almeno un amico",
     friendsOnly: "Puoi invitare solo gli amici",
     seasonAlreadyStarted: "La stagione è già iniziata",
+  },
+  arena: {
+    eyebrow: (arena: number) => `ARENA ${arena}`,
+    roadEyebrow: "LA STRADA DELLE ARENE",
+    roadTitle: "Cinque stadi, 50 divisioni",
+    roadIntro: "Vinci la Divisione 1 per salire nell’arena successiva. Non retrocedi mai da un’arena raggiunta.",
+    current: "SEI QUI",
+    reached: "RAGGIUNTA",
+    locked: "BLOCCATA",
+    aiRange: (low: number, high: number) => `IA ${low}–${high}`,
+    divisionOneWin: (packs: number) => `Vittoria in Divisione 1: ${packs}× Elite Pack`,
+    unlockReward: (rewards: string) => `La prima volta: ${rewards}`,
+    championTitles: (count: number) => `${count} ${count === 1 ? "titolo di campione" : "titoli di campione"}`,
+    unlockedTitle: "Nuova arena",
+    unlockedBody: (name: string) => `Benvenuto a ${name}. Qui i club dell’IA sono più forti e i premi più grandi.`,
+    continue: "Andiamo",
+    toNextArena: (name: string) => `Solo il vincitore sale a ${name}`,
+    toChampion: "Il vincitore riceve un titolo di campione",
+    playoffInfo: (name: string) => `Spareggio: una partita contro un club di ${name}. Devi vincere.`,
+    prizeFactor: (factor: number) => factor > 1 ? `In questa arena tutti i premi vengono moltiplicati per ${String(factor).replace(".", ",")}.` : "",
   },
 };
 

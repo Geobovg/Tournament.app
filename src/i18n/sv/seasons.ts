@@ -2,7 +2,7 @@ function ordinal(n: number) { return `${n}:a`; }
 
 export const seasons = {
   division: (division: number) => `Division ${division}`,
-  outcome: { promoted: "Befordrad", relegated: "Nedflyttad", stayed: "Stannade uppe" },
+  outcome: { promoted: "Befordrad", relegated: "Nedflyttad", stayed: "Stannade uppe", champion: "Mästare" },
   table: { club: "KLUBB", played: "P", wins: "W", draws: "D", losses: "L", goalDifference: "GD", points: "PTS" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -73,6 +73,26 @@ export const seasons = {
     inviteAtLeastOne: "Bjud in minst en vän",
     friendsOnly: "Du kan bara bjuda in vänner",
     seasonAlreadyStarted: "Säsongen har redan börjat",
+  },
+  arena: {
+    eyebrow: (arena: number) => `ARENA ${arena}`,
+    roadEyebrow: "ARENAVÄGEN",
+    roadTitle: "Fem arenor, 50 divisioner",
+    roadIntro: "Vinn division 1 för att gå upp till nästa arena. Du åker aldrig ur en arena du har nått.",
+    current: "DU ÄR HÄR",
+    reached: "NÅDD",
+    locked: "LÅST",
+    aiRange: (low: number, high: number) => `AI ${low}–${high}`,
+    divisionOneWin: (packs: number) => `Vinst i division 1: ${packs}× Elitpaket`,
+    unlockReward: (rewards: string) => `Första gången här: ${rewards}`,
+    championTitles: (count: number) => `${count} ${count === 1 ? "mästartitel" : "mästartitlar"}`,
+    unlockedTitle: "Ny arena",
+    unlockedBody: (name: string) => `Välkommen till ${name}. AI-klubbarna är tuffare här, och priserna är större.`,
+    continue: "Kör",
+    toNextArena: (name: string) => `Bara vinnaren går upp till ${name}`,
+    toChampion: "Vinnaren får en mästartitel",
+    playoffInfo: (name: string) => `Kval: en match mot en klubb från ${name}. Du måste vinna.`,
+    prizeFactor: (factor: number) => factor > 1 ? `I den här arenan multipliceras alla priser med ${String(factor).replace(".", ",")}.` : "",
   },
 };
 

@@ -1,4 +1,5 @@
 import { canPlayPosition, formations } from "./lineup";
+import type { SpecialKind } from "./special-cards";
 
 // Felles for server og nettleser. Databasen (complete_sbc i migrering 0045) er fasit: sjekkene her
 // gir bare live-visning av kravene og valget i «Fyll automatisk». Holder de to seg i takt, godtar databasen det vi foreslår.
@@ -21,7 +22,7 @@ export type SbcRequirement =
   | { type: "league"; league: string; count: number }
   | { type: "same_nation"; count: number };
 
-export type SbcCard = { id: string; name: string; position: string; overall: number; slug: string | null; accent: string; club: string; league: string; nation: string | null; value: number; onBench: boolean };
+export type SbcCard = { id: string; name: string; position: string; overall: number; slug: string | null; accent: string; club: string; league: string; nation: string | null; value: number; onBench: boolean; special: SpecialKind | null };
 
 export type SbcChallenge = {
   key: string;
@@ -29,9 +30,11 @@ export type SbcChallenge = {
   requirements: SbcRequirement[];
   rewardMb: number;
   rewardPack: string | null;
-  weeklyLimit: number | null;
-  /** Antall leveringer siden siste nullstilling. */
-  usedThisWeek: number;
+  /** Antall forsøk per dag eller uke. null betyr ubegrenset. */
+  attemptLimit: number | null;
+  limitPeriod: "day" | "week";
+  /** Antall leveringer siden siste nullstilling (i dag eller denne uken). */
+  used: number;
 };
 
 // Kort uten klubb teller ikke som «samme klubb». Samme liste som i databasen.

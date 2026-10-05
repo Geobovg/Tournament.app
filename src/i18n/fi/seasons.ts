@@ -2,7 +2,7 @@ function ordinal(n: number) { return `${n}.`; }
 
 export const seasons = {
   division: (division: number) => `Division ${division}`,
-  outcome: { promoted: "ylennetty", relegated: "Pudotettu", stayed: "Pysyi pystyssä" },
+  outcome: { promoted: "ylennetty", relegated: "Pudotettu", stayed: "Pysyi pystyssä", champion: "Mestari" },
   table: { club: "KLUBIA", played: "P", wins: "W", draws: "D", losses: "L", goalDifference: "GD", points: "PTS" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -73,6 +73,26 @@ export const seasons = {
     inviteAtLeastOne: "Kutsu vähintään yksi ystävä",
     friendsOnly: "Voit kutsua vain ystäviä",
     seasonAlreadyStarted: "Kausi on jo alkanut",
+  },
+  arena: {
+    eyebrow: (arena: number) => `AREENA ${arena}`,
+    roadEyebrow: "AREENAPOLKU",
+    roadTitle: "Viisi stadionia, 50 divisioonaa",
+    roadIntro: "Voita divisioona 1 noustaksesi seuraavalle areenalle. Et koskaan putoa areenalta, jolle olet päässyt.",
+    current: "OLET TÄSSÄ",
+    reached: "SAAVUTETTU",
+    locked: "LUKITTU",
+    aiRange: (low: number, high: number) => `AI ${low}–${high}`,
+    divisionOneWin: (packs: number) => `Divisioona 1:n voitto: ${packs}× Elite Pack`,
+    unlockReward: (rewards: string) => `Ensimmäistä kertaa täällä: ${rewards}`,
+    championTitles: (count: number) => `${count} ${count === 1 ? "mestaruus" : "mestaruutta"}`,
+    unlockedTitle: "Uusi areena",
+    unlockedBody: (name: string) => `Tervetuloa: ${name}. AI-seurat ovat täällä kovempia, ja palkinnot suurempia.`,
+    continue: "Mennään",
+    toNextArena: (name: string) => `Vain voittaja nousee: ${name}`,
+    toChampion: "Voittaja saa mestaruuden",
+    playoffInfo: (name: string) => `Karsinta: yksi ottelu seuraa vastaan areenalta ${name}. Sinun on voitettava.`,
+    prizeFactor: (factor: number) => factor > 1 ? `Tällä areenalla kaikki palkinnot kerrotaan luvulla ${String(factor).replace(".", ",")}.` : "",
   },
 };
 

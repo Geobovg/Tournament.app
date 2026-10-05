@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { dbErrorMessage, getT } from "@/i18n/server";
 import type { ActionState } from "./actions";
 import { aiTeamSnapshot, type AiTeam } from "./ai-opponent";
+import { aiPlayerMaxOverall } from "./arenas";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
 import { MANAGER_KICKOFF_VERSION, planManagerTimeline, type ManagerKickoffEvent } from "./manager-match";
@@ -37,7 +38,7 @@ export async function playAiSeasonMatchAction(_prev: ActionState, _formData: For
   const { data: seasonId, error: ensureError } = await db.rpc("ensure_ai_season", { target_user: user.id });
   if (ensureError) return { error: await dbErrorMessage(ensureError) };
   const [{ data: season }, { data: fixtures }] = await Promise.all([
-    db.from("career_ai_seasons").select("id, teams").eq("id", seasonId).single(),
+    db.from("career_ai_seasons").select("id, arena, teams").eq("id", seasonId).single(),
     db.from("career_season_matches").select("id, round, stage, status, match_id, home_user_id, home_ai_key, away_ai_key").eq("ai_season_id", seasonId).or(`home_user_id.eq.${user.id},away_user_id.eq.${user.id}`).in("status", ["scheduled", "live"]).order("round", { ascending: true }),
   ]);
   const live = (fixtures ?? []).find((fixture) => fixture.status === "live" && fixture.match_id);
@@ -53,7 +54,7 @@ export async function playAiSeasonMatchAction(_prev: ActionState, _formData: For
   if (!mine) return { error: errors.needEleven };
   // Kvalikkampen må ha en vinner: likt etter 90′ gir ekstraomganger, og likt etter 120′ straffekonkurranse.
   // Du står alltid som hjemmelag i selve kampen. Hjemme og borte i sesongoppsettet gjelder bare tabellen.
-  const result = await kickOffFixture(db, next.id, { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home: mine, away: aiTeamSnapshot(season.id, team), knockout: next.stage === "playoff" }, { home_user_id: user.id, away_user_id: null, away_ai_name: team.name });
+  const result = await kickOffFixture(db, next.id, { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home: mine, away: aiTeamSnapshot(season.id, team, aiPlayerMaxOverall(season.arena ?? 1)), knockout: next.stage === "playoff" }, { home_user_id: user.id, away_user_id: null, away_ai_name: team.name });
   if ("error" in result) return { error: result.error };
   seasonPaths();
   redirect(`/managerkarriere/kamp/${result.matchId}`);

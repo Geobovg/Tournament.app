@@ -81,6 +81,11 @@ export const dbErrors = {
   sbcWrongCardCount: "Välj rätt antal kort för SBC:n",
   sbcCardsNotUsable: "Några av korten kan inte användas i en SBC",
   sbcRequirementsNotMet: "Korten uppfyller inte SBC-kraven",
+  packNotForSale: "Det här paketet kan inte köpas",
+  packWeeklyLimit: "Du har redan köpt det här paketet den här veckan",
+  noSpecialCards: "Det finns inga specialkort att dra än",
+  cardNotTradable: "Det här kortet kan inte säljas på marknaden",
+  sbcNoAttemptsToday: "Du har inga försök kvar på den här SBC:n i dag",
 };
 
 export type DbErrorsDict = typeof dbErrors;

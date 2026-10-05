@@ -81,6 +81,11 @@ export const dbErrors = {
   sbcWrongCardCount: "Elige el número correcto de tarjetas para el SBC",
   sbcCardsNotUsable: "Algunas de las tarjetas no se pueden usar en un SBC",
   sbcRequirementsNotMet: "Las tarjetas no cumplen los requisitos del SBC",
+  packNotForSale: "Este sobre no se puede comprar",
+  packWeeklyLimit: "Ya compraste este sobre esta semana",
+  noSpecialCards: "Todavía no hay cartas especiales para sacar",
+  cardNotTradable: "Esta carta no se puede vender en el mercado",
+  sbcNoAttemptsToday: "No te quedan intentos en este SBC hoy",
 };
 
 export type DbErrorsDict = typeof dbErrors;

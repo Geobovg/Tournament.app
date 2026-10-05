@@ -260,6 +260,7 @@ export const career = {
     unusableCard: "تحتوي الفرقة على بطاقة لا يمكنك استخدامها",
     wrongPosition: "اللاعب في مركز لا يستطيع اللعب فيه",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "بطاقة الفورمة" }, untradable: "غير قابلة للبيع" },
 };
 
 export type CareerDict = typeof career;

@@ -5,6 +5,8 @@ export const sbc: SbcDict = {
   intro: "سلّم بطاقات تستوفي المتطلبات واحصل على مكافأة. البطاقات التي تسلّمها تختفي نهائيًا.",
   resets: (when) => `محاولات جديدة ${when}`,
   attempts: (left, total) => `متبقٍ ${left}/${total} هذا الأسبوع`,
+  attemptsToday: (left: number, total: number) => `متبقٍ ${left}/${total} اليوم`,
+  resetsDaily: (time: string) => `تتجدد المحاولات اليومية الساعة ${time}`,
   unlimited: "غير محدود",
   completedBadge: "مكتمل",
   cardCount: (count) => (count === 1 ? "بطاقة واحدة" : count === 2 ? "بطاقتان" : `${count} ${count >= 3 && count <= 10 ? "بطاقات" : "بطاقة"}`),
@@ -17,7 +19,8 @@ export const sbc: SbcDict = {
     defensive_wall: { title: "جدار دفاعي", description: "سلّم خمس بطاقات بينها أربعة مدافعين على الأقل." },
     club_mates: { title: "زملاء النادي", description: "ثلاثة لاعبين من النادي نفسه." },
     english_invasion: { title: "الغزو الإنجليزي", description: "ست بطاقات، معظمها من الدوري الإنجليزي الممتاز." },
-    top_class: { title: "الفئة الأولى", description: "فريق نخبة من بطاقات تقييمها 84 مقابل حزمة النخبة." },
+    top_class: { title: "الفئة الأولى", description: "فريق نخبة من بطاقات تقييمها 85 مقابل حزمة النخبة." },
+    special_swap: { title: "تبديل خاص", description: "سلّم بطاقتين 88+ واحصل على حزمة خاصة فيها بطاقة خاصة عشوائية." },
   },
   leagues: {
     premier_league: "الدوري الإنجليزي الممتاز",

@@ -4,6 +4,8 @@ const packNames: Record<string, string> = {
   solv: "银包",
   gull: "黄金包",
   elite: "精英包",
+  inform: "状态卡包",
+  spesial: "特殊卡包",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -11,6 +13,8 @@ const packDescriptions: Record<string, string> = {
   solv: "五张牌，其中至少一张保证为 80 或更高。",
   gull: "八张牌，至少一张 83 或更高的保证。",
   elite: "十二张牌，保证两张 84+ 和一张 86+。",
+  inform: "七张卡：保底一张状态卡、一张 88+、两张 86+ 和三张 83+。每周一包。",
+  spesial: "一张随机特殊卡。不能在市场出售。",
 };
 
 export const market = {
@@ -95,6 +99,15 @@ export const market = {
     openFree: "免费开放",
     openPack: "打开包装",
     tooExpensive: "太贵了",
+    informOdds: "状态卡（每张）",
+    informWeekTitle: "本周状态卡",
+    informWeekIntro: (count: number) => `本周有 ${count} 名球员状态火热。他们的状态卡可能出现在卡包中。`,
+    informWeekResets: (when: string) => `新状态卡 ${when}`,
+    informPulled: "状态卡！",
+    untradable: " · 不可交易",
+    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "状态卡" : "特殊卡"}`,
+    weeklyLeft: (left: number, total: number) => `本周剩余 ${left}/${total}`,
+    boughtThisWeek: "本周已购买",
   },
   chat: {
     title: "市场聊天",

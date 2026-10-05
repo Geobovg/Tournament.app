@@ -4,6 +4,8 @@ const packNames: Record<string, string> = {
   solv: "Silver Pack",
   gull: "Guldpaket",
   elite: "Elitpaket",
+  inform: "Informpaket",
+  spesial: "Specialpaket",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -11,6 +13,8 @@ const packDescriptions: Record<string, string> = {
   solv: "Fem kort, med minst ett 80 eller bättre garanterat.",
   gull: "Åtta kort, med minst ett 83 eller bättre garanterat.",
   elite: "Tolv kort, med två 84+ och ett 86+ garanterade.",
+  inform: "Sju kort: garanterat ett Inform, ett 88+, två 86+ och tre 83+. Ett per vecka.",
+  spesial: "Ett slumpat specialkort. Kan inte säljas på marknaden.",
 };
 
 export const market = {
@@ -95,6 +99,15 @@ export const market = {
     openFree: "Öppna gratis",
     openPack: "Öppen förpackning",
     tooExpensive: "För dyr",
+    informOdds: "Inform (per kort)",
+    informWeekTitle: "Veckans Inform",
+    informWeekIntro: (count: number) => `${count} spelare är i form den här veckan. Deras Informkort kan dyka upp i paket.`,
+    informWeekResets: (when: string) => `Nya Inform ${when}`,
+    informPulled: "INFORM!",
+    untradable: " · kan inte säljas",
+    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "specialkort"}`,
+    weeklyLeft: (left: number, total: number) => `${left}/${total} kvar den här veckan`,
+    boughtThisWeek: "Köpt den här veckan",
   },
   chat: {
     title: "Market Chat",

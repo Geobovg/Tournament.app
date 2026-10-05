@@ -2,7 +2,7 @@ function ordinal(n: number) { return `${n}.`; }
 
 export const seasons = {
   division: (division: number) => `Abteilung ${division}`,
-  outcome: { promoted: "Gefördert", relegated: "Abgestiegen", stayed: "Bin oben geblieben" },
+  outcome: { promoted: "Gefördert", relegated: "Abgestiegen", stayed: "Bin oben geblieben", champion: "Meister" },
   table: { club: "CLUB", played: "P", wins: "W", draws: "D", losses: "L", goalDifference: "GD", points: "PTS" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -73,6 +73,26 @@ export const seasons = {
     inviteAtLeastOne: "Lade mindestens einen Freund ein",
     friendsOnly: "Sie können nur Freunde einladen",
     seasonAlreadyStarted: "Die Saison hat bereits begonnen",
+  },
+  arena: {
+    eyebrow: (arena: number) => `ARENA ${arena}`,
+    roadEyebrow: "ARENAWEG",
+    roadTitle: "Fünf Stadien, 50 Ligen",
+    roadIntro: "Gewinne Liga 1, um in die nächste Arena aufzusteigen. Aus einer erreichten Arena fällst du nie heraus.",
+    current: "DU BIST HIER",
+    reached: "ERREICHT",
+    locked: "GESPERRT",
+    aiRange: (low: number, high: number) => `KI ${low}–${high}`,
+    divisionOneWin: (packs: number) => `Sieg in Liga 1: ${packs}× Elite-Paket`,
+    unlockReward: (rewards: string) => `Beim ersten Mal: ${rewards}`,
+    championTitles: (count: number) => `${count} ${count === 1 ? "Meistertitel" : "Meistertitel"}`,
+    unlockedTitle: "Neue Arena",
+    unlockedBody: (name: string) => `Willkommen in ${name}. Die KI-Klubs sind hier stärker, und die Prämien größer.`,
+    continue: "Los geht's",
+    toNextArena: (name: string) => `Nur der Sieger steigt auf nach ${name}`,
+    toChampion: "Der Sieger bekommt einen Meistertitel",
+    playoffInfo: (name: string) => `Relegation: ein Spiel gegen einen Klub aus ${name}. Du musst gewinnen.`,
+    prizeFactor: (factor: number) => factor > 1 ? `In dieser Arena werden alle Prämien mit ${String(factor).replace(".", ",")} multipliziert.` : "",
   },
 };
 

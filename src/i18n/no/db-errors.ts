@@ -85,5 +85,10 @@ export const dbErrors: DbErrorsDict = {
   pickElevenStarters: "Velg nøyaktig 11 startspillere",
   pickTwoDifferentCards: "Velg to forskjellige kort",
   waitForFriend: "Vent på at vennen din svarer",
+  packNotForSale: "Denne pakken kan ikke kjøpes",
+  packWeeklyLimit: "Du har allerede kjøpt denne pakken denne uken",
+  noSpecialCards: "Det finnes ingen spesialkort å trekke ennå",
+  cardNotTradable: "Dette kortet kan ikke selges på markedet",
+  sbcNoAttemptsToday: "Du har ikke flere forsøk igjen på denne SBC-en i dag",
 };
 

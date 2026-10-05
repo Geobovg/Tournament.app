@@ -5,6 +5,7 @@ import { useLocale, useT } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { canPlayPosition } from "@/lib/lineup";
 import { autoFill, autoFillPartial, placeCards, requirementStatus, sbcSatisfied, sbcSlots, suggestCards, teamRating, type SbcCard, type SbcChallenge, type SbcRequirement } from "@/lib/sbc";
+import { specialStyles } from "@/lib/special-cards";
 import { completeSbcAction } from "@/lib/sbc-actions";
 import type { SbcData } from "@/lib/sbc-data";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -29,14 +30,14 @@ function rewardText(t: Dictionary, challenge: { rewardMb: number; rewardPack: st
   return parts.join(" + ");
 }
 
-const attemptsLeft = (challenge: SbcChallenge) => (challenge.weeklyLimit === null ? Infinity : Math.max(0, challenge.weeklyLimit - challenge.usedThisWeek));
+const attemptsLeft = (challenge: SbcChallenge) => (challenge.attemptLimit === null ? Infinity : Math.max(0, challenge.attemptLimit - challenge.used));
 
 /** «fredag 18:00» i brukerens egen tidssone. Serveren kan ha en annen tidssone, så teksten får lov til å avvike ved første visning. */
-function resetLabel(locale: string, nextReset: string) {
-  try { return new Intl.DateTimeFormat(locale, { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(nextReset)); } catch { return ""; }
+function resetLabel(locale: string, nextReset: string, daily = false) {
+  try { return new Intl.DateTimeFormat(locale, daily ? { hour: "2-digit", minute: "2-digit" } : { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(nextReset)); } catch { return ""; }
 }
 
-export function SbcPanel({ challenges, cards, nextReset }: SbcData) {
+export function SbcPanel({ challenges, cards, nextReset, nextDailyReset }: SbcData) {
   const t = useT();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const locale = useLocale();
@@ -45,7 +46,7 @@ export function SbcPanel({ challenges, cards, nextReset }: SbcData) {
   // Brukte SBC-er havner nederst.
   const sorted = [...challenges].sort((a, b) => Number(attemptsLeft(a) === 0) - Number(attemptsLeft(b) === 0));
   return <div className="grid gap-4">
-    <p className="text-sm text-white/60">{t.sbc.intro}<span suppressHydrationWarning> {t.sbc.resets(resetLabel(locale, nextReset))}.</span></p>
+    <p className="text-sm text-white/60">{t.sbc.intro}<span suppressHydrationWarning> {t.sbc.resetsDaily(resetLabel(locale, nextDailyReset, true))}. {t.sbc.resets(resetLabel(locale, nextReset))}.</span></p>
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {sorted.map((challenge) => {
         const left = attemptsLeft(challenge); const done = left === 0; const item = t.sbc.items[challenge.key];
@@ -60,7 +61,7 @@ export function SbcPanel({ challenges, cards, nextReset }: SbcData) {
           </span>
           <span className="flex items-end justify-between gap-3 border-t border-white/10 pt-3">
             <span><span className="block text-[10px] font-bold tracking-widest text-white/45">{t.sbc.reward.toUpperCase()}</span><b className="text-cyan-300">{rewardText(t, challenge)}</b></span>
-            <span className="text-xs font-bold text-white/55">{challenge.weeklyLimit === null ? t.sbc.unlimited : t.sbc.attempts(left, challenge.weeklyLimit)}</span>
+            <span className="text-xs font-bold text-white/55">{challenge.attemptLimit === null ? t.sbc.unlimited : challenge.limitPeriod === "day" ? t.sbc.attemptsToday(left, challenge.attemptLimit) : t.sbc.attempts(left, challenge.attemptLimit)}</span>
           </span>
         </button>;
       })}
@@ -71,8 +72,9 @@ export function SbcPanel({ challenges, cards, nextReset }: SbcData) {
 
 function MiniCard({ card }: { card: SbcCard }) {
   const t = useT();
-  return <span className="relative grid h-full w-full content-center justify-items-center overflow-hidden rounded-xl border border-white/25 px-0.5 text-white shadow-lg" style={{ background: `radial-gradient(circle at 85% 5%, ${card.accent}cc 0, transparent 55%), linear-gradient(145deg, #08150e, #102b1a)` }}>
-    <b className="text-xl font-black leading-none">{card.overall}</b>
+  const special = card.special ? specialStyles[card.special] : null;
+  return <span className="relative grid h-full w-full content-center justify-items-center overflow-hidden rounded-xl border border-white/25 px-0.5 text-white shadow-lg" style={{ background: special ? special.background : `radial-gradient(circle at 85% 5%, ${card.accent}cc 0, transparent 55%), linear-gradient(145deg, #08150e, #102b1a)`, ...(special ? { borderColor: special.border } : {}) }}>
+    <b className="text-xl font-black leading-none" style={special ? { color: special.badge } : undefined}>{card.overall}</b>
     <span className="text-[10px] font-black">{card.position}</span>
     <span className="mt-1 w-full truncate text-center text-[10px] font-bold">{card.name}</span>
     {card.onBench ? <span className="absolute inset-x-0 top-0 bg-amber-300 text-center text-[8px] font-black uppercase leading-3 text-slate-950">{t.sbc.picker.bench}</span> : null}

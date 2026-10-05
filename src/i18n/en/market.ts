@@ -4,6 +4,8 @@ const packNames: Record<string, string> = {
   solv: "Silver Pack",
   gull: "Gold Pack",
   elite: "Elite Pack",
+  inform: "Inform Pack",
+  spesial: "Special Pack",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -11,6 +13,8 @@ const packDescriptions: Record<string, string> = {
   solv: "Five cards, with at least one 80 or better guaranteed.",
   gull: "Eight cards, with at least one 83 or better guaranteed.",
   elite: "Twelve cards, with two 84+ and one 86+ guaranteed.",
+  inform: "Seven cards: one Inform, one 88+, two 86+ and three 83+ guaranteed. One per week.",
+  spesial: "One random special card. Can't be sold on the market.",
 };
 
 export const market = {
@@ -95,6 +99,15 @@ export const market = {
     openFree: "Open free",
     openPack: "Open pack",
     tooExpensive: "Too pricey",
+    informOdds: "Inform (per card)",
+    informWeekTitle: "Inform of the Week",
+    informWeekIntro: (count: number) => `${count} players are in form this week. Their Inform cards can show up in packs.`,
+    informWeekResets: (when: string) => `New Informs ${when}`,
+    informPulled: "INFORM!",
+    untradable: " · not tradable",
+    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "special card"}`,
+    weeklyLeft: (left: number, total: number) => `${left}/${total} left this week`,
+    boughtThisWeek: "Bought this week",
   },
   chat: {
     title: "Market Chat",

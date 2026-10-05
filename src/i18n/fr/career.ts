@@ -260,6 +260,7 @@ export const career = {
     unusableCard: "L'escouade contient une carte que vous ne pouvez pas utiliser",
     wrongPosition: "Un joueur est dans une position où il ne peut pas jouer",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Non échangeable" },
 };
 
 export type CareerDict = typeof career;

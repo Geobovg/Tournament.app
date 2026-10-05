@@ -260,6 +260,7 @@ export const career = {
     unusableCard: "La squadra contiene una carta che non puoi utilizzare",
     wrongPosition: "Un giocatore è in una posizione in cui non può giocare",
   },
+  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Non scambiabile" },
 };
 
 export type CareerDict = typeof career;
