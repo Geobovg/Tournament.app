@@ -17,6 +17,7 @@ export const career = {
     kamplobby: "ودية",
     karrierehistorikk: "تاريخ المباراة",
     sbc: "SBC",
+    informs: "بطاقات الفورمة",
   },
   subTabs: {
     squad: "فرقة",
@@ -261,6 +262,14 @@ export const career = {
     wrongPosition: "اللاعب في مركز لا يستطيع اللعب فيه",
   },
   special: { badge: { inform: "INFORM" }, name: { inform: "بطاقة الفورمة" }, untradable: "غير قابلة للبيع" },
+  informs: {
+    intro: (total: number, rounds: number) => `${total} بطاقة فورمة من ${rounds} جولة. تُسحب بطاقات جديدة كل جمعة الساعة 18:00.`,
+    thisWeek: "هذا الأسبوع",
+    week: (date: string) => `أسبوع ${date}`,
+    count: (count: number) => `${count} بطاقة`,
+    boost: (boost: number) => `+${boost} عن البطاقة السابقة`,
+    empty: "لم تُسحب أي بطاقات فورمة بعد. الجولة الأولى يوم الجمعة الساعة 18:00.",
+  },
 };
 
 export type CareerDict = typeof career;

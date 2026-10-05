@@ -17,6 +17,7 @@ export const career = {
     kamplobby: "友善",
     karrierehistorikk: "比赛历史",
     sbc: "SBC",
+    informs: "状态卡",
   },
   subTabs: {
     squad: "小队",
@@ -261,6 +262,14 @@ export const career = {
     wrongPosition: "球员处于无法上场的位置",
   },
   special: { badge: { inform: "INFORM" }, name: { inform: "状态卡" }, untradable: "不可交易" },
+  informs: {
+    intro: (total: number, rounds: number) => `共 ${rounds} 轮，${total} 张状态卡。每周五 18:00 抽取新卡。`,
+    thisWeek: "本周",
+    week: (date: string) => `${date} 起的一周`,
+    count: (count: number) => `${count} 张`,
+    boost: (boost: number) => `比上一张卡 +${boost}`,
+    empty: "还没有抽出状态卡。第一轮将于周五 18:00 推出。",
+  },
 };
 
 export type CareerDict = typeof career;

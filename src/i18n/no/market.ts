@@ -106,6 +106,7 @@ export const market: MarketDict = {
     informWeekTitle: "Ukens inform",
     informWeekIntro: (count) => `${count} spillere er i form denne uken. Inform-kortene deres kan dukke opp i pakker.`,
     informWeekResets: (when) => `Nye informs ${when}`,
+    allInforms: "Se alle informs",
     informPulled: "INFORM!",
     untradable: " · kan ikke selges",
     specialGuarantee: (count, scope) => `${count}× ${scope === "current" ? "inform" : "spesialkort"}`,

@@ -103,6 +103,7 @@ export const market = {
     informWeekTitle: "فورمة الأسبوع",
     informWeekIntro: (count: number) => `${count} لاعبين في قمة الفورمة هذا الأسبوع. قد تظهر بطاقاتهم في الحزم.`,
     informWeekResets: (when: string) => `بطاقات فورمة جديدة ${when}`,
+    allInforms: "عرض كل بطاقات الفورمة",
     informPulled: "فورمة!",
     untradable: " · غير قابلة للبيع",
     specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "بطاقة فورمة" : "بطاقة خاصة"}`,

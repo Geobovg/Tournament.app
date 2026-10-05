@@ -103,6 +103,7 @@ export const market = {
     informWeekTitle: "Ugens Inform",
     informWeekIntro: (count: number) => `${count} spillere er i form denne uge. Deres Inform-kort kan dukke op i pakker.`,
     informWeekResets: (when: string) => `Nye Informs ${when}`,
+    allInforms: "Se alle Informs",
     informPulled: "INFORM!",
     untradable: " · kan ikke sælges",
     specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "specialkort"}`,

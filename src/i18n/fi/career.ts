@@ -17,6 +17,7 @@ export const career = {
     kamplobby: "Ystävällinen",
     karrierehistorikk: "Otteluhistoria",
     sbc: "SBC",
+    informs: "Informit",
   },
   subTabs: {
     squad: "Ryhmä",
@@ -261,6 +262,14 @@ export const career = {
     wrongPosition: "Pelaaja on tilanteessa, jossa hän ei voi pelata",
   },
   special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Ei myytävissä" },
+  informs: {
+    intro: (total: number, rounds: number) => `${total} Inform-korttia ${rounds} kierrokselta. Uudet arvotaan joka perjantai klo 18.00.`,
+    thisWeek: "Tällä viikolla",
+    week: (date: string) => `Viikko alkaen ${date}`,
+    count: (count: number) => `${count} korttia`,
+    boost: (boost: number) => `+${boost} edelliseen korttiin`,
+    empty: "Informeja ei ole vielä arvottu. Ensimmäinen kierros tulee perjantaina klo 18.00.",
+  },
 };
 
 export type CareerDict = typeof career;

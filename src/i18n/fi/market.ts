@@ -103,6 +103,7 @@ export const market = {
     informWeekTitle: "Viikon Inform",
     informWeekIntro: (count: number) => `${count} pelaajaa on tällä viikolla vireessä. Heidän Inform-korttinsa voivat tulla paketeista.`,
     informWeekResets: (when: string) => `Uudet Informit ${when}`,
+    allInforms: "Näytä kaikki Informit",
     informPulled: "INFORM!",
     untradable: " · ei myytävissä",
     specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "erikoiskortti"}`,

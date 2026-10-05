@@ -103,6 +103,7 @@ export const market = {
     informWeekTitle: "Inform of the Week",
     informWeekIntro: (count: number) => `${count} players are in form this week. Their Inform cards can show up in packs.`,
     informWeekResets: (when: string) => `New Informs ${when}`,
+    allInforms: "See all Informs",
     informPulled: "INFORM!",
     untradable: " · not tradable",
     specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "special card"}`,

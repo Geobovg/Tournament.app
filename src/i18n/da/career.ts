@@ -17,6 +17,7 @@ export const career = {
     kamplobby: "Venlig",
     karrierehistorikk: "Kamphistorie",
     sbc: "SBC",
+    informs: "Informs",
   },
   subTabs: {
     squad: "Squad",
@@ -261,6 +262,14 @@ export const career = {
     wrongPosition: "En spiller er i en position, han ikke kan spille",
   },
   special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Kan ikke sælges" },
+  informs: {
+    intro: (total: number, rounds: number) => `${total} Inform-kort fra ${rounds} ${rounds === 1 ? "runde" : "runder"}. Nye trækkes hver fredag kl. 18:00.`,
+    thisWeek: "Denne uge",
+    week: (date: string) => `Ugen fra ${date}`,
+    count: (count: number) => `${count} kort`,
+    boost: (boost: number) => `+${boost} fra forrige kort`,
+    empty: "Der er ikke trukket nogen Informs endnu. Første runde kommer fredag kl. 18:00.",
+  },
 };
 
 export type CareerDict = typeof career;

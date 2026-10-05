@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { CareerChallengePanel } from "@/components/career-dashboard";
 import { ChallengeLobby } from "@/components/challenge-lobby";
+import { InformGallery } from "@/components/inform-gallery";
 import { ManagerCareer } from "@/components/manager-career";
 import { ManagerMatchHistory } from "@/components/manager-match-history";
 import { ManagerTopBar, managerSections, SubTabs, type ManagerSectionKey } from "@/components/manager-navigation";
@@ -9,7 +10,7 @@ import { SbcPanel } from "@/components/sbc-panel";
 import { MarketChat } from "@/components/market-chat";
 import { TransferMarket } from "@/components/transfer-market";
 import { currentUser, sessionUserId } from "@/lib/auth";
-import { getCareerChallenges, getCareerProfile, getCatalogPage, getManagerCareer, getManagerRating, getPackShop, listManagerMatchHistory, listTransferMarket, ratingFromSquad } from "@/lib/career";
+import { getCareerChallenges, getCareerProfile, getCatalogPage, getInformHistory, getManagerCareer, getManagerRating, getPackShop, listManagerMatchHistory, listTransferMarket, ratingFromSquad } from "@/lib/career";
 import { defaultCatalogFilters } from "@/lib/catalog-filters";
 import { listFriends } from "@/lib/friends";
 import { getMarketChatUnread, listMarketChat } from "@/lib/market-chat";
@@ -34,7 +35,7 @@ export default async function ManagerCareerSectionPage({ params, searchParams }:
   const active = section as ManagerSectionKey;
   const marketTab = active === "spillermarked" && tab === "marked";
   const careerPromise = getCareerProfile(userId);
-  const [user, career, manager, ratingInfo, catalogPage, listings, chat, friendsData, season, history, sbcData, shop] = await Promise.all([
+  const [user, career, manager, ratingInfo, catalogPage, listings, chat, friendsData, season, history, sbcData, shop, informRounds] = await Promise.all([
     currentUser(),
     careerPromise,
     needsCards.has(active) ? getManagerCareer(userId) : null,
@@ -48,6 +49,7 @@ export default async function ManagerCareerSectionPage({ params, searchParams }:
     active === "karrierehistorikk" ? listManagerMatchHistory(userId) : null,
     active === "sbc" ? getSbcData(userId) : null,
     active === "pakker" ? getPackShop(userId) : null,
+    active === "informs" ? getInformHistory() : null,
   ]);
   if (!user) redirect("/login");
   const t = await getT(); const tabs = t.career.subTabs;
@@ -59,6 +61,7 @@ export default async function ManagerCareerSectionPage({ params, searchParams }:
   if (active === "lagtropp") content = <div className="grid gap-4">{squadTabs}<ManagerCareer {...manager!} budget={career.manager_budget} section="squad" /></div>;
   else if (active === "klubblager") content = <div className="grid gap-4">{squadTabs}<ManagerCareer {...manager!} budget={career.manager_budget} section="storage" /></div>;
   else if (active === "sbc") content = <SbcPanel {...sbcData!} />;
+  else if (active === "informs") content = <InformGallery rounds={informRounds!} />;
   else if (active === "pakker") content = <ManagerCareer {...manager!} budget={career.manager_budget} section="packs" shop={shop!} />;
   else if (active === "sesong") {
     if (friendsData) {
