@@ -4,7 +4,7 @@ const packNames: Record<string, string> = {
   solv: "Pack Argent",
   gull: "Pack Or",
   elite: "Pack Élite",
-  inform: "Pack Inform",
+  inform: "Allpacka",
   spesial: "Pack spécial",
 };
 
@@ -110,6 +110,7 @@ export const market = {
     specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "carte spéciale"}`,
     weeklyLeft: (left: number, total: number) => `${left}/${total} restant(s) cette semaine`,
     boughtThisWeek: "Acheté cette semaine",
+    guaranteed: "Garanti",
   },
   chat: {
     title: "Discussion sur le marché",

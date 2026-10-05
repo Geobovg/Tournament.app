@@ -4,7 +4,7 @@ const packNames: Record<string, string> = {
   solv: "银包",
   gull: "黄金包",
   elite: "精英包",
-  inform: "状态卡包",
+  inform: "Allpacka",
   spesial: "特殊卡包",
 };
 
@@ -110,6 +110,7 @@ export const market = {
     specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "状态卡" : "特殊卡"}`,
     weeklyLeft: (left: number, total: number) => `本周剩余 ${left}/${total}`,
     boughtThisWeek: "本周已购买",
+    guaranteed: "保底",
   },
   chat: {
     title: "市场聊天",
