@@ -3,7 +3,7 @@ import type { SeasonsDict } from "../en/seasons";
 // Sesonger i managerkarrieren: AI-sesongen med divisjoner og vennesesongene.
 export const seasons: SeasonsDict = {
   division: (division: number) => `Divisjon ${division}`,
-  outcome: { promoted: "Opprykk", relegated: "Nedrykk", stayed: "Beholdt plassen" },
+  outcome: { promoted: "Opprykk", relegated: "Nedrykk", stayed: "Beholdt plassen", champion: "Mester" },
   table: { club: "KLUBB", played: "K", wins: "S", draws: "U", losses: "T", goalDifference: "MF", points: "P" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -74,6 +74,26 @@ export const seasons: SeasonsDict = {
     inviteAtLeastOne: "Inviter minst én venn",
     friendsOnly: "Du kan bare invitere venner",
     seasonAlreadyStarted: "Sesongen har allerede startet",
+  },
+  arena: {
+    eyebrow: (arena: number) => `ARENA ${arena}`,
+    roadEyebrow: "ARENAVEIEN",
+    roadTitle: "Fem stadioner, 50 divisjoner",
+    roadIntro: "Vinn divisjon 1 for å gå opp til neste arena. Du faller aldri ut av en arena du har nådd.",
+    current: "DU ER HER",
+    reached: "NÅDD",
+    locked: "LÅST",
+    aiRange: (low: number, high: number) => `AI ${low}–${high}`,
+    divisionOneWin: (packs: number) => `Seier i divisjon 1: ${packs}× elitepakke`,
+    unlockReward: (rewards: string) => `Første gang her: ${rewards}`,
+    championTitles: (count: number) => `${count} ${count === 1 ? "mestertittel" : "mestertitler"}`,
+    unlockedTitle: "Ny arena",
+    unlockedBody: (name: string) => `Velkommen til ${name}. AI-klubbene er tøffere her, og premiene er større.`,
+    continue: "Kjør på",
+    toNextArena: (name: string) => `Bare vinneren går opp til ${name}`,
+    toChampion: "Vinneren får en mestertittel",
+    playoffInfo: (name: string) => `Kvalik: én kamp mot en klubb fra ${name}. Du må vinne.`,
+    prizeFactor: (factor: number) => factor > 1 ? `I denne arenaen ganges alle premier med ${String(factor).replace(".", ",")}.` : "",
   },
 };
 

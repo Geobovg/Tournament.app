@@ -2,7 +2,7 @@ function ordinal(n: number) { return n === 1 ? "1er" : `${n}e`; }
 
 export const seasons = {
   division: (division: number) => `Division ${division}`,
-  outcome: { promoted: "Promu", relegated: "Relégué", stayed: "Je suis resté debout" },
+  outcome: { promoted: "Promu", relegated: "Relégué", stayed: "Je suis resté debout", champion: "Champion" },
   table: { club: "CLUB", played: "P.", wins: "W", draws: "D", losses: "L", goalDifference: "DG", points: "SPT" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -73,6 +73,26 @@ export const seasons = {
     inviteAtLeastOne: "Invitez au moins un ami",
     friendsOnly: "Vous ne pouvez inviter que des amis",
     seasonAlreadyStarted: "La saison a déjà commencé",
+  },
+  arena: {
+    eyebrow: (arena: number) => `ARÈNE ${arena}`,
+    roadEyebrow: "LA ROUTE DES ARÈNES",
+    roadTitle: "Cinq stades, 50 divisions",
+    roadIntro: "Gagne la Division 1 pour monter dans l’arène suivante. Tu ne descends jamais d’une arène déjà atteinte.",
+    current: "TU ES ICI",
+    reached: "ATTEINTE",
+    locked: "VERROUILLÉE",
+    aiRange: (low: number, high: number) => `IA ${low}–${high}`,
+    divisionOneWin: (packs: number) => `Victoire en Division 1 : ${packs}× Pack Élite`,
+    unlockReward: (rewards: string) => `La première fois : ${rewards}`,
+    championTitles: (count: number) => `${count} ${count === 1 ? "titre de champion" : "titres de champion"}`,
+    unlockedTitle: "Nouvelle arène",
+    unlockedBody: (name: string) => `Bienvenue à ${name}. Les clubs IA y sont plus coriaces, et les récompenses plus grosses.`,
+    continue: "C’est parti",
+    toNextArena: (name: string) => `Seul le vainqueur monte à ${name}`,
+    toChampion: "Le vainqueur reçoit un titre de champion",
+    playoffInfo: (name: string) => `Barrage : un match contre un club de ${name}. Tu dois gagner.`,
+    prizeFactor: (factor: number) => factor > 1 ? `Dans cette arène, toutes les récompenses sont multipliées par ${String(factor).replace(".", ",")}.` : "",
   },
 };
 

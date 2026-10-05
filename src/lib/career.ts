@@ -55,11 +55,14 @@ export async function getCareerMatch(matchId: string, userId: string) {
   if (!data) return null;
   // Kampbildet viser managernavn og klubbnavn i stedet for «Hjemme» og «Borte».
   const userIds = [data.home_user_id, data.away_user_id].filter((id): id is string => Boolean(id));
-  const [{ data: profiles }, { data: careers }, { data: shots }] = await Promise.all([
+  const [{ data: profiles }, { data: careers }, { data: shots }, { data: fixture }] = await Promise.all([
     db.from("profiles").select("id, username").in("id", userIds),
     db.from("player_profiles").select("user_id, club_name").in("user_id", userIds),
     db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome").eq("match_id", matchId).order("minute", { ascending: true }),
+    // Kamper i AI-sesongen spilles i en arena, og kampskjermen får arenaens stadion og farger.
+    db.from("career_season_matches").select("career_ai_seasons(arena)").eq("match_id", matchId).not("ai_season_id", "is", null).maybeSingle(),
   ]);
+  const aiSeason = fixture ? (Array.isArray(fixture.career_ai_seasons) ? fixture.career_ai_seasons[0] : fixture.career_ai_seasons) : null;
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
   const clubs = new Map((careers ?? []).map((career) => [career.user_id, career.club_name]));
   const { fallback, clubName } = (await getT()).career;
@@ -72,6 +75,7 @@ export async function getCareerMatch(matchId: string, userId: string) {
     away: data.away_user_id ? sideFor(data.away_user_id) : aiSide,
     // Klokka forankres i serverens tid, så en nettleser som går feil ikke flytter kampminuttet.
     serverNow: Date.now(),
+    arena: (aiSeason?.arena as number | undefined) ?? null,
     shots: (shots ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome })),
   };
 }

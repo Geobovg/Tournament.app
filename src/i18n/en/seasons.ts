@@ -6,7 +6,7 @@ function ordinal(n: number) {
 
 export const seasons = {
   division: (division: number) => `Division ${division}`,
-  outcome: { promoted: "Promoted", relegated: "Relegated", stayed: "Stayed up" },
+  outcome: { promoted: "Promoted", relegated: "Relegated", stayed: "Stayed up", champion: "Champion" },
   table: { club: "CLUB", played: "P", wins: "W", draws: "D", losses: "L", goalDifference: "GD", points: "PTS" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -77,6 +77,26 @@ export const seasons = {
     inviteAtLeastOne: "Invite at least one friend",
     friendsOnly: "You can only invite friends",
     seasonAlreadyStarted: "The season has already started",
+  },
+  arena: {
+    eyebrow: (arena: number) => `ARENA ${arena}`,
+    roadEyebrow: "ARENA ROAD",
+    roadTitle: "Five stadiums, 50 divisions",
+    roadIntro: "Win Division 1 to move up to the next arena. You never drop out of an arena you've reached.",
+    current: "YOU ARE HERE",
+    reached: "REACHED",
+    locked: "LOCKED",
+    aiRange: (low: number, high: number) => `AI ${low}–${high}`,
+    divisionOneWin: (packs: number) => `Winning Division 1: ${packs}× Elite Pack`,
+    unlockReward: (rewards: string) => `First time here: ${rewards}`,
+    championTitles: (count: number) => `${count} ${count === 1 ? "master title" : "master titles"}`,
+    unlockedTitle: "New arena",
+    unlockedBody: (name: string) => `Welcome to ${name}. The AI clubs are tougher here, and the prizes are bigger.`,
+    continue: "Let's go",
+    toNextArena: (name: string) => `Only the winner goes up to ${name}`,
+    toChampion: "The winner gets a master title",
+    playoffInfo: (name: string) => `Play-off: one match against a club from ${name}. You have to win.`,
+    prizeFactor: (factor: number) => factor > 1 ? `In this arena all prizes are multiplied by ${factor}.` : "",
   },
 };
 

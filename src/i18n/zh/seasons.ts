@@ -2,7 +2,7 @@ function ordinal(n: number) { return `第${n}`; }
 
 export const seasons = {
   division: (division: number) => `部门${division}`,
-  outcome: { promoted: "晋升", relegated: "降级", stayed: "熬夜" },
+  outcome: { promoted: "晋升", relegated: "降级", stayed: "熬夜", champion: "冠军" },
   table: { club: "俱乐部", played: "磷", wins: "瓦", draws: "D", losses: "L", goalDifference: "GD", points: "PTS" },
   fixture: {
     round: (round: number) => `R${round}`,
@@ -73,6 +73,26 @@ export const seasons = {
     inviteAtLeastOne: "邀请至少一位朋友",
     friendsOnly: "您只能邀请朋友",
     seasonAlreadyStarted: "季节已经开始",
+  },
+  arena: {
+    eyebrow: (arena: number) => `竞技场 ${arena}`,
+    roadEyebrow: "竞技场之路",
+    roadTitle: "五座球场，50 个级别",
+    roadIntro: "赢得第 1 级别即可升入下一个竞技场。已到达的竞技场永远不会掉出。",
+    current: "你在这里",
+    reached: "已到达",
+    locked: "未解锁",
+    aiRange: (low: number, high: number) => `AI ${low}–${high}`,
+    divisionOneWin: (packs: number) => `赢得第 1 级别：${packs}× 精英包`,
+    unlockReward: (rewards: string) => `首次到达：${rewards}`,
+    championTitles: (count: number) => `${count} 个冠军头衔`,
+    unlockedTitle: "新竞技场",
+    unlockedBody: (name: string) => `欢迎来到 ${name}。这里的 AI 俱乐部更强，奖励也更丰厚。`,
+    continue: "出发",
+    toNextArena: (name: string) => `只有冠军能升入 ${name}`,
+    toChampion: "冠军将获得冠军头衔",
+    playoffInfo: (name: string) => `附加赛：与来自 ${name} 的俱乐部进行一场比赛，必须获胜。`,
+    prizeFactor: (factor: number) => factor > 1 ? `在这个竞技场，所有奖励乘以 ${factor}。` : "",
   },
 };
 

@@ -10,7 +10,11 @@ export type ManagerPlayerSnapshot = {
   /** Avgjør hvem som tar straffen og hvor mange hjørner han tør sikte på. */
   shooting?: number | null;
 };
-export type ManagerTeamSnapshot = { userId: string; formation: string; starters: ManagerPlayerSnapshot[]; bench: ManagerPlayerSnapshot[] };
+/**
+ * `bonus` er en skjult styrke som bare AI-klubber i arena 2–5 har. Den legges på angrep, forsvar,
+ * avslutninger og keeper i kampmodellen, men vises aldri som rating på spillerne.
+ */
+export type ManagerTeamSnapshot = { userId: string; formation: string; starters: ManagerPlayerSnapshot[]; bench: ManagerPlayerSnapshot[]; bonus?: number };
 /**
  * `knockout` settes på kamper som må ha en vinner (kvalik til opprykk): står det likt etter 90′,
  * spilles ekstraomganger, og står det fortsatt likt etter 120′, avgjøres kampen på straffer.
@@ -579,6 +583,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
   const timeline: TimelineEvent[] = [];
   const shotSlots = new Map(plannedShotSlots(matchId).map((slot) => [slot.minute, slot.kind]));
   const rated = kickoff.version >= 4;
+  const bonus = { home: kickoff.home.bonus ?? 0, away: kickoff.away.bonus ?? 0 };
   const onPitch = {
     home: minutesOnPitch(kickoff.home, substitutions.filter((event) => event.side === "home")),
     away: minutesOnPitch(kickoff.away, substitutions.filter((event) => event.side === "away")),
@@ -601,7 +606,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
       let chanceRate: number;
 
       if (rated) {
-        const edge = unitStrength(players, attackWeights, onPitch[side], minute) - unitStrength(active[opponent], defenceWeights, onPitch[opponent], minute);
+        const edge = unitStrength(players, attackWeights, onPitch[side], minute) + bonus[side] - unitStrength(active[opponent], defenceWeights, onPitch[opponent], minute) - bonus[opponent];
         const attemptRate = bounded(BASE_ATTEMPT_RATE * Math.exp(edge * ATTACK_SLOPE), 0.012, 0.15);
         goalRate = 0;
         chanceRate = attemptRate;
@@ -610,7 +615,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
           if (!shooter) continue;
           const keeper = keeperOf(active[opponent]);
           const finish = numberFromSeed(`${matchId}:${minute}:${side}:finish`);
-          const scoring = finishChance(shootingOf(shooter), keeper.rating);
+          const scoring = finishChance(shootingOf(shooter) + bonus[side], keeper.rating + bonus[opponent]);
           if (finish < scoring) {
             const assistCandidates = players.filter((player) => player.id !== shooter.id);
             const solo = numberFromSeed(`${matchId}:${minute}:${side}:solo`) < 0.22;
@@ -618,7 +623,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
             timeline.push({ type: "goal", minute, side, scorer: shooter.name, scorerId: shooter.id, assist: assist?.name ?? null, assistId: assist?.id ?? null });
           } else {
             // Det som ikke går inn, blir oftere en redning jo bedre keeperen er – ellers stolpen.
-            const saveShare = bounded(0.62 + (keeper.rating - shootingOf(shooter)) * 0.01, 0.4, 0.85);
+            const saveShare = bounded(0.62 + (keeper.rating + bonus[opponent] - shootingOf(shooter) - bonus[side]) * 0.01, 0.4, 0.85);
             const saved = (finish - scoring) / (1 - scoring) < saveShare;
             timeline.push({ type: "chance", minute, side, outcome: saved ? "save" : "post", player: shooter.name, playerId: shooter.id, keeper: saved ? keeper.name : null });
           }
@@ -674,7 +679,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
       if (taker && rated) {
         const keeper = keeperOf(active[side === "home" ? "away" : "home"]);
         const options = shotOptions(shootingOf(taker));
-        const reach = kind === "penalty" ? penaltyReach(keeper.rating, shootingOf(taker), options.length) : 1;
+        const reach = kind === "penalty" ? penaltyReach(keeper.rating + bonus[side === "home" ? "away" : "home"], shootingOf(taker), options.length) : 1;
         timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options, keeperId: keeper.id, reach });
       } else if (taker) {
         timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options: shotOptions(shootingOf(taker)) });

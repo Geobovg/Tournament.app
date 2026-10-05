@@ -1,7 +1,8 @@
 import { formations } from "./lineup";
 import type { ManagerPlayerSnapshot, ManagerTeamSnapshot } from "./manager-match";
 
-export type AiTeam = { key: string; name: string; rating: number };
+/** `bonus` er den skjulte styrken AI-klubbene får fra arena 2 (se arenas.ts). Eldre sesonger har den ikke. */
+export type AiTeam = { key: string; name: string; rating: number; bonus?: number };
 
 const firstNames = ["James", "Liam", "Oliver", "Harry", "Jack", "Charlie", "Thomas", "George", "Oscar", "William", "Noah", "Ethan", "Leo", "Mason", "Lucas", "Ryan", "Callum", "Daniel", "Joe", "Kieran"];
 const lastNames = ["Carter", "Walsh", "Bennett", "Hughes", "Turner", "Parker", "Collins", "Morgan", "Reid", "Foster", "Hayes", "Barnes", "Cooper", "Ward", "Fletcher", "Doyle", "Murphy", "Price", "Shaw", "Holloway"];
@@ -16,19 +17,22 @@ function seeded(seed: string) {
   };
 }
 
-/** Laguttaket til en AI-klubb: 4-3-3 med oppdiktede spillere spredt rundt klubbens rating. */
-export function aiTeamSnapshot(seasonId: string, team: AiTeam): ManagerTeamSnapshot {
+/**
+ * Laguttaket til en AI-klubb: 4-3-3 med oppdiktede spillere spredt rundt klubbens rating.
+ * I arena 1 er hver spiller maks 95 som før, fra arena 2 kan de være opptil 99.
+ */
+export function aiTeamSnapshot(seasonId: string, team: AiTeam, maxOverall = 95): ManagerTeamSnapshot {
   const random = seeded(`${seasonId}:${team.key}`);
   const player = (index: number, position: string): ManagerPlayerSnapshot => ({
     id: `ai:${team.key}:${index}`,
     name: `${firstNames[Math.floor(random() * firstNames.length)]} ${lastNames[Math.floor(random() * lastNames.length)]}`,
     position,
-    overall: Math.max(45, Math.min(95, team.rating + Math.round(random() * 6 - 3))),
+    overall: Math.max(45, Math.min(maxOverall, team.rating + Math.round(random() * 6 - 3))),
     slug: null,
     club: team.name,
     accent: null,
   });
   const starters = formations["4-3-3"].map((slot, index) => player(index, slot.position));
   const bench = ["GK", "CB", "CM", "ST"].map((position, index) => player(11 + index, position));
-  return { userId: `ai:${team.key}`, formation: "4-3-3", starters, bench };
+  return { userId: `ai:${team.key}`, formation: "4-3-3", starters, bench, ...(team.bonus ? { bonus: team.bonus } : {}) };
 }
