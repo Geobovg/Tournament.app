@@ -86,6 +86,9 @@ export const dbErrors = {
   noSpecialCards: "目前还没有可抽取的特殊卡",
   cardNotTradable: "此卡不能在市场出售",
   sbcNoAttemptsToday: "你今天在这个 SBC 上已没有剩余次数",
+  personalCardLocked: "个人卡不能出售、交易或提交",
+  personalCardUserNotFound: (name: string) => `找不到用户名为 ${name} 的经理`,
+  personalCardExists: (name: string) => `${name} 已经有一张个人卡`,
 };
 
 export type DbErrorsDict = typeof dbErrors;

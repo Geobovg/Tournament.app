@@ -266,7 +266,7 @@ export const career: CareerDict = {
     unusableCard: "Troppen inneholder et kort du ikke kan bruke",
     wrongPosition: "En spiller står i en posisjon han ikke kan spille",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Kan ikke selges" },
+  special: { badge: { inform: "INFORM", personal: "PERSONLIG" }, name: { inform: "Inform", personal: "Personlig kort" }, untradable: "Kan ikke selges", anyPosition: "ALLE", personalHint: "Spiller alle posisjoner. +1 i rating for hver ny divisjon du når" },
   informs: {
     intro: (total: number, rounds: number) => `${total} inform-kort fra ${rounds} ${rounds === 1 ? "runde" : "runder"}. Nye trekkes hver fredag kl. 18:00.`,
     thisWeek: "Denne uken",

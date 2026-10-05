@@ -261,7 +261,7 @@ export const career = {
     unusableCard: "The squad contains a card you can't use",
     wrongPosition: "A player is in a position he can't play",
   },
-  special: { badge: { inform: "INFORM" }, name: { inform: "Inform" }, untradable: "Not tradable" },
+  special: { badge: { inform: "INFORM", personal: "PERSONAL" }, name: { inform: "Inform", personal: "Personal card" }, untradable: "Not tradable", anyPosition: "ALL", personalHint: "Plays every position. +1 rating for each new division you reach" },
   informs: {
     intro: (total: number, rounds: number) => `${total} Inform cards from ${rounds} ${rounds === 1 ? "round" : "rounds"}. New ones are drawn every Friday at 18:00.`,
     thisWeek: "This week",

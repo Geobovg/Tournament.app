@@ -16,7 +16,7 @@ export async function getSbcData(userId: string): Promise<SbcData> {
   const [{ data: challenges, error: challengesError }, { data: completions, error: completionsError }, { data: cards, error: cardsError }, { data: lineup, error: lineupError }, { data: listings, error: listingsError }] = await Promise.all([
     db.from("sbc_challenges").select("key, card_count, requirements, reward_mb, reward_pack, attempt_limit, limit_period").eq("active", true).order("sort_order", { ascending: true }),
     db.from("sbc_completions").select("sbc_key, completed_at").eq("user_id", userId).gte("completed_at", bounds.week_start),
-    db.from("manager_cards").select("id, name, position, overall, catalog_id, player_catalog(slug, accent, club, league, nation, price), special_cards(kind, price)").eq("owner_id", userId).eq("is_starter", false).order("overall", { ascending: true }),
+    db.from("manager_cards").select("id, name, position, overall, catalog_id, player_catalog(slug, accent, club, league, nation, price), special_cards(kind, price), personal_cards(card_id)").eq("owner_id", userId).eq("is_starter", false).order("overall", { ascending: true }),
     db.from("manager_lineups").select("starters, bench").eq("user_id", userId).maybeSingle(),
     db.from("market_listings").select("card_id").eq("seller_id", userId).eq("status", "active"),
   ]);
@@ -36,7 +36,8 @@ export async function getSbcData(userId: string): Promise<SbcData> {
   return {
     nextReset: bounds.next_reset, nextDailyReset: day.next_reset,
     challenges: (challenges ?? []).map((row) => ({ key: row.key, cardCount: row.card_count, requirements: row.requirements as SbcRequirement[], rewardMb: row.reward_mb, rewardPack: row.reward_pack, attemptLimit: row.attempt_limit, limitPeriod: row.limit_period, used: (row.limit_period === "day" ? usedToday : usedThisWeek).get(row.key) ?? 0 })),
-    cards: (cards ?? []).filter((card) => !busy.has(card.id)).map((card) => {
+    // Personlige kort kan aldri leveres inn (migrering 0063).
+    cards: (cards ?? []).filter((card) => !busy.has(card.id) && !(Array.isArray(card.personal_cards) ? card.personal_cards.length : card.personal_cards)).map((card) => {
       const catalog = Array.isArray(card.player_catalog) ? card.player_catalog[0] : card.player_catalog;
       const special = Array.isArray(card.special_cards) ? card.special_cards[0] : card.special_cards;
       return { id: card.id, name: card.name, position: card.position, overall: card.overall, slug: catalog?.slug ?? null, accent: catalog?.accent ?? "#7a8794", club: catalog?.club ?? "", league: catalog?.league ?? "other", nation: catalog?.nation ?? null, value: special?.price ?? catalog?.price ?? 0, onBench: bench.has(card.id), special: special?.kind ?? null };

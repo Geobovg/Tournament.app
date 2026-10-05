@@ -31,35 +31,59 @@ const positionGroups = [
   ["GK"], ["CB"], ["LB", "LWB"], ["RB", "RWB"], ["CDM", "CM", "CAM"], ["LW", "RW", "LM", "RM"], ["ST", "SA"],
 ];
 
+// Personlige kort (migrering 0063) har denne posisjonen og kan spille hvor som helst.
+export const anyPosition = "ALL";
+
 export function canPlayPosition(naturalPosition: string, targetPosition: string) {
-  return positionGroups.some((group) => group.includes(naturalPosition) && group.includes(targetPosition));
+  return naturalPosition === anyPosition || positionGroups.some((group) => group.includes(naturalPosition) && group.includes(targetPosition));
 }
 
 type SelectableCard = { id: string; position: string; overall: number };
 
-export function pickBestLineup<T extends SelectableCard>(cards: T[], formation: Formation) {
-  const remaining = [...cards].sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
-  const starters: string[] = [];
-  for (const slot of formations[formation]) {
-    const matchIndex = remaining.findIndex((card) => canPlayPosition(card.position, slot.position));
-    const fallbackIndex = matchIndex === -1 ? 0 : matchIndex;
-    const picked = remaining.splice(fallbackIndex, 1)[0];
-    if (picked) starters.push(picked.id);
+// Fyller plassene fra puljene i rekkefølge. I hver pulje får kortene med fast posisjon velge først,
+// så et kort som kan spille alt ikke tar keeperplassen fra keeperen. Det settes inn der det trengs etterpå.
+function fillSlots<T extends SelectableCard>(slots: FormationSlot[], pools: T[][]) {
+  const lineup: (T | null)[] = slots.map(() => null);
+  const left = pools.map((pool) => [...pool]);
+  for (const pool of left) {
+    for (const versatile of [false, true]) {
+      slots.forEach((slot, index) => {
+        if (lineup[index]) return;
+        const matchIndex = pool.findIndex((card) => (card.position === anyPosition) === versatile && canPlayPosition(card.position, slot.position));
+        if (matchIndex >= 0) lineup[index] = pool.splice(matchIndex, 1)[0];
+      });
+    }
   }
-  return { starters, bench: remaining.slice(0, 7).map((card) => card.id) };
+  // Ingen kort passer: da står beste ledige kort der likevel, som før.
+  const rest = left.flat();
+  lineup.forEach((card, index) => { if (!card && rest.length) lineup[index] = rest.shift()!; });
+  return { lineup, rest };
+}
+
+export function pickBestLineup<T extends SelectableCard>(cards: T[], formation: Formation) {
+  const sorted = [...cards].sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
+  const slots = formations[formation];
+  const { lineup, rest } = fillSlots(slots, [sorted.filter((card) => card.position !== anyPosition)]);
+  // Kort som kan spille alt, tar plassen til den svakeste i elleveren (eller en som står feil) når det er bedre.
+  // En keeper som står i mål, byttes ikke ut automatisk; vil man ha kortet i mål, kan man flytte det dit selv.
+  const strength = (card: T | null, index: number) => (!card || !canPlayPosition(card.position, slots[index].position) ? -1 : slots[index].position === "GK" ? Infinity : card.overall);
+  for (const versatile of sorted.filter((card) => card.position === anyPosition)) {
+    const weakest = lineup.reduce((best, card, index) => (strength(card, index) < strength(lineup[best], best) ? index : best), 0);
+    if (versatile.overall > strength(lineup[weakest], weakest)) {
+      const replaced = lineup[weakest];
+      lineup[weakest] = versatile;
+      if (replaced) rest.push(replaced);
+    } else rest.push(versatile);
+  }
+  rest.sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
+  return { starters: lineup.filter((card): card is T => Boolean(card)).map((card) => card.id), bench: rest.slice(0, 7).map((card) => card.id) };
 }
 
 export function rearrangeLineup<T extends SelectableCard>(cards: T[], formation: Formation, currentStarters: string[], currentBench: string[]) {
   const byId = new Map(cards.map((card) => [card.id, card]));
   const preferred = currentStarters.map((id) => byId.get(id)).filter((card): card is T => Boolean(card)).sort((a, b) => b.overall - a.overall);
   const others = cards.filter((card) => !currentStarters.includes(card.id)).sort((a, b) => b.overall - a.overall);
-  const remaining = [...preferred, ...others];
-  const starters: string[] = [];
-  for (const slot of formations[formation]) {
-    const matchIndex = remaining.findIndex((card) => canPlayPosition(card.position, slot.position));
-    const picked = remaining.splice(matchIndex === -1 ? 0 : matchIndex, 1)[0];
-    if (picked) starters.push(picked.id);
-  }
+  const starters = fillSlots(formations[formation], [preferred, others]).lineup.filter((card): card is T => Boolean(card)).map((card) => card.id);
   const selected = new Set(starters);
   const bench = [...currentBench, ...currentStarters, ...cards.map((card) => card.id)].filter((id, index, all) => !selected.has(id) && all.indexOf(id) === index).slice(0, 7);
   return { starters, bench };

@@ -90,5 +90,8 @@ export const dbErrors: DbErrorsDict = {
   noSpecialCards: "Det finnes ingen spesialkort å trekke ennå",
   cardNotTradable: "Dette kortet kan ikke selges på markedet",
   sbcNoAttemptsToday: "Du har ikke flere forsøk igjen på denne SBC-en i dag",
+  personalCardLocked: "Personlige kort kan ikke selges, byttes eller leveres inn",
+  personalCardUserNotFound: (name: string) => `Fant ingen manager med brukernavnet ${name}`,
+  personalCardExists: (name: string) => `${name} har allerede et personlig kort`,
 };
 
