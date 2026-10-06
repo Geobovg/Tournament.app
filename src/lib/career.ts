@@ -58,7 +58,7 @@ export async function getCareerMatch(matchId: string, userId: string) {
   const [{ data: profiles }, { data: careers }, { data: shots }, { data: fixture }] = await Promise.all([
     db.from("profiles").select("id, username").in("id", userIds),
     db.from("player_profiles").select("user_id, club_name").in("user_id", userIds),
-    db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome").eq("match_id", matchId).order("minute", { ascending: true }),
+    db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome, aim_x, aim_y, save_x, save_y, save_ms").eq("match_id", matchId).order("minute", { ascending: true }),
     // Kamper i AI-sesongen spilles i en arena, og kampskjermen får arenaens stadion og farger.
     db.from("career_season_matches").select("career_ai_seasons(arena)").eq("match_id", matchId).not("ai_season_id", "is", null).maybeSingle(),
   ]);
@@ -76,7 +76,7 @@ export async function getCareerMatch(matchId: string, userId: string) {
     // Klokka forankres i serverens tid, så en nettleser som går feil ikke flytter kampminuttet.
     serverNow: Date.now(),
     arena: (aiSeason?.arena as number | undefined) ?? null,
-    shots: (shots ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome })),
+    shots: (shots ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome, aimX: shot.aim_x, aimY: shot.aim_y, saveX: shot.save_x, saveY: shot.save_y, saveMs: shot.save_ms })),
   };
 }
 

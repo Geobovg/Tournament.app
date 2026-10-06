@@ -1,4 +1,8 @@
 import { anyPosition } from "./lineup";
+import { aimRadius, autoAim, autoKeeperTap, autoRelease, ballTarget, clampAim, IDLE_AIM, MOMENT_MS, planWall, resolveAim, type AimPoint, type AimResolution, type KeeperTap, type Wall } from "./shot-aim";
+
+export type AttributeKey = "pace" | "shooting" | "passing" | "dribbling" | "defending" | "physical";
+export type PlayerAttributes = Partial<Record<AttributeKey, number>>;
 
 export type ManagerPlayerSnapshot = {
   id: string;
@@ -11,6 +15,8 @@ export type ManagerPlayerSnapshot = {
   accent?: string | null;
   /** Avgjør hvem som tar straffen og hvor mange hjørner han tør sikte på. */
   shooting?: number | null;
+  /** Kortets attributter. Fra kampversjon 5 er det disse, ikke bare ratingen, som spiller kampen. */
+  attributes?: PlayerAttributes | null;
 };
 /**
  * `bonus` er en skjult styrke som bare AI-klubber i arena 2–5 har. Den legges på angrep, forsvar,
@@ -21,26 +27,35 @@ export type ManagerTeamSnapshot = { userId: string; formation: string; starters:
  * `knockout` settes på kamper som må ha en vinner (kvalik til opprykk): står det likt etter 90′,
  * spilles ekstraomganger, og står det fortsatt likt etter 120′, avgjøres kampen på straffer.
  */
-export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot; knockout?: boolean };
+export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4 | 5; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot; knockout?: boolean };
 /**
- * Kamper som startes nå får versjon 4: angrep mot forsvar og avslutter mot keeper. Eldre kamper
- * beholder den gamle modellen, ellers ville et bytte midt i en pågående kamp skrevet om det som
- * alt er spilt – planen regnes ut på nytt fra avspark ved hvert bytte.
+ * Kamper som startes nå får versjon 5: kortenes attributter spiller kampen, det er ingen bytter,
+ * og seks nøkkeløyeblikk der managerne selv skyter og redder (se shot-aim.ts). Eldre kamper
+ * beholder modellen de ble startet med, så lagrede kamper vises slik de ble spilt.
  */
-export const MANAGER_KICKOFF_VERSION = 4;
+export const MANAGER_KICKOFF_VERSION = 5;
 export type MatchSide = "home" | "away";
 export type ManagerSubstitutionEvent = { type: "substitution"; side: MatchSide; outId: string; inId: string; minute: number };
 export type ManagerFullTimeEvent = { type: "full_time"; minute: 90; homeScore: number; awayScore: number };
 export type TimelineGoal = { type: "goal"; minute: number; side: MatchSide; scorer: string; scorerId?: string; assist?: string | null; assistId?: string | null };
 export type TimelineCard = { type: "card"; minute: number; side: MatchSide; card: "yellow" | "red"; player: string; playerId: string };
 export type TimelineChance = { type: "chance"; minute: number; side: MatchSide; outcome: "post" | "save"; player: string; playerId: string; keeper?: string | null };
-export type ShotKind = "penalty" | "chance";
+export type ShotKind = "penalty" | "chance" | "freekick" | "longshot";
 /**
  * En planlagt sjanse spilleren selv skyter. Utfallet lagres i career_match_shots, ikke her.
  * `keeperId` og `reach` finnes bare på kamper fra versjon 4: hvem som står i mål, og hvor mange
  * ruter han dekker når han kaster seg på straffe.
  */
-export type TimelineShot = { type: "shot"; minute: number; side: MatchSide; kind: ShotKind; takerId: string; taker: string; options: number[]; keeperId?: string | null; reach?: number };
+export type TimelineShot = {
+  type: "shot"; minute: number; side: MatchSide; kind: ShotKind; takerId: string; taker: string; options: number[]; keeperId?: string | null; reach?: number;
+  /**
+   * Bare nøkkeløyeblikk (versjon 5): presisjonssirkelen til skytteren, keeperens styrke med en
+   * eventuell skjult bonus, muren på frispark, og når en datastyrt skytter skyter (ms inn i øyeblikket).
+   */
+  radius?: number; keeperRating?: number; wall?: Wall | null; release?: number;
+};
+/** Et nøkkeløyeblikk der skytteren sikter selv og keeperen redder selv. */
+export type AimShot = TimelineShot & { radius: number; keeperRating: number };
 export type TimelineEvent = TimelineGoal | TimelineCard | TimelineChance | ManagerSubstitutionEvent | TimelineShot;
 /**
  * Ett spark i straffekonkurransen. Den simuleres ferdig ved avspark – ingen velger noe – og
@@ -49,8 +64,14 @@ export type TimelineEvent = TimelineGoal | TimelineCard | TimelineChance | Manag
 export type ShootoutKick = { type: "shootout_kick"; order: number; round: number; side: MatchSide; takerId: string; taker: string; keeper: string | null; scored: boolean };
 export type ManagerMatchEvent = ManagerKickoffEvent | TimelineEvent | ManagerFullTimeEvent | ShootoutKick;
 
-/** Raden fra career_match_shots: hva de to faktisk valgte, og hvordan det gikk. */
-export type ShotResult = { minute: number; kind: ShotKind; side: MatchSide; shooterCell: number | null; keeperCell: number | null; outcome: "goal" | "saved" | "missed" | null };
+/**
+ * Raden fra career_match_shots: hva de to faktisk valgte, og hvordan det gikk. Rutene gjelder
+ * eldre kamper; nøkkeløyeblikkene lagrer siktet og keeperens trykk i stedet.
+ */
+export type ShotResult = {
+  minute: number; kind: ShotKind; side: MatchSide; shooterCell: number | null; keeperCell: number | null; outcome: "goal" | "saved" | "missed" | null;
+  aimX?: number | null; aimY?: number | null; saveX?: number | null; saveY?: number | null; saveMs?: number | null;
+};
 
 export type ManagerMatchReport = {
   home: { strength: number; possession: number; shots: number; onTarget: number };
@@ -94,13 +115,25 @@ export type MatchClock = { phase: MatchPhase; minute: number; remainingMs: numbe
 export type MatchExtension = { extraTime: boolean; kicks: number };
 export const NO_EXTENSION: MatchExtension = { extraTime: false, kicks: 0 };
 
+/**
+ * Hvordan klokka stopper: eldre kamper har byttevinduet på 70′ og ti sekunder per sjanse, kamper
+ * fra versjon 5 har ingen bytter og sju sekunder per nøkkeløyeblikk.
+ */
+export type ClockSpec = { subWindow: boolean; shotMs: number };
+export const LEGACY_CLOCK: ClockSpec = { subWindow: true, shotMs: SHOT_MS };
+export const AIM_CLOCK: ClockSpec = { subWindow: false, shotMs: MOMENT_MS };
+
+export function clockSpecOf(events: unknown): ClockSpec {
+  return (getManagerKickoff(events)?.version ?? 0) >= 5 ? AIM_CLOCK : LEGACY_CLOCK;
+}
+
 type Stoppage = { minute: number; ms: number; phase: MatchPhase };
 
-function stoppagesFor(shotMinutes: number[], extension: MatchExtension): Stoppage[] {
+function stoppagesFor(shotMinutes: number[], extension: MatchExtension, spec: ClockSpec): Stoppage[] {
   return [
     { minute: HALF_MINUTES, ms: HALFTIME_MS, phase: "halftime" as const },
-    { minute: SUB_WINDOW_MINUTE, ms: SUB_WINDOW_MS, phase: "substitutions" as const },
-    ...shotMinutes.map((minute) => ({ minute, ms: SHOT_MS, phase: "shot" as const })),
+    ...(spec.subWindow ? [{ minute: SUB_WINDOW_MINUTE, ms: SUB_WINDOW_MS, phase: "substitutions" as const }] : []),
+    ...shotMinutes.map((minute) => ({ minute, ms: spec.shotMs, phase: "shot" as const })),
     ...(extension.extraTime
       ? [
           { minute: 90, ms: EXTRA_BREAK_MS, phase: "extra_break" as const },
@@ -121,8 +154,8 @@ function runningPhase(minute: number): MatchPhase {
  * minutt for minutt, med stoppene lagt inn på faste steder. Fordi alle stoppene er kjent
  * ved avspark, kommer begge klientene fram til nøyaktig samme minutt uten å snakke sammen.
  */
-export function matchClock(elapsedMs: number, shotMinutes: number[] = [], extension: MatchExtension = NO_EXTENSION): MatchClock {
-  const stoppages = stoppagesFor(shotMinutes, extension);
+export function matchClock(elapsedMs: number, shotMinutes: number[], extension: MatchExtension, spec: ClockSpec): MatchClock {
+  const stoppages = stoppagesFor(shotMinutes, extension, spec);
   const lastMinute = extension.extraTime ? EXTRA_TIME_END : 90;
   const idle = { shotMinute: null, shotElapsedMs: 0, kickIndex: 0, kickElapsedMs: 0 };
   let remaining = Math.max(0, elapsedMs);
@@ -158,9 +191,9 @@ function msUntilBreak(minute: number, intoMinute: number, stoppages: Stoppage[],
   return (next - minute) * MS_PER_MINUTE + (MS_PER_MINUTE - intoMinute);
 }
 
-/** Hele kampens lengde i sanntid, inkludert pause, byttevindu, straffer og eventuell forlengelse. */
-export function plannedDurationMs(shotMinutes: number[] = [], extension: MatchExtension = NO_EXTENSION): number {
-  const regular = 90 * MS_PER_MINUTE + HALFTIME_MS + SUB_WINDOW_MS + shotMinutes.length * SHOT_MS;
+/** Hele kampens lengde i sanntid, inkludert pause, eventuelt byttevindu, sjanser og forlengelse. */
+export function plannedDurationMs(shotMinutes: number[], extension: MatchExtension, spec: ClockSpec): number {
+  const regular = 90 * MS_PER_MINUTE + HALFTIME_MS + (spec.subWindow ? SUB_WINDOW_MS : 0) + shotMinutes.length * spec.shotMs;
   const extra = extension.extraTime ? (EXTRA_TIME_END - 90) * MS_PER_MINUTE + EXTRA_BREAK_MS + EXTRA_HALFTIME_MS : 0;
   const shootout = extension.kicks > 0 ? SHOOTOUT_BREAK_MS + extension.kicks * KICK_MS : 0;
   return regular + extra + shootout;
@@ -187,7 +220,7 @@ export function getManagerKickoff(events: unknown): ManagerKickoffEvent | null {
   const kickoff = events.find((event) => event && typeof event === "object" && (event as { type?: unknown }).type === "kickoff") as Record<string, unknown> | undefined;
   if (!kickoff) return null;
   // Eldre kamper ligger lagret som versjon 1 og 2, uten katalogdata og skuddstat.
-  const known = kickoff.version === 1 || kickoff.version === 2 || kickoff.version === 3 || kickoff.version === 4;
+  const known = kickoff.version === 1 || kickoff.version === 2 || kickoff.version === 3 || kickoff.version === 4 || kickoff.version === 5;
   return known && isTeam(kickoff.home) && isTeam(kickoff.away) ? (kickoff as ManagerKickoffEvent) : null;
 }
 
@@ -225,7 +258,7 @@ function isTimelineChance(value: unknown): value is TimelineChance {
 function isTimelineShot(value: unknown): value is TimelineShot {
   if (!value || typeof value !== "object") return false;
   const shot = value as Record<string, unknown>;
-  return shot.type === "shot" && Number.isInteger(shot.minute) && (shot.side === "home" || shot.side === "away") && (shot.kind === "penalty" || shot.kind === "chance") && typeof shot.taker === "string" && Array.isArray(shot.options);
+  return shot.type === "shot" && Number.isInteger(shot.minute) && (shot.side === "home" || shot.side === "away") && (shot.kind === "penalty" || shot.kind === "chance" || shot.kind === "freekick" || shot.kind === "longshot") && typeof shot.taker === "string" && Array.isArray(shot.options);
 }
 
 const eventOrder: Record<TimelineEvent["type"], number> = { goal: 0, shot: 1, card: 2, chance: 3, substitution: 4 };
@@ -331,7 +364,78 @@ function bounded(value: number, minimum: number, maximum: number) {
 }
 
 export function shootingOf(player: ManagerPlayerSnapshot): number {
+  const fromCard = player.attributes?.shooting;
+  if (typeof fromCard === "number" && fromCard > 0) return fromCard;
   return typeof player.shooting === "number" && player.shooting > 0 ? player.shooting : player.overall;
+}
+
+// ---------------------------------------------------------------------------
+// Attributter
+// ---------------------------------------------------------------------------
+
+/**
+ * Attributtene et kort uten egne verdier får: samme regel som katalogen bruker når den regner ut
+ * kortene (se 0012_expand_player_catalog.sql). AI-spillerne får sine herfra.
+ */
+const attributeOffsets: Record<AttributeKey, (position: string) => number> = {
+  pace: (position) => (position === "GK" ? -12 : ["RW", "LW"].includes(position) ? 7 : position === "ST" ? 4 : ["RB", "LB"].includes(position) ? 3 : -1),
+  shooting: (position) => (position === "GK" ? -22 : position === "ST" ? 6 : ["RW", "LW", "CAM"].includes(position) ? 3 : ["CB", "RB", "LB"].includes(position) ? -18 : position === "CDM" ? -9 : -2),
+  passing: (position) => (position === "GK" ? -5 : ["CM", "CAM", "CDM"].includes(position) ? 4 : ["CB", "RB", "LB"].includes(position) ? -6 : position === "ST" ? -9 : 0),
+  dribbling: (position) => (position === "GK" ? -6 : ["RW", "LW", "CAM"].includes(position) ? 5 : position === "ST" ? 1 : ["CB", "RB", "LB"].includes(position) ? -8 : 0),
+  defending: (position) => (position === "GK" ? -3 : position === "CB" ? 6 : ["RB", "LB"].includes(position) ? 3 : position === "CDM" ? 4 : ["RW", "LW", "ST"].includes(position) ? -25 : position === "CAM" ? -17 : -8),
+  physical: (position) => (position === "GK" ? 0 : ["CB", "ST"].includes(position) ? 3 : position === "CDM" ? 2 : ["RW", "LW"].includes(position) ? -5 : -1),
+};
+const attributeKeys = Object.keys(attributeOffsets) as AttributeKey[];
+
+export function derivedAttributes(position: string, overall: number): Record<AttributeKey, number> {
+  return Object.fromEntries(attributeKeys.map((key) => [key, bounded(overall + attributeOffsets[key](position), 20, 99)])) as Record<AttributeKey, number>;
+}
+
+/** Bare tallene kampen bruker, så avsparket i databasen ikke fylles med annet fra kortet. */
+export function matchAttributes(value: unknown): PlayerAttributes | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const picked = attributeKeys.filter((key) => typeof source[key] === "number").map((key) => [key, source[key] as number]);
+  return picked.length ? (Object.fromEntries(picked) as PlayerAttributes) : null;
+}
+
+export function attributeOf(player: ManagerPlayerSnapshot, key: AttributeKey): number {
+  const value = player.attributes?.[key];
+  return typeof value === "number" && value > 0 ? value : derivedAttributes(player.position, player.overall)[key];
+}
+
+type Blend = Partial<Record<AttributeKey, number>>;
+const attackBlends: Record<string, Blend> = {
+  ST: { shooting: 0.45, dribbling: 0.25, pace: 0.2, physical: 0.1 },
+  SA: { shooting: 0.4, dribbling: 0.3, pace: 0.2, passing: 0.1 },
+  WING: { pace: 0.3, dribbling: 0.3, shooting: 0.2, passing: 0.2 },
+  MID: { passing: 0.4, dribbling: 0.3, shooting: 0.2, pace: 0.1 },
+  HOLD: { passing: 0.6, dribbling: 0.2, physical: 0.2 },
+  BACK: { passing: 0.4, pace: 0.35, dribbling: 0.25 },
+};
+const defenceBlends: Record<string, Blend> = {
+  BACK: { defending: 0.55, physical: 0.25, pace: 0.2 },
+  HOLD: { defending: 0.55, physical: 0.3, passing: 0.15 },
+  MID: { defending: 0.4, physical: 0.3, passing: 0.3 },
+  FRONT: { physical: 0.4, pace: 0.3, defending: 0.3 },
+};
+const attackGroup: Record<string, string> = { ST: "ST", SA: "SA", LW: "WING", RW: "WING", LM: "WING", RM: "WING", CAM: "MID", CM: "MID", CDM: "HOLD", CB: "BACK", LB: "BACK", RB: "BACK", LWB: "BACK", RWB: "BACK" };
+const defenceGroup: Record<string, string> = { CB: "BACK", LB: "BACK", RB: "BACK", LWB: "BACK", RWB: "BACK", CDM: "HOLD", CM: "MID", CAM: "MID", LM: "MID", RM: "MID", LW: "FRONT", RW: "FRONT", ST: "FRONT", SA: "FRONT" };
+
+function blended(player: ManagerPlayerSnapshot, blend: Blend | undefined): number {
+  // Keeperen (og en ukjent posisjon) måles på ratingen, som for en keeper er nettopp keeperferdighetene.
+  if (!blend) return player.overall;
+  return attributeKeys.reduce((total, key) => total + (blend[key] ?? 0) * attributeOf(player, key), 0);
+}
+
+/** Hva en spiller bidrar med framover: en spiss på avslutning og fart, en sentral midtbane på pasninger. */
+export function attackValue(player: ManagerPlayerSnapshot): number {
+  return blended(player, attackBlends[attackGroup[player.position] ?? ""]);
+}
+
+/** Hva en spiller bidrar med bakover: en stopper på takling og styrke, en spiss på press. */
+export function defenceValue(player: ManagerPlayerSnapshot): number {
+  return blended(player, defenceBlends[defenceGroup[player.position] ?? ""]);
 }
 
 // ---------------------------------------------------------------------------
@@ -349,6 +453,11 @@ export const MAX_FATIGUE = 7;
 export function fatigueAt(minuteOn: number, minute: number): number {
   if (minute < FATIGUE_FROM_MINUTE || minute - minuteOn < 55) return 0;
   return bounded((minute - FATIGUE_FROM_MINUTE) * 0.35, 0, MAX_FATIGUE);
+}
+
+/** Fra versjon 5 sliter en spiller med god fysikk mindre enn en med svak. */
+function staminaScale(player: ManagerPlayerSnapshot): number {
+  return bounded(1.5 - attributeOf(player, "physical") / 100, 0.6, 1.2);
 }
 
 /** Minuttet hver spiller kom på banen, slik slitenheten kan regnes ut per spiller. */
@@ -369,14 +478,23 @@ function teamStrength(players: ManagerPlayerSnapshot[], onPitch: Map<string, num
 const attackWeights: Record<string, number> = { ST: 3, SA: 3, LW: 2.6, RW: 2.6, LM: 2, RM: 2, CAM: 2.4, CM: 1.4, CDM: 0.7, LWB: 0.9, RWB: 0.9, LB: 0.6, RB: 0.6, CB: 0.3, GK: 0 };
 const defenceWeights: Record<string, number> = { GK: 3, CB: 2.6, LB: 1.8, RB: 1.8, LWB: 1.4, RWB: 1.4, CDM: 1.8, CM: 0.9, LM: 0.5, RM: 0.5, CAM: 0.3, LW: 0.2, RW: 0.2, ST: 0.1, SA: 0.1 };
 
-/** Som lagstyrken, men med plassene vektet – en god spiss løfter angrepet, en god keeper forsvaret. */
-function unitStrength(players: ManagerPlayerSnapshot[], weights: Record<string, number>, onPitch: Map<string, number>, minute: number): number {
+/**
+ * Som lagstyrken, men med plassene vektet – en god spiss løfter angrepet, en god keeper forsvaret.
+ * `value` er det spilleren måles på: ratingen i eldre kamper, attributtene fra versjon 5.
+ */
+type UnitValue = { value: (player: ManagerPlayerSnapshot) => number; stamina: boolean };
+const RATING_VALUE: UnitValue = { value: (player) => player.overall, stamina: false };
+const ATTACK_VALUE: UnitValue = { value: attackValue, stamina: true };
+const DEFENCE_VALUE: UnitValue = { value: defenceValue, stamina: true };
+
+function unitStrength(players: ManagerPlayerSnapshot[], weights: Record<string, number>, onPitch: Map<string, number>, minute: number, unit: UnitValue = RATING_VALUE): number {
   if (players.length === 0) return 40;
   let total = 0;
   let weight = 0;
   for (const player of players) {
     const share = weights[player.position] ?? 1;
-    total += share * (player.overall - fatigueAt(onPitch.get(player.id) ?? 0, minute));
+    const tired = fatigueAt(onPitch.get(player.id) ?? 0, minute) * (unit.stamina ? staminaScale(player) : 1);
+    total += share * (unit.value(player) - tired);
     weight += share;
   }
   return (weight > 0 ? total / weight : 40) - Math.max(0, 11 - players.length) * 7;
@@ -532,9 +650,9 @@ const assistWeights: Record<string, number> = { CAM: 9, LW: 8, RW: 8, CM: 6, ST:
 // gang på gang og andregule kort – altså røde – blir langt vanligere enn i en ekte kamp.
 const cardWeights: Record<string, number> = { CDM: 4, CB: 3.6, CM: 3.2, LB: 3, RB: 3, CAM: 2.2, ST: 2.2, LW: 2, RW: 2, GK: 0.8 };
 
-function weightedPick(players: ManagerPlayerSnapshot[], weights: Record<string, number>, roll: number, damp?: (player: ManagerPlayerSnapshot) => number): ManagerPlayerSnapshot | null {
+function weightedPick(players: ManagerPlayerSnapshot[], weights: Record<string, number>, roll: number, damp?: (player: ManagerPlayerSnapshot) => number, rating: (player: ManagerPlayerSnapshot) => number = (player) => player.overall): ManagerPlayerSnapshot | null {
   if (players.length === 0) return null;
-  const weightOf = (player: ManagerPlayerSnapshot) => Math.max(0, weights[player.position] ?? 2) * (0.6 + player.overall / 150) * (damp?.(player) ?? 1);
+  const weightOf = (player: ManagerPlayerSnapshot) => Math.max(0, weights[player.position] ?? 2) * (0.6 + rating(player) / 150) * (damp?.(player) ?? 1);
   const total = players.reduce((sum, player) => sum + weightOf(player), 0);
   if (total <= 0) return players[0];
   let target = roll * total;
@@ -558,6 +676,11 @@ const BASE_ATTEMPT_RATE = 0.052;
 const ATTACK_SLOPE = 0.02;
 const BASE_FINISH = 0.33;
 const FINISH_SLOPE = 0.012;
+/**
+ * Fra versjon 5 kommer færre mål fra det simulerte spillet, fordi seks nøkkeløyeblikk der
+ * managerne selv skyter og redder skal avgjøre mer av kampen.
+ */
+const AIM_ATTEMPT_RATE = 0.016;
 
 /** Sjansen for at en avslutning i åpent spill går i mål. */
 export function finishChance(shooting: number, keeper: number): number {
@@ -590,6 +713,61 @@ function shotSide(matchId: string, minute: number): MatchSide {
   return numberFromSeed(`${matchId}:${minute}:shot:side`) < 0.5 ? "home" : "away";
 }
 
+/** Seks nøkkeløyeblikk per kamp, ett i hver bolk, så de kommer jevnt fordelt over kampen. */
+export const MOMENTS_PER_MATCH = 6;
+const MOMENT_WINDOWS: [number, number][] = [[4, 13], [17, 27], [31, 42], [49, 58], [62, 73], [77, 88]];
+
+function momentKind(roll: number): ShotKind {
+  if (roll < 0.15) return "penalty";
+  if (roll < 0.35) return "freekick";
+  if (roll < 0.6) return "longshot";
+  return "chance";
+}
+
+/**
+ * Når nøkkeløyeblikkene kommer, hvem som har ballen og hva slags øyeblikk det er. Laget som har
+ * mest angrep mot motstanderens forsvar ved avspark får flest (opptil fire av seks), men begge
+ * lag får alltid minst to – kortene betyr noe, men skill kan snu det.
+ */
+export function plannedMoments(matchId: string, kickoff: ManagerKickoffEvent): { minute: number; side: MatchSide; kind: ShotKind }[] {
+  const none = new Map<string, number>();
+  const edge = (side: MatchSide, opponent: MatchSide) =>
+    unitStrength(kickoff[side].starters, attackWeights, none, 0, ATTACK_VALUE) + (kickoff[side].bonus ?? 0) - unitStrength(kickoff[opponent].starters, defenceWeights, none, 0, DEFENCE_VALUE) - (kickoff[opponent].bonus ?? 0);
+  const homeShare = bounded(0.5 + (edge("home", "away") - edge("away", "home")) * 0.02, 0.25, 0.75);
+  const homeCount = bounded(Math.round(MOMENTS_PER_MATCH * homeShare), 2, MOMENTS_PER_MATCH - 2);
+  // Hvilke av de seks som er hjemmelagets, stokkes etter kamp-id.
+  const order = MOMENT_WINDOWS.map((_, index) => index).sort((first, second) => numberFromSeed(`${matchId}:moment:${first}:order`) - numberFromSeed(`${matchId}:moment:${second}:order`));
+  const homeSlots = new Set(order.slice(0, homeCount));
+  return MOMENT_WINDOWS.map(([from, to], index) => ({
+    minute: from + Math.floor(numberFromSeed(`${matchId}:moment:${index}:minute`) * (to - from + 1)),
+    side: homeSlots.has(index) ? "home" : "away",
+    kind: momentKind(numberFromSeed(`${matchId}:moment:${index}:kind`)),
+  }));
+}
+
+const longShotWeights: Record<string, number> = { CAM: 6, CM: 5, LW: 4, RW: 4, ST: 4, LM: 3.5, RM: 3.5, CDM: 3, LB: 1, RB: 1, CB: 0.8, GK: 0 };
+
+/** Hvem som får øyeblikket: den beste skytteren på straffe og frispark, ellers den som er der. */
+function momentTaker(matchId: string, minute: number, side: MatchSide, kind: ShotKind, players: ManagerPlayerSnapshot[]): ManagerPlayerSnapshot | null {
+  const outfield = players.filter((player) => player.position !== "GK");
+  const best = (score: (player: ManagerPlayerSnapshot) => number) => [...outfield].sort((first, second) => score(second) - score(first) || first.name.localeCompare(second.name))[0] ?? null;
+  const shooting = (player: ManagerPlayerSnapshot) => attributeOf(player, "shooting");
+  if (kind === "penalty") return best(shooting);
+  if (kind === "freekick") return best(freeKickSkill);
+  const roll = numberFromSeed(`${matchId}:${minute}:${side}:taker`);
+  return kind === "longshot" ? weightedPick(outfield, longShotWeights, roll, undefined, shooting) : weightedPick(outfield, scorerWeights, roll, undefined, shooting);
+}
+
+/** Frispark er like mye teknikk som kraft. */
+function freeKickSkill(player: ManagerPlayerSnapshot): number {
+  return attributeOf(player, "shooting") * 0.7 + attributeOf(player, "passing") * 0.3;
+}
+
+/** Ferdigheten som avgjør hvor presist skytteren treffer i et nøkkeløyeblikk. */
+export function momentSkill(player: ManagerPlayerSnapshot, kind: ShotKind): number {
+  return kind === "freekick" ? freeKickSkill(player) : attributeOf(player, "shooting");
+}
+
 /**
  * Simulerer hele kampen minutt for minutt. Modellen er bevisst framoverrettet: et minutt
  * avhenger bare av laguttak, kort og bytter fra tidligere minutter, så et bytte senere i
@@ -598,13 +776,18 @@ function shotSide(matchId: string, minute: number): MatchSide {
 export function planManagerTimeline(matchId: string, events: unknown): ManagerMatchEvent[] {
   const kickoff = getManagerKickoff(events);
   if (!kickoff) return Array.isArray(events) ? (events as ManagerMatchEvent[]) : [];
-  const substitutions = getManagerSubstitutions(events);
+  const aimed = kickoff.version >= 5;
+  // Fra versjon 5 finnes det ingen bytter: elleveren som starter, spiller hele kampen.
+  const substitutions = aimed ? [] : getManagerSubstitutions(events);
   const sides: MatchSide[] = ["home", "away"];
   const sentOff = new Set<string>();
   const bookings = new Map<string, number>();
   const timeline: TimelineEvent[] = [];
-  const shotSlots = new Map(plannedShotSlots(matchId).map((slot) => [slot.minute, slot.kind]));
+  const shotSlots = new Map(aimed ? [] : plannedShotSlots(matchId).map((slot) => [slot.minute, slot.kind]));
+  const moments = new Map(aimed ? plannedMoments(matchId, kickoff).map((moment) => [moment.minute, moment]) : []);
   const rated = kickoff.version >= 4;
+  const attack = aimed ? ATTACK_VALUE : RATING_VALUE;
+  const defence = aimed ? DEFENCE_VALUE : RATING_VALUE;
   const bonus = { home: kickoff.home.bonus ?? 0, away: kickoff.away.bonus ?? 0 };
   const onPitch = {
     home: minutesOnPitch(kickoff.home, substitutions.filter((event) => event.side === "home")),
@@ -628,12 +811,14 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
       let chanceRate: number;
 
       if (rated) {
-        const edge = unitStrength(players, attackWeights, onPitch[side], minute) + bonus[side] - unitStrength(active[opponent], defenceWeights, onPitch[opponent], minute) - bonus[opponent];
-        const attemptRate = bounded(BASE_ATTEMPT_RATE * Math.exp(edge * ATTACK_SLOPE), 0.012, 0.15);
+        const edge = unitStrength(players, attackWeights, onPitch[side], minute, attack) + bonus[side] - unitStrength(active[opponent], defenceWeights, onPitch[opponent], minute, defence) - bonus[opponent];
+        const attemptRate = aimed
+          ? bounded(AIM_ATTEMPT_RATE * Math.exp(edge * ATTACK_SLOPE), 0.006, 0.05)
+          : bounded(BASE_ATTEMPT_RATE * Math.exp(edge * ATTACK_SLOPE), 0.012, 0.15);
         goalRate = 0;
         chanceRate = attemptRate;
         if (roll < attemptRate) {
-          const shooter = weightedPick(players, scorerWeights, numberFromSeed(`${matchId}:${minute}:${side}:scorer`));
+          const shooter = weightedPick(players, scorerWeights, numberFromSeed(`${matchId}:${minute}:${side}:scorer`), undefined, aimed ? shootingOf : undefined);
           if (!shooter) continue;
           const keeper = keeperOf(active[opponent]);
           const finish = numberFromSeed(`${matchId}:${minute}:${side}:finish`);
@@ -641,7 +826,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
           if (finish < scoring) {
             const assistCandidates = players.filter((player) => player.id !== shooter.id);
             const solo = numberFromSeed(`${matchId}:${minute}:${side}:solo`) < 0.22;
-            const assist = solo ? null : weightedPick(assistCandidates, assistWeights, numberFromSeed(`${matchId}:${minute}:${side}:assist`));
+            const assist = solo ? null : weightedPick(assistCandidates, assistWeights, numberFromSeed(`${matchId}:${minute}:${side}:assist`), undefined, aimed ? (player) => attributeOf(player, "passing") : undefined);
             timeline.push({ type: "goal", minute, side, scorer: shooter.name, scorerId: shooter.id, assist: assist?.name ?? null, assistId: assist?.id ?? null });
           } else {
             // Det som ikke går inn, blir oftere en redning jo bedre keeperen er – ellers stolpen.
@@ -687,6 +872,23 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
           bookings.set(player.id, 1);
           timeline.push({ type: "card", minute, side, card: "yellow", player: player.name, playerId: player.id });
         }
+      }
+    }
+
+    const moment = moments.get(minute);
+    if (moment) {
+      const opponent: MatchSide = moment.side === "home" ? "away" : "home";
+      const taker = momentTaker(matchId, minute, moment.side, moment.kind, active[moment.side]);
+      if (taker) {
+        const keeper = keeperOf(active[opponent]);
+        const seed = `${matchId}:${minute}:${moment.side}:aim`;
+        timeline.push({
+          type: "shot", minute, side: moment.side, kind: moment.kind, takerId: taker.id, taker: taker.name, options: [], keeperId: keeper.id,
+          radius: Math.round(aimRadius(moment.kind, momentSkill(taker, moment.kind) + bonus[moment.side]) * 10000) / 10000,
+          keeperRating: keeper.rating + bonus[opponent],
+          wall: moment.kind === "freekick" ? planWall(seed) : null,
+          release: autoRelease(seed),
+        });
       }
     }
 
@@ -758,65 +960,48 @@ function planShootout(matchId: string, active: Record<MatchSide, ManagerPlayerSn
 }
 
 // ---------------------------------------------------------------------------
-// Bytteforslag på 70′
+// Nøkkeløyeblikk
 // ---------------------------------------------------------------------------
 
-/** Hvorfor byttet foreslås. Teksten lages i visningen, på brukerens språk (t.match.subs.reasons). */
-export type SubstitutionReason = "booked" | "stronger" | "fresh" | "samePosition";
-export type SubstitutionSuggestion = { outId: string; out: ManagerPlayerSnapshot; inId: string; in: ManagerPlayerSnapshot; reason: SubstitutionReason };
+export function isAimShot(shot: TimelineShot): shot is AimShot {
+  return typeof shot.radius === "number" && typeof shot.keeperRating === "number";
+}
 
-const positionGroup: Record<string, string> = { GK: "GK", RB: "DEF", CB: "DEF", LB: "DEF", CDM: "MID", CM: "MID", CAM: "MID", RW: "ATT", LW: "ATT", ST: "ATT" };
+function isComputer(team: ManagerTeamSnapshot | undefined): boolean {
+  return !team || team.userId.startsWith("ai:");
+}
 
-/**
- * De tre byttene som hjelper laget mest akkurat nå. Et gult kort veier tyngst – en spiller til
- * på kanten av utvisning er dyrere enn noen ratingpoeng – deretter hvor sliten han er og om
- * benken faktisk har en bedre spiller på samme plass.
- */
-export function suggestSubstitutions(matchId: string, events: unknown, side: MatchSide, minute: number): SubstitutionSuggestion[] {
+export function aimSeed(matchId: string, shot: TimelineShot): string {
+  return `${matchId}:${shot.minute}:${shot.side}:aim`;
+}
+
+/** Om skytteren og keeperen i et øyeblikk styres av datamaskinen (en AI-klubb). */
+export function momentControllers(events: unknown, shot: TimelineShot): { shooterIsComputer: boolean; keeperIsComputer: boolean } {
   const kickoff = getManagerKickoff(events);
-  if (!kickoff) return [];
-  const substitutions = getManagerSubstitutions(events).filter((event) => event.side === side);
-  const team = lineupAtMinute(kickoff[side], substitutions, minute + 1);
-  const timeline = getManagerTimeline(events);
-  const sentOff = new Set(timeline.filter((event): event is TimelineCard => event.type === "card" && event.card === "red" && event.minute <= minute).map((event) => event.playerId));
-  const booked = new Set(timeline.filter((event): event is TimelineCard => event.type === "card" && event.card === "yellow" && event.minute <= minute && event.side === side).map((event) => event.playerId));
-  const onPitch = minutesOnPitch(kickoff[side], substitutions);
+  return { shooterIsComputer: isComputer(kickoff?.[shot.side]), keeperIsComputer: isComputer(kickoff?.[shot.side === "home" ? "away" : "home"]) };
+}
 
-  const candidates = team.starters
-    // Keeperen byttes praktisk talt aldri i en kamp, heller ikke på gult kort.
-    .filter((player) => !sentOff.has(player.id) && player.position !== "GK")
-    .flatMap((starter) =>
-      team.bench.map((replacement) => {
-        const exact = starter.position === replacement.position || replacement.position === anyPosition;
-        const sameGroup = positionGroup[starter.position] === positionGroup[replacement.position];
-        if (!exact && !sameGroup) return null;
-        const tired = fatigueAt(onPitch.get(starter.id) ?? 0, minute);
-        const score = (booked.has(starter.id) ? 25 : 0) + (exact ? 12 : 4) + (replacement.overall - starter.overall) * 2.5 + tired * 3;
-        const reason: SubstitutionReason = booked.has(starter.id)
-          ? "booked"
-          : replacement.overall > starter.overall
-            ? "stronger"
-            : tired >= 3
-              ? "fresh"
-              : "samePosition";
-        return { outId: starter.id, out: starter, inId: replacement.id, in: replacement, reason, score };
-      }),
-    )
-    .filter((candidate): candidate is SubstitutionSuggestion & { score: number } => candidate !== null)
-    .sort((first, second) => second.score - first.score || first.out.name.localeCompare(second.out.name));
+/** Der skytteren sikter: det han valgte, det en datastyrt skytter velger, eller et slapt skudd om han ikke rakk det. */
+export function momentAim(matchId: string, events: unknown, shot: AimShot, result: ShotResult | null): AimPoint {
+  if (typeof result?.aimX === "number" && typeof result.aimY === "number") return clampAim({ x: result.aimX, y: result.aimY });
+  return momentControllers(events, shot).shooterIsComputer ? autoAim(aimSeed(matchId, shot), shot.radius, shot.wall ?? null) : IDLE_AIM;
+}
 
-  // Det samme byttet skal ikke foreslås tre ganger med ulik innbytter.
-  const usedOut = new Set<string>();
-  const usedIn = new Set<string>();
-  const chosen: SubstitutionSuggestion[] = [];
-  for (const candidate of candidates) {
-    if (usedOut.has(candidate.outId) || usedIn.has(candidate.inId)) continue;
-    usedOut.add(candidate.outId);
-    usedIn.add(candidate.inId);
-    chosen.push({ outId: candidate.outId, out: candidate.out, inId: candidate.inId, in: candidate.in, reason: candidate.reason });
-    if (chosen.length === 3) break;
+/** Keeperens kast: det managerens trykk, eller datakeeperens. En manager som ikke trykker, blir stående. */
+export function momentTap(matchId: string, events: unknown, shot: AimShot, aim: AimPoint, result: ShotResult | null): KeeperTap | null {
+  if (momentControllers(events, shot).keeperIsComputer) {
+    const seed = aimSeed(matchId, shot);
+    return autoKeeperTap(seed, ballTarget(seed, aim, shot.radius), shot.keeperRating);
   }
-  return chosen;
+  if (typeof result?.saveX === "number" && typeof result.saveY === "number") return { x: result.saveX, y: result.saveY, ms: result.saveMs ?? 0 };
+  return null;
+}
+
+/** Hele utfallet av et øyeblikk, regnet likt hos serveren og begge klientene. */
+export function resolveMoment(matchId: string, events: unknown, shot: AimShot, result: ShotResult | null): AimResolution {
+  const aim = momentAim(matchId, events, shot, result);
+  const tap = momentTap(matchId, events, shot, aim, result);
+  return resolveAim(aimSeed(matchId, shot), { kind: shot.kind, radius: shot.radius, keeper: shot.keeperRating, wall: shot.wall ?? null, aim, tap });
 }
 
 // ---------------------------------------------------------------------------

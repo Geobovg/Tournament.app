@@ -1,5 +1,5 @@
 import { formations } from "./lineup";
-import type { ManagerPlayerSnapshot, ManagerTeamSnapshot } from "./manager-match";
+import { derivedAttributes, type ManagerPlayerSnapshot, type ManagerTeamSnapshot } from "./manager-match";
 
 /** `bonus` er den skjulte styrken AI-klubbene får fra arena 2 (se arenas.ts). Eldre sesonger har den ikke. */
 export type AiTeam = { key: string; name: string; rating: number; bonus?: number };
@@ -23,15 +23,12 @@ function seeded(seed: string) {
  */
 export function aiTeamSnapshot(seasonId: string, team: AiTeam, maxOverall = 95): ManagerTeamSnapshot {
   const random = seeded(`${seasonId}:${team.key}`);
-  const player = (index: number, position: string): ManagerPlayerSnapshot => ({
-    id: `ai:${team.key}:${index}`,
-    name: `${firstNames[Math.floor(random() * firstNames.length)]} ${lastNames[Math.floor(random() * lastNames.length)]}`,
-    position,
-    overall: Math.max(45, Math.min(maxOverall, team.rating + Math.round(random() * 6 - 3))),
-    slug: null,
-    club: team.name,
-    accent: null,
-  });
+  const player = (index: number, position: string): ManagerPlayerSnapshot => {
+    const name = `${firstNames[Math.floor(random() * firstNames.length)]} ${lastNames[Math.floor(random() * lastNames.length)]}`;
+    const overall = Math.max(45, Math.min(maxOverall, team.rating + Math.round(random() * 6 - 3)));
+    // Attributtene følger samme regel som katalogkortene, så en AI-spiss skyter som en spiss.
+    return { id: `ai:${team.key}:${index}`, name, position, overall, attributes: derivedAttributes(position, overall), slug: null, club: team.name, accent: null };
+  };
   const starters = formations["4-3-3"].map((slot, index) => player(index, slot.position));
   const bench = ["GK", "CB", "CM", "ST"].map((position, index) => player(11 + index, position));
   return { userId: `ai:${team.key}`, formation: "4-3-3", starters, bench, ...(team.bonus ? { bonus: team.bonus } : {}) };

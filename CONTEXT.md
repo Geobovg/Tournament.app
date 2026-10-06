@@ -44,6 +44,10 @@ _Avoid_: Mesterskap, Trofé
 Én ekstra kamp etter en AI-sesong for den som havner rett under opprykksplassene, mot en klubb fra divisjonen over (fra divisjon 1: en klubb fra divisjon 10 i neste arena). Kampen må ha en vinner, og bare seier gir opprykk. Den teller ikke i tabellen.
 _Avoid_: Playoff, Omspill
 
+**Nøkkeløyeblikk**:
+Ett av seks spillbare øyeblikk i hver managerkamp (straffe, stor sjanse, frispark eller langskudd). Laget som angriper sikter og skyter selv. Laget som forsvarer, styrer keeperen og trykker der han skal kaste seg. Kortenes attributter avgjør hvor presis skytteren er og hvor langt keeperen når. Laget med sterkest tropp får flest av øyeblikkene, men begge får minst to. Det finnes ingen bytter underveis i kampen.
+_Avoid_: Straffespark (er bare én type), Sjanse alene
+
 
 **SBC**:
 En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som oppfyller kravene (f.eks. snitt-rating eller antall fra én liga) og får en premie i MB eller pakker. Kortene du leverer er borte for alltid. Forsøkene kan være begrenset per dag (nullstilles kl. 18:00 norsk tid) eller per uke (fredag kl. 18:00). Heter «SBC» på alle språk.

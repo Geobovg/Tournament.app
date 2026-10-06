@@ -1,6 +1,6 @@
 import type { MatchDict } from "../en/match";
 
-// Simulerte managerkamper: kampsiden, live-kommentarene, straffer/sjanser, bytter og kamphistorikken.
+// Simulerte managerkamper: kampsiden, live-kommentarene, straffer/sjanser, nøkkeløyeblikk og kamphistorikken.
 export const match: MatchDict = {
   page: {
     title: (home: string, away: string) => `${home} mot ${away}`,
@@ -35,6 +35,9 @@ export const match: MatchDict = {
     missedDetail: "Utenfor",
     substitution: "BYTTE",
     playerOff: (name: string) => `${name} ut`,
+    freeKick: "FRISPARK",
+    longShot: "LANGSKUDD",
+    wallDetail: "Traff muren",
   },
   status: {
     fullTime: "Slutt",
@@ -81,26 +84,24 @@ export const match: MatchDict = {
     waitingForKeeper: "Valgt – venter på keeperen…",
     waitingForShot: "Valgt – venter på avslutningen…",
   },
+  // Nøkkeløyeblikkene: skytteren sikter selv, keeperen redder selv.
+  moment: {
+    shotAgainstYou: (taker: string) => `${taker} skal skyte – du står i mål`,
+    chanceFor: (manager: string) => `${manager} har sjansen`,
+    duel: (taker: string, skill: number, keeper: string, rating: number) => `${taker} (${skill}) mot ${keeper} (${rating})`,
+    dragToAim: (seconds: number) => `Dra for å sikte, slipp for å skyte · ${seconds} sek`,
+    getReady: "Gjør deg klar – motstanderen skal skyte!",
+    tapToSave: "Trykk der keeperen skal kaste seg!",
+    waitingForKeeper: "Skutt – venter på keeperen…",
+    waitingForShot: "Tiden er ute – skuddet går…",
+    outcome: { goal: "MÅL!", saved: "REDDET!", post: "I STOLPEN!", wide: "UTENFOR!", wall: "I MUREN!" },
+  },
   stats: {
     firstHalf: "STATISTIKK FØRSTE OMGANG",
     possession: "Ballbesittelse",
     shots: "Skudd",
     onTarget: "På mål",
     strength: "Lagstyrke",
-  },
-  subs: {
-    title: (seconds: number) => `BYTTEVINDU · ${seconds} SEK`,
-    hint: (left: number) => `Bruk så mange av forslagene du vil – eller ingen. ${left} bytter igjen.`,
-    allUsed: "Du har brukt alle tre byttene.",
-    inFor: (name: string) => `inn for ${name}`,
-    swap: "Bytt",
-    none: "Ingen bytter å foreslå – benken har ingen som passer bedre.",
-    reasons: {
-      booked: "Har gult kort – står i fare for å bli utvist",
-      stronger: (diff: number) => `Sterkere alternativ (+${diff})`,
-      fresh: "Friske bein inn for en sliten spiller",
-      samePosition: "Bytte på samme posisjon",
-    },
   },
   feed: {
     noEvents: "Kampen er i gang – ingen hendelser ennå.",

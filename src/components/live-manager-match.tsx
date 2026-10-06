@@ -5,18 +5,21 @@ import Link from "next/link";
 import { startTransition, useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionState } from "@/lib/actions";
-import { chooseShotCellAction, completeManagerMatchAction, makeManagerSubstitutionAction, resolveShotAction } from "@/lib/career-actions";
+import { aimShotAction, chooseShotCellAction, completeManagerMatchAction, resolveShotAction } from "@/lib/career-actions";
 import { clubCrest } from "@/lib/club-crests";
 import { playerPhoto } from "@/lib/player-photos";
 import {
   cellGoalChance,
   chanceCellChance,
+  clockSpecOf,
+  isAimShot,
+  momentSkill,
+  resolveMoment,
   penaltyCellChance,
   EXTRA_TIME_END,
   getManagerKickoff,
   getManagerMatchReport,
   getManagerShots,
-  getManagerSubstitutions,
   getShootout,
   getManagerTimeline,
   keeperZone,
@@ -33,19 +36,19 @@ import {
   SHOT_COLUMNS,
   SHOT_CELLS,
   shotMinutesOf,
-  SUB_WINDOW_MINUTE,
-  suggestSubstitutions,
   type ManagerPlayerSnapshot,
   type MatchSide,
   type ShootoutKick,
+  type ShotKind,
   type ShotResult,
-  type SubstitutionSuggestion,
   type TimelineEvent,
   type TimelineShot,
 } from "@/lib/manager-match";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/client";
-import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
+import { AIM_GRACE_MS, AIM_MS, SAVE_MS, type AimOutcome } from "@/lib/shot-aim";
+import { AimMoment } from "./aim-moment";
+import { buttonClass, cardClass } from "./ui";
 import { useScrollLock } from "./use-scroll-lock";
 
 const initial: ActionState = {};
@@ -182,19 +185,19 @@ function CardIcon({ card }: { card: "yellow" | "red" }) {
   return <span className={`inline-block h-4 w-3 rounded-[2px] align-middle ${card === "yellow" ? "bg-yellow-400" : "bg-red-500"}`} />;
 }
 
-function suggestionReason(suggestion: SubstitutionSuggestion, t: Dictionary): string {
-  const reasons = t.match.subs.reasons;
-  switch (suggestion.reason) {
-    case "booked": return reasons.booked;
-    case "stronger": return reasons.stronger(suggestion.in.overall - suggestion.out.overall);
-    case "fresh": return reasons.fresh;
-    case "samePosition": return reasons.samePosition;
+/** Navnet på et skudd eller nøkkeløyeblikk: straffe, stor sjanse, frispark eller langskudd. */
+function shotLabel(kind: ShotKind, t: Dictionary): string {
+  switch (kind) {
+    case "penalty": return t.match.events.penalty;
+    case "chance": return t.match.events.bigChance;
+    case "freekick": return t.match.events.freeKick;
+    case "longshot": return t.match.events.longShot;
   }
 }
 
 type EventCopy = { title: string; detail: string; playerId: string | undefined; playerName: string; icon: React.ReactNode; tone: string };
 
-function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSnapshot>, shots: ShotResult[], t: Dictionary): EventCopy {
+function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSnapshot>, shots: ShotResult[], t: Dictionary, momentOutcome: (minute: number) => AimOutcome | null): EventCopy {
   const copy = t.match.events;
   switch (event.type) {
     case "goal":
@@ -219,11 +222,14 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
       };
     case "shot": {
       const result = shots.find((shot) => shot.minute === event.minute);
-      const label = event.kind === "penalty" ? copy.penalty : copy.bigChance;
+      const label = shotLabel(event.kind, t);
       const scored = result?.outcome === "goal";
+      // Nøkkeløyeblikkene vet om ballen gikk i stolpen, utenfor eller i muren.
+      const exact = momentOutcome(event.minute);
+      const missedDetail = exact === "post" ? copy.postDetail : exact === "wall" ? copy.wallDetail : copy.missedDetail;
       return {
         title: scored ? copy.shotGoal(label) : result?.outcome === "saved" ? copy.shotSaved(label) : copy.shotMissed(label),
-        detail: scored ? copy.scoredDetail : result?.outcome === "saved" ? (event.kind === "penalty" ? copy.penaltySavedDetail : copy.savedDetail) : copy.missedDetail,
+        detail: scored ? copy.scoredDetail : exact === "wall" ? copy.wallDetail : result?.outcome === "saved" ? (event.kind === "penalty" ? copy.penaltySavedDetail : copy.savedDetail) : missedDetail,
         playerId: event.takerId,
         playerName: shortName(event.taker),
         icon: <span>{scored ? "⚽" : result?.outcome === "saved" ? "🧤" : "❌"}</span>,
@@ -241,9 +247,9 @@ function describeEvent(event: TimelineEvent, names: Map<string, ManagerPlayerSna
  * Hjemmelaget til venstre, bortelaget til høyre, med minuttet i en fast midtkolonne.
  * Spillerkortet står innerst mot midten og teksten ytterst, som i forbildet.
  */
-function EventRow({ event, players, shots, latest }: { event: TimelineEvent; players: Map<string, ManagerPlayerSnapshot>; shots: ShotResult[]; latest: boolean }) {
+function EventRow({ event, players, shots, latest, momentOutcome }: { event: TimelineEvent; players: Map<string, ManagerPlayerSnapshot>; shots: ShotResult[]; latest: boolean; momentOutcome: (minute: number) => AimOutcome | null }) {
   const t = useT();
-  const copy = describeEvent(event, players, shots, t);
+  const copy = describeEvent(event, players, shots, t, momentOutcome);
   const player = copy.playerId ? players.get(copy.playerId) : undefined;
   const home = event.side === "home";
   const content = (
@@ -377,8 +383,8 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const [serverOffset] = useState(() => match.serverNow - Date.now());
   const [now, setNow] = useState(() => Date.now() + (match.serverNow - Date.now()));
   const [state, finishAction] = useActionState(completeManagerMatchAction, initial);
-  const [substitutionState, substitutionAction, substituting] = useActionState(makeManagerSubstitutionAction, initial);
   const [shotState, shotAction, picking] = useActionState(chooseShotCellAction, initial);
+  const [aimState, aimAction] = useActionState(aimShotAction, initial);
   const [, resolveAction] = useActionState(resolveShotAction, initial);
 
   const complete = match.status === "completed";
@@ -393,9 +399,10 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const shootout = useMemo(() => getShootout(events).slice(0, extension.kicks), [events, extension.kicks]);
   const lastMinute = extension.extraTime ? EXTRA_TIME_END : 90;
 
+  const clockSpec = useMemo(() => clockSpecOf(events), [events]);
   const elapsed = match.started_at ? Math.max(0, now - new Date(match.started_at).getTime()) : 0;
-  const clock = matchClock(elapsed, shotMinutes, extension);
-  const fullTime = elapsed >= plannedDurationMs(shotMinutes, extension);
+  const clock = matchClock(elapsed, shotMinutes, extension, clockSpec);
+  const fullTime = elapsed >= plannedDurationMs(shotMinutes, extension, clockSpec);
   const shownMinute = complete ? lastMinute : clock.minute;
   // Målstripa strekkes til 120′ først når ekstraomgangene starter, ellers ville den avslørt at det ender likt.
   const stripMinutes = complete || clock.phase === "extra_break" || shownMinute > 90 ? lastMinute : 90;
@@ -408,7 +415,9 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
 
   const activeShot: TimelineShot | null = clock.phase === "shot" && clock.shotMinute !== null ? shotEvents.find((shot) => shot.minute === clock.shotMinute) ?? null : null;
   const activeResult = activeShot ? match.shots.find((shot) => shot.minute === activeShot.minute) ?? null : null;
-  const choosingWindow = Boolean(activeShot) && clock.shotElapsedMs < SHOT_CHOICE_MS;
+  const aimMoment = activeShot && isAimShot(activeShot) ? activeShot : null;
+  // I et nøkkeløyeblikk er valgene åpne til keeperens frist er ute, ellers de seks sekundene i rutenettet.
+  const choosingWindow = Boolean(activeShot) && clock.shotElapsedMs < (aimMoment ? AIM_MS + SAVE_MS + AIM_GRACE_MS : SHOT_CHOICE_MS);
 
   useEffect(() => {
     // Under et straffespark teller sekundene, så da må klokka og serveren følges tettere.
@@ -417,9 +426,10 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   }, [serverOffset]);
   useEffect(() => {
     if (match.status !== "live") return;
-    const refresh = setInterval(() => router.refresh(), activeShot ? 800 : 3000);
+    // I et nøkkeløyeblikk må keeperen se skuddet så fort det er tatt.
+    const refresh = setInterval(() => router.refresh(), aimMoment ? 400 : activeShot ? 800 : 3000);
     return () => clearInterval(refresh);
-  }, [match.status, router, activeShot]);
+  }, [match.status, router, activeShot, aimMoment]);
 
   const visible = timeline.filter((event) => {
     if (event.minute > shownMinute) return false;
@@ -438,9 +448,11 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const report = getManagerMatchReport(match.id, events, match.shots, shownMinute);
   const yourReport = report && userSide ? report[userSide] : null;
   const opponentReport = report && opponentSide ? report[opponentSide] : null;
-  const substitutions = userSide ? getManagerSubstitutions(events).filter((event) => event.side === userSide) : [];
-  // Billig nok å regne ut direkte: den kalles bare i de ti sekundene byttevinduet er åpent.
-  const suggestions = clock.phase === "substitutions" && userSide ? suggestSubstitutions(match.id, events, userSide, SUB_WINDOW_MINUTE) : [];
+  const momentOutcome = (minute: number): AimOutcome | null => {
+    const shot = shotEvents.find((entry) => entry.minute === minute);
+    const result = match.shots.find((entry) => entry.minute === minute) ?? null;
+    return shot && isAimShot(shot) && result?.outcome ? resolveMoment(match.id, events, shot, result).outcome : null;
+  };
 
   const seconds = Math.max(0, Math.ceil(clock.remainingMs / 1000));
   const statusLabel = complete
@@ -451,7 +463,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
         : clock.phase === "substitutions"
           ? t.match.status.subWindow
           : clock.phase === "shot"
-            ? t.match.status.shot(activeShot?.kind === "penalty" ? t.match.status.penalty : t.match.status.bigChance, clock.minute)
+            ? t.match.status.shot(activeShot ? shotLabel(activeShot.kind, t) : t.match.status.bigChance, clock.minute)
             : clock.phase === "extra_break"
               ? t.match.knockout.status.extraTime
               : clock.phase === "extra_halftime"
@@ -559,7 +571,56 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
         ) : null}
       </div>
 
-      {activeShot ? (
+      {aimMoment ? (
+        <section className="grid gap-3 rounded-xl border border-accent bg-accent-soft p-4 text-center">
+          <div>
+            <p className="text-xs font-bold tracking-[.2em] text-accent">{shotLabel(aimMoment.kind, t)} · {aimMoment.minute}′</p>
+            <h2 className="mt-1 text-xl font-bold">
+              {aimMoment.side === userSide ? t.match.shot.youShoot(shortName(aimMoment.taker)) : userSide ? t.match.moment.shotAgainstYou(shortName(aimMoment.taker)) : t.match.moment.chanceFor((aimMoment.side === "home" ? match.home : match.away).username)}
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              {t.match.moment.duel(shortName(aimMoment.taker), Math.round(taker ? momentSkill(taker, aimMoment.kind) : 0), shotKeeper ? shortName(shotKeeper.name) : t.match.shot.noKeeper, shotKeeper?.overall ?? 40)}
+            </p>
+          </div>
+          <AimMoment
+            key={aimMoment.minute}
+            matchId={match.id}
+            events={events}
+            shot={aimMoment}
+            result={activeResult}
+            role={aimMoment.side === userSide ? "shooter" : userSide ? "keeper" : "watch"}
+            momentStart={now - clock.shotElapsedMs}
+            serverOffset={serverOffset}
+            serverMomentElapsed={match.serverNow - (now - clock.shotElapsedMs)}
+            labels={{
+              outcome: t.match.moment.outcome,
+              dragToAim: t.match.moment.dragToAim,
+              getReady: t.match.moment.getReady,
+              tapToSave: t.match.moment.tapToSave,
+              waitingForKeeper: t.match.moment.waitingForKeeper,
+              waitingForShot: t.match.moment.waitingForShot,
+            }}
+            onAim={(point) => {
+              const data = new FormData();
+              data.set("match_id", match.id);
+              data.set("minute", String(aimMoment.minute));
+              data.set("x", String(point.x));
+              data.set("y", String(point.y));
+              startTransition(() => aimAction(data));
+            }}
+            onSave={(tap) => {
+              const data = new FormData();
+              data.set("match_id", match.id);
+              data.set("minute", String(aimMoment.minute));
+              data.set("x", String(tap.x));
+              data.set("y", String(tap.y));
+              data.set("ms", String(tap.ms));
+              startTransition(() => aimAction(data));
+            }}
+          />
+          {aimState.error ? <p className="text-xs text-danger">{aimState.error}</p> : null}
+        </section>
+      ) : activeShot ? (
         <section className="grid gap-3 rounded-xl border border-accent bg-accent-soft p-4 text-center">
           <div>
             <p className="text-xs font-bold tracking-[.2em] text-accent">{activeShot.kind === "penalty" ? t.match.shot.penaltyTitle : t.match.shot.bigChanceTitle} · {activeShot.minute}′</p>
@@ -636,36 +697,6 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
         </section>
       ) : null}
 
-      {clock.phase === "substitutions" && userSide ? (
-        <section className="grid gap-3 rounded-xl border border-accent bg-accent-soft p-4">
-          <div className="text-center">
-            <p className="text-xs font-bold tracking-[.2em] text-accent">{t.match.subs.title(seconds)}</p>
-            <p className="mt-1 text-sm text-muted">{t.match.subs.hint(3 - substitutions.length)}</p>
-          </div>
-          {substitutions.length >= 3 ? (
-            <p className="text-center text-sm text-muted">{t.match.subs.allUsed}</p>
-          ) : suggestions.length ? (
-            <div className="grid gap-2">
-              {suggestions.map((suggestion) => (
-                <form key={`${suggestion.outId}-${suggestion.inId}`} action={substitutionAction} className="flex items-center gap-2 rounded-lg border border-border bg-surface p-2">
-                  <input type="hidden" name="match_id" value={match.id} />
-                  <input type="hidden" name="out_id" value={suggestion.outId} />
-                  <input type="hidden" name="in_id" value={suggestion.inId} />
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-sm"><b>{shortName(suggestion.in.name)}</b> <span className="text-muted">({suggestion.in.position} {suggestion.in.overall})</span></p>
-                    <p className="truncate text-xs text-muted">{t.match.subs.inFor(shortName(suggestion.out.name))} · {suggestionReason(suggestion, t)}</p>
-                  </div>
-                  <button className={secondaryButtonClass} disabled={substituting}>{t.match.subs.swap}</button>
-                </form>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-muted">{t.match.subs.none}</p>
-          )}
-          {substitutionState.error ? <p className="text-center text-sm text-danger">{substitutionState.error}</p> : null}
-        </section>
-      ) : null}
-
       <div ref={feedRef} className="match-feed rounded-xl border border-border bg-surface p-3">
         <ul className="grid gap-3">
           {visible.map((event, index) => (
@@ -675,6 +706,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
               players={players}
               shots={match.shots}
               latest={!complete && index === visible.length - 1}
+              momentOutcome={momentOutcome}
             />
           ))}
         </ul>
