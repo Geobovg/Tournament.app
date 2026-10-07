@@ -83,6 +83,8 @@ export const dbErrors = {
   sbcRequirementsNotMet: "Korten uppfyller inte SBC-kraven",
   packNotForSale: "Det här paketet kan inte köpas",
   packWeeklyLimit: "Du har redan köpt det här paketet den här veckan",
+  packNotAvailable: "Det här paketet är inte tillgängligt just nu",
+  packDailyLimit: "Du har redan öppnat det här paketet i dag",
   noSpecialCards: "Det finns inga specialkort att dra än",
   cardNotTradable: "Det här kortet kan inte säljas på marknaden",
   sbcNoAttemptsToday: "Du har inga försök kvar på den här SBC:n i dag",

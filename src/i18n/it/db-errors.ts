@@ -83,6 +83,8 @@ export const dbErrors = {
   sbcRequirementsNotMet: "Le carte non soddisfano i requisiti della SBC",
   packNotForSale: "Questo pacchetto non si può acquistare",
   packWeeklyLimit: "Hai già acquistato questo pacchetto questa settimana",
+  packNotAvailable: "Questo pacchetto non è disponibile ora",
+  packDailyLimit: "Hai già aperto questo pacchetto oggi",
   noSpecialCards: "Non ci sono ancora carte speciali da pescare",
   cardNotTradable: "Questa carta non si può vendere sul mercato",
   sbcNoAttemptsToday: "Non hai più tentativi per questo SBC oggi",

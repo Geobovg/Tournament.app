@@ -6,6 +6,7 @@ const packNames: Record<string, string> = {
   elite: "Elite Pack",
   inform: "Allpacka",
   spesial: "Erikoispaketti",
+  ungdomstoooor: "Ungdomstoooor",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -15,6 +16,7 @@ const packDescriptions: Record<string, string> = {
   elite: "Kaksitoista korttia, joista kaksi 84+ ja yksi 86+ taattu.",
   inform: "Seitsemän korttia: taattu yksi Inform, yksi 88+, kaksi 86+ ja kolme 83+. Yksi viikossa.",
   spesial: "Yksi satunnainen erikoiskortti: inform tai TOTS. Ei myytävissä markkinoilla.",
+  ungdomstoooor: "Ilmainen! Viisi 86+ korttia, vähintään yksi TOTS taattu. Yksi päivässä sunnuntaihin asti.",
 };
 
 export const market = {
@@ -107,10 +109,14 @@ export const market = {
     allTots: "Näytä kaikki TOTS",
     informPulled: "INFORM!",
     untradable: " · ei myytävissä",
-    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "erikoiskortti"}`,
+    specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "Inform" : scope === "tots" ? "TOTS" : "erikoiskortti"}`,
     weeklyLeft: (left: number, total: number) => `${left}/${total} jäljellä tällä viikolla`,
     boughtThisWeek: "Ostettu tällä viikolla",
     guaranteed: "Taattu",
+    dailyLeft: (left: number, total: number) => `${left}/${total} jäljellä tänään · sunnuntaihin asti`,
+    freeLabel: "Ilmainen",
+    openedToday: "Avattu tänään",
+    jackpot: (amount: number) => `💰 Voitit ${amount} MB!`,
   },
   chat: {
     title: "Market Chat",

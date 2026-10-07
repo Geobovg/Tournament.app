@@ -9,6 +9,7 @@ const packNames: Record<string, string> = {
   elite: "Elitepakke",
   inform: "Allpacka",
   spesial: "Spesialpakke",
+  ungdomstoooor: "Ungdomstoooor",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -18,6 +19,7 @@ const packDescriptions: Record<string, string> = {
   elite: "Tolv kort, garantert to på 84+ og ett på 86+.",
   inform: "Sju kort: garantert én inform, én 88+, to 86+ og tre 83+. Én per uke.",
   spesial: "Ett tilfeldig spesialkort: inform eller TOTS. Kan ikke selges på markedet.",
+  ungdomstoooor: "Gratis! Fem kort på 86+, garantert minst én TOTS. Én per dag til og med søndag.",
 };
 
 export const market: MarketDict = {
@@ -110,10 +112,14 @@ export const market: MarketDict = {
     allTots: "Se alle TOTS",
     informPulled: "INFORM!",
     untradable: " · kan ikke selges",
-    specialGuarantee: (count, scope) => `${count}× ${scope === "current" ? "inform" : "spesialkort"}`,
+    specialGuarantee: (count, scope) => `${count}× ${scope === "current" ? "inform" : scope === "tots" ? "TOTS" : "spesialkort"}`,
     weeklyLeft: (left, total) => `${left}/${total} igjen denne uken`,
     boughtThisWeek: "Kjøpt denne uken",
     guaranteed: "Garantert",
+    dailyLeft: (left, total) => `${left}/${total} igjen i dag · til og med søndag`,
+    freeLabel: "Gratis",
+    openedToday: "Åpnet i dag",
+    jackpot: (amount) => `💰 Du vant ${amount} MB!`,
   },
   chat: {
     title: "Markedschat",

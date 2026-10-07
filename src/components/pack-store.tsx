@@ -46,7 +46,7 @@ function PackOdds({ pack, informFactor }: { pack: ManagerPack; informFactor: num
     </div>)}
     {/* Spesialkortet er et eget, garantert kort ved siden av kortene som trekkes etter sjansene over. */}
     {pack.special_guarantee ? <div className="flex items-center justify-between gap-3 border-t border-border pt-1">
-      <dt className="font-semibold" style={{ color: specialStyles.inform.border }}>{tp.specialGuarantee(pack.special_guarantee, pack.special_scope)}</dt>
+      <dt className="font-semibold" style={{ color: pack.special_scope === "tots" ? specialStyles.tots.glow : specialStyles.inform.border }}>{tp.specialGuarantee(pack.special_guarantee, pack.special_scope)}</dt>
       <dd className="font-semibold">{tp.guaranteed}</dd>
     </div> : null}
     {inform > 0 ? <div className="flex items-center justify-between gap-3 border-t border-border pt-1">
@@ -60,7 +60,7 @@ function PackOdds({ pack, informFactor }: { pack: ManagerPack; informFactor: num
   </dl>;
 }
 
-function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName: string; onClose: () => void }) {
+function PackReveal({ pulls, packName, jackpot, onClose }: { pulls: PackPull[]; packName: string; jackpot: number; onClose: () => void }) {
   const t = useT(); const tp = t.market.packs;
   // index -1 mens pakka ryker opp, deretter ett steg per kort, til slutt oppsummeringen.
   // Index og revealed ligger i samme tilstand, slik at et nytt kort alltid starter
@@ -108,6 +108,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
         <p className="text-xs font-bold tracking-[.3em] text-white/60">{packName.toUpperCase()}</p>
         <h2 className="mt-1 text-3xl font-black">{tp.youGot(pulls.length)}</h2>
         <p className="mt-1 text-sm text-white/70">{tp.bestCard(best)}</p>
+        {jackpot ? <p className="pack-label-rise mx-auto mt-3 w-fit rounded-xl border-2 px-5 py-3 text-2xl font-black" style={{ borderColor: specialStyles.personal.border, color: specialStyles.personal.badge, background: "rgba(0,0,0,.45)" }}>{tp.jackpot(jackpot)}</p> : null}
       </div>
       {/* Knappen står øverst og blir liggende når man ruller, så man slipper å bla ned for å gå videre. */}
       <div className="sticky top-0 z-10 flex justify-center py-1"><button className={`${buttonClass} shadow-lg`} onClick={onClose}>{tp.done}</button></div>
@@ -124,7 +125,7 @@ function PackReveal({ pulls, packName, onClose }: { pulls: PackPull[]; packName:
         {card && revealed && walkout ? <div className="pack-flash" /> : null}
 
         {index === -1 ? <div className="pack-tear grid h-72 w-56 place-items-center rounded-2xl border border-white/25 bg-[linear-gradient(145deg,#12261a,#061009)] text-center text-white shadow-2xl">
-          <div><p className="text-xs font-bold tracking-[.3em] text-white/60">{tp.openingBanner}</p><p className="mt-2 px-3 text-xl font-black">{packName}</p></div>
+          <div><p className="text-xs font-bold tracking-[.3em] text-white/60">{tp.openingBanner}</p><p className="mt-2 px-3 text-xl font-black">{packName}</p>{jackpot ? <p className="mt-3 px-3 text-lg font-black" style={{ color: specialStyles.personal.badge }}>{tp.jackpot(jackpot)}</p> : null}</div>
         </div> : null}
 
         {card && !revealed ? <div className="relative grid h-[27rem] w-72 place-items-center rounded-2xl border border-white/25 bg-black/50 text-white shadow-2xl">
@@ -154,7 +155,8 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
   const showing = state.pulls?.length && state.openedAt && state.openedAt !== shownAt ? state.pulls : null;
   const openedPack = packs.find((pack) => pack.key === state.packKey);
   // Pakker som ikke kan kjøpes (f.eks. spesialpakken fra SBC) vises bare når man har en gratis å åpne.
-  const visible = packs.filter((pack) => pack.purchasable || freePacks[pack.key]);
+  // Dagspakker vises hele eventet; serveren har allerede fjernet dem som er utenfor tidsvinduet.
+  const visible = packs.filter((pack) => pack.purchasable || freePacks[pack.key] || pack.daily_limit !== null);
 
   return <section className={`${cardClass} grid gap-4`}>
     <div className="flex flex-wrap items-end justify-between gap-3">
@@ -180,15 +182,18 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
         const free = freePacks[pack.key] ?? 0;
         const left = pack.weekly_limit === null ? null : Math.max(0, pack.weekly_limit - (shop.purchasedThisWeek[pack.key] ?? 0));
         const canBuy = pack.purchasable && affordable && left !== 0;
+        const dailyLeft = pack.daily_limit === null ? null : Math.max(0, pack.daily_limit - (shop.openedToday[pack.key] ?? 0));
         const special = pack.special_guarantee > 0;
-        return <div key={pack.key} className="grid gap-3 rounded-xl border border-border bg-surface-raised p-4" style={special ? { borderColor: specialStyles.inform.border, borderWidth: 2, background: specialStyles.inform.background, color: "white" } : { borderTopColor: pack.accent, borderTopWidth: 3 }}>
+        const style = specialStyles[pack.special_scope === "tots" ? "tots" : "inform"];
+        return <div key={pack.key} className="grid gap-3 rounded-xl border border-border bg-surface-raised p-4" style={special ? { borderColor: style.border, borderWidth: 2, background: style.background, color: "white" } : { borderTopColor: pack.accent, borderTopWidth: 3 }}>
           <div>
-            <h3 className="text-lg font-bold">{special ? <span style={{ color: specialStyles.inform.badge }}>★ </span> : null}{nameOf(pack)}</h3>
+            <h3 className="text-lg font-bold">{special ? <span style={{ color: style.badge }}>★ </span> : null}{nameOf(pack)}</h3>
             <p className={`text-sm ${special ? "text-white/70" : "text-muted"}`}>{tp.description(pack.key, pack.description)}</p>
             <p className="mt-2 text-sm">{tp.cardCount(pack.card_count)} · {pack.guarantees.length || special ? tp.guarantee([...(special ? [tp.specialGuarantee(pack.special_guarantee, pack.special_scope)] : []), ...pack.guarantees.map((guarantee) => `${guarantee.count}× ${guarantee.min}+`)].join(", ")) : tp.noGuarantee}</p>
             {left !== null ? <p className={`mt-1 text-xs font-bold ${left ? "" : "text-danger"}`}>{tp.weeklyLeft(left, pack.weekly_limit ?? 0)}</p> : null}
+            {dailyLeft !== null ? <p className="mt-1 text-xs font-bold">{tp.dailyLeft(dailyLeft, pack.daily_limit ?? 0)}</p> : null}
           </div>
-          {pack.purchasable ? <button type="button" className="justify-self-start text-xs underline" onClick={() => setOpenOdds((current) => current === pack.key ? null : pack.key)} aria-expanded={openOdds === pack.key}>
+          {pack.purchasable || dailyLeft !== null ? <button type="button" className="justify-self-start text-xs underline" onClick={() => setOpenOdds((current) => current === pack.key ? null : pack.key)} aria-expanded={openOdds === pack.key}>
             {openOdds === pack.key ? tp.hideOdds : tp.showOdds}
           </button> : null}
           {openOdds === pack.key ? <div className="grid gap-2 rounded-lg border border-border p-3">
@@ -196,6 +201,12 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
             <p className={`text-xs ${special ? "text-white/60" : "text-muted"}`}>{tp.oddsNote}</p>
           </div> : null}
           <div className="mt-auto grid gap-2">
+            {dailyLeft !== null ? <form action={action} className="flex items-center justify-between gap-3">
+              <input type="hidden" name="pack_key" value={pack.key} />
+              <input type="hidden" name="daily" value="1" />
+              <span className="rounded-full bg-black/10 px-3 py-1 text-sm font-bold">{tp.freeLabel}</span>
+              <button className={dailyLeft ? buttonClass : secondaryButtonClass} disabled={!dailyLeft || pending}>{pending ? tp.openingShort : dailyLeft ? tp.openFree : tp.openedToday}</button>
+            </form> : null}
             {free ? <form action={action} className="flex items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2">
               <input type="hidden" name="pack_key" value={pack.key} />
               <input type="hidden" name="free" value="1" />
@@ -215,6 +226,6 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
     </div>
 
     {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
-    {showing ? <PackReveal pulls={showing} packName={openedPack ? nameOf(openedPack) : tp.fallbackName} onClose={() => setShownAt(state.openedAt ?? null)} /> : null}
+    {showing ? <PackReveal pulls={showing} packName={openedPack ? nameOf(openedPack) : tp.fallbackName} jackpot={state.jackpot ?? 0} onClose={() => setShownAt(state.openedAt ?? null)} /> : null}
   </section>;
 }

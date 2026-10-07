@@ -6,6 +6,7 @@ const packNames: Record<string, string> = {
   elite: "精英包",
   inform: "Allpacka",
   spesial: "特殊卡包",
+  ungdomstoooor: "Ungdomstoooor",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -15,6 +16,7 @@ const packDescriptions: Record<string, string> = {
   elite: "十二张牌，保证两张 84+ 和一张 86+。",
   inform: "七张卡：保底一张状态卡、一张 88+、两张 86+ 和三张 83+。每周一包。",
   spesial: "一张随机特殊卡：状态卡或 TOTS。不能在市场出售。",
+  ungdomstoooor: "免费！五张 86+ 球员卡，保底至少一张 TOTS。每天一包，持续到周日。",
 };
 
 export const market = {
@@ -107,10 +109,14 @@ export const market = {
     allTots: "查看全部 TOTS",
     informPulled: "状态卡！",
     untradable: " · 不可交易",
-    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "状态卡" : "特殊卡"}`,
+    specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "状态卡" : scope === "tots" ? "TOTS" : "特殊卡"}`,
     weeklyLeft: (left: number, total: number) => `本周剩余 ${left}/${total}`,
     boughtThisWeek: "本周已购买",
     guaranteed: "保底",
+    dailyLeft: (left: number, total: number) => `今日剩余 ${left}/${total} · 持续到周日`,
+    freeLabel: "免费",
+    openedToday: "今日已开",
+    jackpot: (amount: number) => `💰 你赢得了 ${amount} MB！`,
   },
   chat: {
     title: "市场聊天",
