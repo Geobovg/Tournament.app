@@ -84,20 +84,6 @@ export const match = {
     onTarget: "Am Ziel",
     strength: "Teamstärke",
   },
-  subs: {
-    title: (seconds: number) => `UNTERFENSTER · ${seconds}S`,
-    hint: (left: number) => `Verwenden Sie so viele Vorschläge, wie Sie möchten – oder auch keine. ${left} ${left === 1 ? "sub" : "subs"} übrig.`,
-    allUsed: "Sie haben alle drei U-Boote verwendet.",
-    inFor: (name: string) => `aktiviert für ${name}`,
-    swap: "Sub",
-    none: "Keine Ersatzspieler vorzuschlagen – niemand auf der Bank passt besser.",
-    reasons: {
-      booked: "Auf Gelb – es besteht die Gefahr eines Roten",
-      stronger: (diff: number) => `Stärkere Option (+${diff})`,
-      fresh: "Frische Beine für einen müden Spieler",
-      samePosition: "Vergleichbare Veränderung",
-    },
-  },
   feed: {
     noEvents: "Wir sind unterwegs – noch gibt es nichts zu berichten.",
     notStarted: "Das Spiel hat noch nicht begonnen.",

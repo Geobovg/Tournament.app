@@ -84,20 +84,6 @@ export const match = {
     onTarget: "Kohteessa",
     strength: "Joukkueen vahvuus",
   },
-  subs: {
-    title: (seconds: number) => `SUB WINDOW · ${seconds}S`,
-    hint: (left: number) => `Käytä niin monta ehdotusta kuin haluat – tai älä yhtään. ${left} ${left === 1 ? "sub" : "subs"} lähti.`,
-    allUsed: "Olet käyttänyt kaikkia kolmea subia.",
-    inFor: (name: string) => `käytössä ${name}`,
-    swap: "Sub",
-    none: "Ei ehdotuksia – kukaan penkillä ei sovi paremmin.",
-    reasons: {
-      booked: "Keltaisella – punaisen vaarassa",
-      stronger: (diff: number) => `Vahvempi vaihtoehto (+${diff})`,
-      fresh: "Tuoreet jalat väsyneelle pelaajalle",
-      samePosition: "Samankaltaista vaihtelua",
-    },
-  },
   feed: {
     noEvents: "Olemme käynnissä – ei ole vielä raportoitavaa.",
     notStarted: "Ottelu ei ole alkanut.",

@@ -84,20 +84,6 @@ export const match = {
     onTarget: "En el objetivo",
     strength: "Fuerza del equipo",
   },
-  subs: {
-    title: (seconds: number) => `SUBVENTANA · ${seconds}S`,
-    hint: (left: number) => `Utilice tantas sugerencias como desee, o ninguna. ${left} ${left === 1 ? "sub" : "subs"} queda.`,
-    allUsed: "Has usado los tres subs.",
-    inFor: (name: string) => `activado durante ${name}`,
-    swap: "Subtítulo",
-    none: "No hay sustitutos que sugerir: nadie en el banco encaja mejor.",
-    reasons: {
-      booked: "En amarillo – en riesgo de rojo",
-      stronger: (diff: number) => `Opción más fuerte (+${diff})`,
-      fresh: "Piernas frescas para un jugador cansado",
-      samePosition: "Cambio comparable",
-    },
-  },
   feed: {
     noEvents: "Estamos en marcha, no hay nada que informar todavía.",
     notStarted: "El partido no ha comenzado.",

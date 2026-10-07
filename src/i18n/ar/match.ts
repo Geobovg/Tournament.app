@@ -84,20 +84,6 @@ export const match = {
     onTarget: "على الهدف",
     strength: "قوة الفريق",
   },
-  subs: {
-    title: (seconds: number) => `النافذة الفرعية · ${seconds}S`,
-    hint: (left: number) => `استخدم أي عدد تريده من الاقتراحات - أو لا شيء. ${left} ${left === 1 ? "sub" : "subs"} اليسار.`,
-    allUsed: "لقد استخدمت جميع الغواصات الثلاثة.",
-    inFor: (name: string) => `قيد التشغيل لـ ${name}`,
-    swap: "الفرعية",
-    none: "لا يوجد بديل لاقتراحه – لا يوجد أحد على مقاعد البدلاء أكثر ملاءمة.",
-    reasons: {
-      booked: "على اللون الأصفر - في خطر الأحمر",
-      stronger: (diff: number) => `الخيار الأقوى (+${diff})`,
-      fresh: "أرجل جديدة للاعب متعب",
-      samePosition: "التغيير بالمثل",
-    },
-  },
   feed: {
     noEvents: "نحن في طريقنا - لا يوجد شيء للإبلاغ عنه بعد.",
     notStarted: "المباراة لم تبدأ.",

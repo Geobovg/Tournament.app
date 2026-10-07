@@ -1,6 +1,6 @@
 import type { MatchDict } from "../en/match";
 
-// Simulerte managerkamper: kampsiden, live-kommentarene, straffer/sjanser, bytter og kamphistorikken.
+// Simulerte managerkamper: kampsiden, live-kommentarene, straffer/sjanser og kamphistorikken.
 export const match: MatchDict = {
   page: {
     title: (home: string, away: string) => `${home} mot ${away}`,
@@ -87,20 +87,6 @@ export const match: MatchDict = {
     shots: "Skudd",
     onTarget: "På mål",
     strength: "Lagstyrke",
-  },
-  subs: {
-    title: (seconds: number) => `BYTTEVINDU · ${seconds} SEK`,
-    hint: (left: number) => `Bruk så mange av forslagene du vil – eller ingen. ${left} bytter igjen.`,
-    allUsed: "Du har brukt alle tre byttene.",
-    inFor: (name: string) => `inn for ${name}`,
-    swap: "Bytt",
-    none: "Ingen bytter å foreslå – benken har ingen som passer bedre.",
-    reasons: {
-      booked: "Har gult kort – står i fare for å bli utvist",
-      stronger: (diff: number) => `Sterkere alternativ (+${diff})`,
-      fresh: "Friske bein inn for en sliten spiller",
-      samePosition: "Bytte på samme posisjon",
-    },
   },
   feed: {
     noEvents: "Kampen er i gang – ingen hendelser ennå.",

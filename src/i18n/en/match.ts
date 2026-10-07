@@ -84,20 +84,6 @@ export const match = {
     onTarget: "On target",
     strength: "Team strength",
   },
-  subs: {
-    title: (seconds: number) => `SUB WINDOW · ${seconds}S`,
-    hint: (left: number) => `Use as many suggestions as you like – or none. ${left} ${left === 1 ? "sub" : "subs"} left.`,
-    allUsed: "You've used all three subs.",
-    inFor: (name: string) => `on for ${name}`,
-    swap: "Sub",
-    none: "No subs to suggest – nobody on the bench is a better fit.",
-    reasons: {
-      booked: "On a yellow – at risk of a red",
-      stronger: (diff: number) => `Stronger option (+${diff})`,
-      fresh: "Fresh legs for a tired player",
-      samePosition: "Like-for-like change",
-    },
-  },
   feed: {
     noEvents: "We're under way – nothing to report yet.",
     notStarted: "The match hasn't kicked off.",

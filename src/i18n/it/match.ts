@@ -84,20 +84,6 @@ export const match = {
     onTarget: "Sul bersaglio",
     strength: "Forza della squadra",
   },
-  subs: {
-    title: (seconds: number) => `FINESTRA SECONDARIA · ${seconds}S`,
-    hint: (left: number) => `Utilizza tutti i suggerimenti che desideri oppure nessuno. ${left} ${left === 1 ? "sub" : "subs"} a sinistra.`,
-    allUsed: "Hai utilizzato tutti e tre i sottotitoli.",
-    inFor: (name: string) => `attivo per ${name}`,
-    swap: "Sost",
-    none: "Nessun sostituto da suggerire: nessuno in panchina è più adatto.",
-    reasons: {
-      booked: "Su un giallo – a rischio di un rosso",
-      stronger: (diff: number) => `Opzione più forte (+${diff})`,
-      fresh: "Gambe fresche per un giocatore stanco",
-      samePosition: "Cambiamento allo stesso modo",
-    },
-  },
   feed: {
     noEvents: "Siamo in viaggio – ancora niente da segnalare.",
     notStarted: "La partita non è iniziata.",
