@@ -16,7 +16,7 @@ const packDescriptions: Record<string, string> = {
   elite: "十二张牌，保证两张 84+ 和一张 86+。",
   inform: "七张卡：保底一张状态卡、一张 88+、两张 86+ 和三张 83+。每周一包。",
   spesial: "一张随机特殊卡：状态卡或 TOTS。不能在市场出售。",
-  ungdomstoooor: "免费！五张 86+ 球员卡，保底至少一张 TOTS。每天一包，持续到周日。",
+  ungdomstoooor: "免费！五张 84+ 球员卡，保底至少一张 TOTS。每天一包，持续到周日。",
 };
 
 export const market = {
