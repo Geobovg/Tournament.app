@@ -37,8 +37,8 @@ export type TimelineChance = { type: "chance"; minute: number; side: MatchSide; 
 export type ShotKind = "penalty" | "chance";
 /**
  * En planlagt sjanse spilleren selv skyter. Utfallet lagres i career_match_shots, ikke her.
- * `keeperId` og `reach` finnes bare på kamper fra versjon 4: hvem som står i mål, og hvor mange
- * ruter han dekker når han kaster seg på straffe.
+ * `keeperId` finnes bare på kamper fra versjon 4: hvem som står i mål. `reach` ligger igjen på
+ * eldre kamper, men keeperen dekker nå alltid bare ruta han velger.
  */
 export type TimelineShot = { type: "shot"; minute: number; side: MatchSide; kind: ShotKind; takerId: string; taker: string; options: number[]; keeperId?: string | null; reach?: number };
 export type TimelineEvent = TimelineGoal | TimelineCard | TimelineChance | ManagerSubstitutionEvent | TimelineShot;
@@ -444,48 +444,20 @@ export function cellGoalChance(shooting: number, cell: number, keeper: number | 
 }
 
 /**
- * Hvor mange ruter keeperen dekker når han kaster seg på straffe: en god keeper mot en middels
- * straffetaker når tre, en svak keeper bare ruta han valgte. Skytteren har alltid minst to
- * ruter keeperen ikke kan dekke, så straffen er aldri avgjort før han har valgt.
+ * Ruta keeperen dekker: bare den han valgte. Gjetter han feil rute, går ballen inn.
+ * Eldre kamper lagret en rekkevidde (`reach`) på skuddet; den telles ikke lenger.
  */
-export function penaltyReach(keeper: number, shooting: number, optionCount: number): number {
-  const reach = Math.round(1 + (keeper - 65) / 10 - (shooting - 75) / 12);
-  return bounded(reach, 1, Math.max(1, Math.min(3, optionCount - 2)));
+export function keeperZone(_shot: TimelineShot, keeperCell: number | null): number[] {
+  return keeperCell === null ? [] : [keeperCell];
 }
 
 /**
- * Rutene keeperen dekker: den han valgte, pluss de nærmeste naborutene skytteren kan sikte
- * på. Et kast går sidelengs, så ruta ved siden av velges før den over eller under.
- */
-export function keeperZone(shot: TimelineShot, keeperCell: number | null): number[] {
-  if (keeperCell === null) return [];
-  const reach = shot.reach ?? 1;
-  const row = Math.floor(keeperCell / SHOT_COLUMNS);
-  const column = keeperCell % SHOT_COLUMNS;
-  const neighbours = shot.options
-    .filter((cell) => cell !== keeperCell)
-    .map((cell) => ({ cell, rows: Math.abs(Math.floor(cell / SHOT_COLUMNS) - row), columns: Math.abs((cell % SHOT_COLUMNS) - column) }))
-    .filter((entry) => entry.rows <= 1 && entry.columns <= 1)
-    .sort((first, second) => first.columns + first.rows * 1.5 - (second.columns + second.rows * 1.5) || first.cell - second.cell);
-  return [keeperCell, ...neighbours.slice(0, reach - 1).map((entry) => entry.cell)];
-}
-
-/**
- * Sjansen for mål på straffe i en gitt rute: andelen av keeperens mulige kast som ikke når
- * den. En god straffetaker har flere ruter å velge mellom og møter et kortere kast, så han
- * scorer oftere.
+ * Sjansen for mål i en gitt rute når keeperen kaster seg: andelen av keeperens mulige kast som
+ * ikke når den. En god avslutter har flere ruter å velge mellom, så han scorer oftere.
  */
 export function penaltyCellChance(shot: TimelineShot, cell: number): number {
   const covering = shot.options.filter((keeperCell) => keeperZone(shot, keeperCell).includes(cell)).length;
   return 1 - covering / shot.options.length;
-}
-
-/**
- * Sjansen for mål i en gitt rute på en stor sjanse: avslutterens sjanse mot keeperen, men aldri
- * høyere enn andelen av keeperens kast som ikke når ruta.
- */
-export function chanceCellChance(shot: TimelineShot, shooting: number, cell: number, keeper: number | null): number {
-  return Math.min(cellGoalChance(shooting, cell, keeper), penaltyCellChance(shot, cell));
 }
 
 /** Ratingen til keeperen skuddet går mot, eller null på eldre kamper der keeperen ikke telte. */
@@ -498,28 +470,17 @@ export function shotKeeperRating(shot: TimelineShot, players: Map<string, Manage
  * Utfallet regnes ut likt hos begge managerne: samme kamp, samme minutt og samme to valg
  * gir alltid samme svar, så ingen av dem ser et annet resultat enn den andre.
  *
- * En straffe bommer aldri: når keeperen ruta skytteren valgte, er det redning, ellers er det mål.
+ * Når keeperen kaster seg – på straffer, og på store sjanser fra versjon 4 – avgjør rutene alt:
+ * velger han samme rute som skytteren, er det redning, ellers er det mål.
  *
- * På en stor sjanse kaster keeperen seg også, og når han ruta, er det redning. Ellers avgjøres
- * skuddet i én trekning, skalert slik at den totale sjansen blir prosenten som står på ruta.
- * Går det ikke inn, deles det mellom redning og bom etter hvor god keeperen er.
+ * På eldre store sjanser uten keeper avgjøres skuddet i én trekning mot prosenten på ruta.
  */
 export function resolveShot(matchId: string, shot: TimelineShot, shooting: number, keeper: number | null, shooterCell: number, keeperCell: number | null): "goal" | "saved" | "missed" {
-  if (shot.kind === "penalty") return keeperZone(shot, keeperCell).includes(shooterCell) ? "saved" : "goal";
-  // Keeperens valg er med i frøet så skytteren ikke kan regne ut trekningen på forhånd; hvert
-  // utfall er likevel like tilfeldig, så sjansen blir den samme uansett hva keeperen velger.
+  if (shot.kind === "penalty" || (shot.keeperId !== undefined && keeperCell !== null)) {
+    return keeperZone(shot, keeperCell).includes(shooterCell) ? "saved" : "goal";
+  }
   const roll = numberFromSeed(`${matchId}:${shot.minute}:${shot.side}:shot:${shooterCell}:${keeperCell ?? "none"}`);
-  // Keeperen telte bare fra versjon 4; på eldre kamper gir en stor sjanse aldri redning.
-  const rated = shot.keeperId !== undefined;
-  if (rated && keeperZone(shot, keeperCell).includes(shooterCell)) return "saved";
-  const chance = rated && keeperCell !== null
-    ? Math.min(1, chanceCellChance(shot, shooting, shooterCell, keeper) / penaltyCellChance(shot, shooterCell))
-    : cellGoalChance(shooting, shooterCell, rated ? keeper : null);
-  if (roll < chance) return "goal";
-  if (!rated) return "missed";
-  // Det som ikke går inn, er en redning oftere jo bedre keeperen er.
-  const saveShare = bounded(0.55 + ((keeper ?? 60) - shooting) * 0.01, 0.35, 0.8);
-  return (roll - chance) / (1 - chance) < saveShare ? "saved" : "missed";
+  return roll < cellGoalChance(shooting, shooterCell, keeper) ? "goal" : "missed";
 }
 
 /** Et valg for den som ikke rakk å trykke innen tiden gikk ut. */
@@ -708,8 +669,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
       if (taker && rated) {
         const keeper = keeperOf(active[side === "home" ? "away" : "home"]);
         const options = shotOptions(shootingOf(taker));
-        const reach = kind === "penalty" ? penaltyReach(keeper.rating + bonus[side === "home" ? "away" : "home"], shootingOf(taker), options.length) : 1;
-        timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options, keeperId: keeper.id, reach });
+        timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options, keeperId: keeper.id });
       } else if (taker) {
         timeline.push({ type: "shot", minute, side, kind, takerId: taker.id, taker: taker.name, options: shotOptions(shootingOf(taker)) });
       }
