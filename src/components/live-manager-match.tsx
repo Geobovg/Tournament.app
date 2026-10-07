@@ -10,7 +10,6 @@ import { clubCrest } from "@/lib/club-crests";
 import { playerPhoto } from "@/lib/player-photos";
 import {
   cellGoalChance,
-  chanceCellChance,
   penaltyCellChance,
   EXTRA_TIME_END,
   getManagerKickoff,
@@ -498,15 +497,13 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const revealCell = choosingWindow ? null : iAmShooting ? activeResult?.keeperCell ?? null : activeResult?.shooterCell ?? null;
   const shotKeeper = activeShot?.keeperId ? players.get(activeShot.keeperId) : undefined;
   const keeperRating = activeShot ? shotKeeperRating(activeShot, players) : null;
-  const reach = activeShot?.reach ?? 1;
-  // Keeperen dekker en hel sone, så både eget valg og det som avsløres tegnes som sone.
   const myCells = myCell === null ? [] : iAmKeeping && activeShot ? keeperZone(activeShot, myCell) : [myCell];
   const otherCells = iAmShooting && activeShot ? keeperZone(activeShot, revealCell) : revealCell === null ? [] : [revealCell];
   const keeperLine = !activeShot || keeperRating === null
     ? null
     : iAmKeeping
-      ? t.match.shot.youCover(reach)
-      : `${t.match.shot.keeperLine(shotKeeper ? t.match.shot.keeperNamed(shortName(shotKeeper.name), keeperRating) : t.match.shot.noKeeper)}${activeShot.kind === "penalty" ? t.match.shot.covers(reach) : ""}`;
+      ? t.match.shot.youCover(1)
+      : `${t.match.shot.keeperLine(shotKeeper ? t.match.shot.keeperNamed(shortName(shotKeeper.name), keeperRating) : t.match.shot.noKeeper)}${activeShot.kind === "penalty" ? t.match.shot.covers(1) : ""}`;
   const shotSeconds = activeShot ? Math.max(0, Math.ceil((SHOT_CHOICE_MS - clock.shotElapsedMs) / 1000)) : 0;
 
   return (
@@ -572,7 +569,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
             <div className="grid min-w-0 flex-1 gap-2">
               <GoalGrid
                 options={activeShot.options}
-                chanceFor={iAmShooting && taker ? (cell) => (activeShot.kind === "penalty" ? penaltyCellChance(activeShot, cell) : activeShot.keeperId !== undefined ? chanceCellChance(activeShot, shootingOf(taker), cell, keeperRating) : cellGoalChance(shootingOf(taker), cell, keeperRating)) : null}
+                chanceFor={iAmShooting && taker ? (cell) => (activeShot.kind === "penalty" || activeShot.keeperId !== undefined ? penaltyCellChance(activeShot, cell) : cellGoalChance(shootingOf(taker), cell, keeperRating)) : null}
                 myCells={myCells}
                 otherCells={otherCells}
                 otherLabel={iAmShooting ? t.match.grid.keeper : t.match.grid.shot}
