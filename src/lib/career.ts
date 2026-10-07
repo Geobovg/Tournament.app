@@ -83,8 +83,13 @@ export async function getCareerMatch(matchId: string, userId: string) {
 export type ManagerCard = { id: string; catalog_id: string | null; special_card_id: string | null; special: SpecialKind | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number>; value: number };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
-export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; tots_chance: number; special_guarantee: number; special_scope: "current" | "all"; purchasable: boolean; weekly_limit: number | null };
-const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, tots_chance, special_guarantee, special_scope, purchasable, weekly_limit";
+export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; tots_chance: number; special_guarantee: number; special_scope: "current" | "all" | "tots"; purchasable: boolean; weekly_limit: number | null; daily_limit: number | null; available_from: string | null; available_until: string | null };
+// Eventpakker (som Ungdomstoooor) har et tidsvindu. Utenfor vinduet vises de ikke i det hele tatt.
+function packAvailableNow(pack: ManagerPack) {
+  const now = Date.now();
+  return (!pack.available_from || Date.parse(pack.available_from) <= now) && (!pack.available_until || now < Date.parse(pack.available_until));
+}
+const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, tots_chance, special_guarantee, special_scope, purchasable, weekly_limit, daily_limit, available_from, available_until";
 
 /**
  * Bare det toppfeltet trenger for å vise lagrating: elleveren og hvilke kort som står i den.
@@ -118,7 +123,7 @@ export async function getManagerHome(userId: string): Promise<{ formation: strin
     db.from("manager_pack_inventory").select("pack_key, quantity").eq("user_id", userId).gt("quantity", 0),
   ]);
   if (packsError || inventoryError) throw new Error(packsError?.message ?? inventoryError?.message);
-  return { ...ratingFromSquad(ratingInfo), packs: (packs ?? []) as ManagerPack[], freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
+  return { ...ratingFromSquad(ratingInfo), packs: ((packs ?? []) as ManagerPack[]).filter(packAvailableNow), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
 }
 
 // Kortverdien (katalogprisen) følger med egne kort, så sidene slipper å hente hele katalogen.
@@ -144,24 +149,26 @@ export async function getManagerCareer(userId: string): Promise<{ cards: Manager
     if (personal) return { ...row, player_catalog: undefined, special_cards: undefined, personal_cards: undefined, special: "personal", slug: personal.slug, accent: specialStyles.personal.badge, club: profile?.club_name ?? "My team", value: 0 };
     return { ...row, player_catalog: undefined, special_cards: undefined, personal_cards: undefined, special: special?.kind ?? null, slug: source?.slug ?? null, accent: source?.accent ?? "#35d06a", club: source?.club ?? "Academy", value: special?.price ?? source?.price ?? 0 };
   });
-  return { cards: owned as unknown as ManagerCard[], lineup: lineup as ManagerLineup | null, packs: (packs ?? []) as ManagerPack[], listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
+  return { cards: owned as unknown as ManagerCard[], lineup: lineup as ManagerLineup | null, packs: ((packs ?? []) as ManagerPack[]).filter(packAvailableNow), listedCardIds: (listings ?? []).map((row) => row.card_id), freePacks: Object.fromEntries((inventory ?? []).map((row) => [row.pack_key, row.quantity])) };
 }
 
 export type InformCard = { id: string; slug: string; name: string; position: string; overall: number; boost: number; accent: string; club: string; attributes: Record<string, number>; special: SpecialKind };
-export type PackShop = { purchasedThisWeek: Record<string, number>; informFactor: number; informs: InformCard[]; nextReset: string };
+export type PackShop = { purchasedThisWeek: Record<string, number>; openedToday: Record<string, number>; informFactor: number; informs: InformCard[]; nextReset: string };
 
 /**
  * Det pakkebutikken trenger i tillegg: ukens inform-kort (runden lages her hvis den ikke finnes ennå),
- * hvor mange av hver pakke som er kjøpt denne uken, og hvor mye arenaen løfter inform-sjansen.
+ * hvor mange av hver pakke som er kjøpt denne uken, hvor mange dagspakker som er åpnet i dag,
+ * og hvor mye arenaen løfter inform-sjansen.
  */
 export async function getPackShop(userId: string): Promise<PackShop> {
   const db = supabaseAdmin();
-  const [{ data: roundId, error: roundError }, { data: bounds, error: boundsError }, { data: factor, error: factorError }] = await Promise.all([
+  const [{ data: roundId, error: roundError }, { data: bounds, error: boundsError }, { data: factor, error: factorError }, { data: openedToday, error: openedError }] = await Promise.all([
     db.rpc("ensure_special_round"),
     db.rpc("sbc_week_bounds"),
     db.rpc("manager_inform_factor", { target_user: userId }),
+    db.rpc("daily_packs_opened", { target_user: userId }),
   ]);
-  if (roundError || boundsError || factorError) throw new Error(roundError?.message ?? boundsError?.message ?? factorError?.message);
+  if (roundError || boundsError || factorError || openedError) throw new Error(roundError?.message ?? boundsError?.message ?? factorError?.message ?? openedError?.message);
   const [{ data: informs, error: informsError }, { data: openings, error: openingsError }] = await Promise.all([
     db.from("special_cards").select("id, kind, overall, boost, attributes, player_catalog(slug, name, position, accent, club)").eq("round_id", roundId).order("overall", { ascending: false }),
     db.from("pack_openings").select("pack_key").eq("user_id", userId).gt("price", 0).gte("created_at", bounds.week_start),
@@ -170,7 +177,7 @@ export async function getPackShop(userId: string): Promise<PackShop> {
   const purchasedThisWeek: Record<string, number> = {};
   for (const row of openings ?? []) purchasedThisWeek[row.pack_key] = (purchasedThisWeek[row.pack_key] ?? 0) + 1;
   return {
-    purchasedThisWeek, informFactor: Number(factor ?? 1), nextReset: bounds.next_reset,
+    purchasedThisWeek, openedToday: (openedToday ?? {}) as Record<string, number>, informFactor: Number(factor ?? 1), nextReset: bounds.next_reset,
     informs: (informs ?? []).flatMap((row) => {
       const catalog = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
       return catalog ? [{ id: row.id, slug: catalog.slug, name: catalog.name, position: catalog.position, overall: row.overall, boost: row.boost, accent: catalog.accent, club: catalog.club, attributes: row.attributes as Record<string, number>, special: row.kind as SpecialKind }] : [];

@@ -6,6 +6,7 @@ const packNames: Record<string, string> = {
   elite: "حزمة النخبة",
   inform: "Allpacka",
   spesial: "حزمة خاصة",
+  ungdomstoooor: "Ungdomstoooor",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -15,6 +16,7 @@ const packDescriptions: Record<string, string> = {
   elite: "اثنتا عشرة بطاقة، مع ضمان بطاقتين من فئة 84+ وبطاقة واحدة من فئة 86+.",
   inform: "سبع بطاقات: مضمون بطاقة فورمة واحدة، وواحدة 88+، واثنتان 86+، وثلاث 83+. واحدة أسبوعيًا.",
   spesial: "بطاقة خاصة عشوائية: بطاقة فورمة أو TOTS. لا يمكن بيعها في السوق.",
+  ungdomstoooor: "مجانية! خمس بطاقات 86+ مع بطاقة TOTS واحدة على الأقل مضمونة. واحدة يوميًا حتى الأحد.",
 };
 
 export const market = {
@@ -107,10 +109,14 @@ export const market = {
     allTots: "عرض كل بطاقات TOTS",
     informPulled: "فورمة!",
     untradable: " · غير قابلة للبيع",
-    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "بطاقة فورمة" : "بطاقة خاصة"}`,
+    specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "بطاقة فورمة" : scope === "tots" ? "TOTS" : "بطاقة خاصة"}`,
     weeklyLeft: (left: number, total: number) => `متبقٍ ${left}/${total} هذا الأسبوع`,
     boughtThisWeek: "تم الشراء هذا الأسبوع",
     guaranteed: "مضمون",
+    dailyLeft: (left: number, total: number) => `${left}/${total} متبقية اليوم · حتى الأحد`,
+    freeLabel: "مجانية",
+    openedToday: "فُتحت اليوم",
+    jackpot: (amount: number) => `💰 لقد ربحت ${amount} MB!`,
   },
   chat: {
     title: "دردشة السوق",

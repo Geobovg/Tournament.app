@@ -6,6 +6,7 @@ const packNames: Record<string, string> = {
   elite: "Elite pakke",
   inform: "Allpacka",
   spesial: "Specialpakke",
+  ungdomstoooor: "Ungdomstoooor",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -15,6 +16,7 @@ const packDescriptions: Record<string, string> = {
   elite: "Tolv kort, med to på 84+ og ét på 86+ garanteret.",
   inform: "Syv kort: garanteret ét Inform, ét 88+, to 86+ og tre 83+. Én om ugen.",
   spesial: "Ét tilfældigt specialkort: inform eller TOTS. Kan ikke sælges på markedet.",
+  ungdomstoooor: "Gratis! Fem kort på 86+, med mindst én TOTS garanteret. Én om dagen til og med søndag.",
 };
 
 export const market = {
@@ -107,10 +109,14 @@ export const market = {
     allTots: "Se alle TOTS",
     informPulled: "INFORM!",
     untradable: " · kan ikke sælges",
-    specialGuarantee: (count: number, scope: "current" | "all") => `${count}× ${scope === "current" ? "Inform" : "specialkort"}`,
+    specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "Inform" : scope === "tots" ? "TOTS" : "specialkort"}`,
     weeklyLeft: (left: number, total: number) => `${left}/${total} tilbage denne uge`,
     boughtThisWeek: "Købt denne uge",
     guaranteed: "Garanteret",
+    dailyLeft: (left: number, total: number) => `${left}/${total} tilbage i dag · til og med søndag`,
+    freeLabel: "Gratis",
+    openedToday: "Åbnet i dag",
+    jackpot: (amount: number) => `💰 Du vandt ${amount} MB!`,
   },
   chat: {
     title: "Market Chat",

@@ -35,7 +35,7 @@ export async function loadCatalogClubsAction(): Promise<string[]> {
 }
 
 export type PackPull = { card_id: string; catalog_id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number>; location: "squad" | "storage"; duplicate: boolean; special: SpecialKind | null; tradable: boolean };
-export type PackActionState = ActionState & { pulls?: PackPull[]; openedAt?: number; packKey?: string };
+export type PackActionState = ActionState & { pulls?: PackPull[]; openedAt?: number; packKey?: string; jackpot?: number };
 
 export async function openManagerPackAction(_prev: PackActionState, formData: FormData): Promise<PackActionState> {
   const user = await requireUser();
@@ -43,6 +43,14 @@ export async function openManagerPackAction(_prev: PackActionState, formData: Fo
   if (!packKey) return { error: (await getT()).career.errors.choosePack };
   // Gratispakker fra klubbnivå åpnes med samme regler, men trekker ikke managerbudsjett.
   const free = formData.get("free") === "1";
+  // Dagspakker (som Ungdomstoooor) er gratis én gang per dag og kan gi en MB-gevinst i tillegg til kortene.
+  if (formData.get("daily") === "1") {
+    const { data, error } = await supabaseAdmin().rpc("claim_daily_pack", { target_user: user.id, target_pack: packKey });
+    if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
+    revalidatePath("/managerkarriere");
+    const result = (data ?? {}) as { pulls?: PackPull[]; jackpot?: number };
+    return { ok: true, pulls: result.pulls ?? [], openedAt: Date.now(), packKey, jackpot: Number(result.jackpot ?? 0) };
+  }
   const { data, error } = await supabaseAdmin().rpc(free ? "open_free_manager_pack" : "open_manager_pack", { target_user: user.id, target_pack: packKey });
   if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
   revalidatePath("/managerkarriere");
