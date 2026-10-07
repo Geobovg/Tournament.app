@@ -16,7 +16,7 @@ const packDescriptions: Record<string, string> = {
   elite: "Doce cartas, con dos de 84+ y una de 86+ garantizadas.",
   inform: "Siete cartas: un Inform, una 88+, dos 86+ y tres 83+ garantizadas. Uno por semana.",
   spesial: "Una carta especial aleatoria: inform o TOTS. No se puede vender en el mercado.",
-  ungdomstoooor: "¡Gratis! Cinco cartas de 86+ con al menos un TOTS garantizado. Uno al día hasta el domingo.",
+  ungdomstoooor: "¡Gratis! Cinco cartas de 84+ con al menos un TOTS garantizado. Uno al día hasta el domingo.",
 };
 
 export const market = {

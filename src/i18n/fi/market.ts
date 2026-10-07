@@ -16,7 +16,7 @@ const packDescriptions: Record<string, string> = {
   elite: "Kaksitoista korttia, joista kaksi 84+ ja yksi 86+ taattu.",
   inform: "Seitsemän korttia: taattu yksi Inform, yksi 88+, kaksi 86+ ja kolme 83+. Yksi viikossa.",
   spesial: "Yksi satunnainen erikoiskortti: inform tai TOTS. Ei myytävissä markkinoilla.",
-  ungdomstoooor: "Ilmainen! Viisi 86+ korttia, vähintään yksi TOTS taattu. Yksi päivässä sunnuntaihin asti.",
+  ungdomstoooor: "Ilmainen! Viisi 84+ korttia, vähintään yksi TOTS taattu. Yksi päivässä sunnuntaihin asti.",
 };
 
 export const market = {
