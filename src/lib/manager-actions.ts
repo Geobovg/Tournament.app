@@ -93,6 +93,25 @@ export async function quickSellManagerCardAction(_prev: QuickSellState, formData
   return { ok: true, payout: Number(data ?? 0) };
 }
 
+export type QuickSellPackState = ActionState & { payout?: number; soldIds?: string[] };
+
+// «Hurtigselg alle» etter en pakkeåpning. Kortene selges ett og ett med samme regler som
+// enkeltsalget, så et kort som ikke kan selges stopper ikke resten.
+export async function quickSellPackCardsAction(_prev: QuickSellPackState, formData: FormData): Promise<QuickSellPackState> {
+  const user = await requireUser();
+  const cardIds = formData.getAll("card_id").map(String).filter(Boolean);
+  if (!cardIds.length) return { error: (await getT()).career.errors.missingCard };
+  const db = supabaseAdmin();
+  let payout = 0; const soldIds: string[] = []; let firstError: string | undefined;
+  for (const cardId of cardIds) {
+    const { data, error } = await db.rpc("quick_sell_manager_card", { target_user: user.id, target_card: cardId });
+    if (error) { firstError ??= await dbErrorMessage(error, { stripPrefix: true }); continue; }
+    payout += Number(data ?? 0); soldIds.push(cardId);
+  }
+  if (soldIds.length) revalidatePath("/managerkarriere");
+  return { ok: soldIds.length > 0, payout, soldIds, error: firstError };
+}
+
 // «Velg beste tropp» på troppsiden. Den plukker det beste laget fra hele
 // klubben – lageret inkludert – henter kortene inn i troppen og lagrer
 // elleveren i samme slengen. Kortene som må vike, går motsatt vei til lageret.

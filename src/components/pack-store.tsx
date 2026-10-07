@@ -1,18 +1,38 @@
 "use client";
 
-import { useActionState, useEffect, useState, type CSSProperties } from "react";
+import { useActionState, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import type { ManagerPack, PackShop } from "@/lib/career";
 import { specialStyles } from "@/lib/special-cards";
-import { openManagerPackAction, type PackActionState, type PackPull } from "@/lib/manager-actions";
+import { openManagerPackAction, quickSellPackCardsAction, type PackActionState, type PackPull, type QuickSellPackState } from "@/lib/manager-actions";
+import { quickSellValue } from "@/lib/manager-limits";
 import { useLocale, useT } from "@/i18n/client";
 import { INTL_LOCALES, type Locale } from "@/i18n/locales";
 import { PlayerCardFace } from "./player-card-face";
+import { ConfirmDialog } from "./confirm-dialog";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
 import { useScrollLock } from "./use-scroll-lock";
 
 const initial: PackActionState = {};
+const initialQuickSell: QuickSellPackState = {};
+
+// Selger alle kortene fra pakka på én gang. Akademikort (ikke omsettelige) blir liggende.
+function QuickSellAll({ pulls, state, action, pending }: { pulls: PackPull[]; state: QuickSellPackState; action: (formData: FormData) => void; pending: boolean }) {
+  const tp = useT().market.packs;
+  const [confirming, setConfirming] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const sold = new Set(state.soldIds ?? []);
+  const sellable = pulls.filter((pull) => (pull.tradable || pull.special) && !sold.has(pull.card_id));
+  const payout = sellable.reduce((sum, pull) => sum + quickSellValue(pull.price, pull.special), 0);
+  return <>
+    {sellable.length ? <form ref={formRef} action={action}>
+      {sellable.map((pull) => <input key={pull.card_id} type="hidden" name="card_id" value={pull.card_id} />)}
+      <button type="button" className={`${secondaryButtonClass} shadow-lg`} disabled={pending} onClick={() => setConfirming(true)}>{pending ? tp.quickSellingAll : tp.quickSellAll(payout)}</button>
+    </form> : null}
+    {confirming ? <ConfirmDialog message={tp.quickSellAllConfirm(sellable.length, payout)} onCancel={() => setConfirming(false)} onConfirm={() => { setConfirming(false); formRef.current?.requestSubmit(); }} /> : null}
+  </>;
+}
 // Grensa for det store trekket. Alt herfra og opp får walkout slik som i FIFA.
 const walkoutFrom = 86;
 
@@ -93,6 +113,8 @@ function PackReveal({ pulls, packName, jackpot, onClose }: { pulls: PackPull[]; 
   const next = () => { if (revealed) setPhase((current) => ({ index: current.index + 1, revealed: false })); };
   const done = index >= pulls.length;
   const best = pulls.reduce((top, pull) => Math.max(top, pull.overall), 0);
+  const [sellState, sellAction, sellPending] = useActionState(quickSellPackCardsAction, initialQuickSell);
+  const soldIds = new Set(sellState.soldIds ?? []);
   useScrollLock();
 
   // Portal til body: butikken ligger i et kort med backdrop-blur, og da ville «fixed» blitt
@@ -111,11 +133,13 @@ function PackReveal({ pulls, packName, jackpot, onClose }: { pulls: PackPull[]; 
         {jackpot ? <p className="pack-label-rise mx-auto mt-3 w-fit rounded-xl border-2 px-5 py-3 text-2xl font-black" style={{ borderColor: specialStyles.personal.border, color: specialStyles.personal.badge, background: "rgba(0,0,0,.45)" }}>{tp.jackpot(jackpot)}</p> : null}
       </div>
       {/* Knappen står øverst og blir liggende når man ruller, så man slipper å bla ned for å gå videre. */}
-      <div className="sticky top-0 z-10 flex justify-center py-1"><button className={`${buttonClass} shadow-lg`} onClick={onClose}>{tp.done}</button></div>
+      <div className="sticky top-0 z-10 flex flex-wrap justify-center gap-2 py-1"><button className={`${buttonClass} shadow-lg`} onClick={onClose}>{tp.done}</button><QuickSellAll pulls={pulls} state={sellState} action={sellAction} pending={sellPending} /></div>
+      {sellState.soldIds?.length ? <p className="text-center text-sm font-semibold text-white">{tp.quickSoldAll(sellState.soldIds.length, sellState.payout ?? 0)}</p> : null}
+      {sellState.error ? <p className="text-center text-sm text-danger">{sellState.error}</p> : null}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {pulls.map((pull) => <div key={pull.card_id} className="grid gap-1">
+        {pulls.map((pull) => <div key={pull.card_id} className={`grid gap-1 ${soldIds.has(pull.card_id) ? "opacity-40" : ""}`}>
           <PlayerCardFace player={pull} eager />
-          <p className="text-center text-xs text-white/70">{pull.location === "storage" ? tp.toStorage : tp.inSquad}{pull.duplicate ? tp.duplicate : ""}{pull.tradable ? "" : tp.untradable}</p>
+          <p className="text-center text-xs text-white/70">{soldIds.has(pull.card_id) ? tp.sold : <>{pull.location === "storage" ? tp.toStorage : tp.inSquad}{pull.duplicate ? tp.duplicate : ""}{pull.tradable ? "" : tp.untradable}</>}</p>
         </div>)}
       </div>
     </div> : <button type="button" onClick={next} className="absolute inset-0 grid place-items-center focus:outline-none" aria-label={revealed ? tp.nextCard : tp.openingCard}>
