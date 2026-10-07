@@ -433,14 +433,22 @@ export function shotOptions(shooting: number): number[] {
 }
 
 /**
- * Den faktiske sjansen for mål i en gitt rute på en stor sjanse – det er dette tallet som står
- * på ruta, og skuddet avgjøres i én trekning mot nøyaktig det. En god avslutter drar sjansen
- * opp, en god keeper drar den ned. Straffer avgjøres av keeperens kast, se penaltyCellChance.
+ * Sjansen for mål i en gitt rute på en stor sjanse – det er dette tallet som står på ruta, og
+ * skuddet avgjøres i én trekning mot nøyaktig det. En god avslutter drar sjansen kraftig opp,
+ * en god keeper drar den ned.
  */
 export function cellGoalChance(shooting: number, cell: number, keeper: number | null = null): number {
-  const base = bounded(0.42 + (shooting - 55) * 0.004, 0.28, 0.8);
+  const base = bounded(0.25 + (shooting - 55) * 0.012, 0.2, 0.85);
   const keeperFactor = keeper !== null ? bounded(1 + (70 - keeper) * 0.015, 0.7, 1.3) : 1;
   return bounded(base * (PLACEMENT[cell] ?? 0.85) * keeperFactor, 0.05, 0.97);
+}
+
+/**
+ * Sjansen for mål på straffe mot en AI-keeper: straffetakerens rating teller mest, keeperens
+ * litt. En svak straffetaker scorer på omtrent halvparten, en topp avslutter på ni av ti.
+ */
+export function penaltyGoalChance(shooting: number, keeper: number | null): number {
+  return bounded(0.5 + (shooting - 60) * 0.012 - ((keeper ?? 70) - 70) * 0.004, 0.4, 0.94);
 }
 
 /**
@@ -452,8 +460,8 @@ export function keeperZone(_shot: TimelineShot, keeperCell: number | null): numb
 }
 
 /**
- * Sjansen for mål i en gitt rute når keeperen kaster seg: andelen av keeperens mulige kast som
- * ikke når den. En god avslutter har flere ruter å velge mellom, så han scorer oftere.
+ * Sjansen for mål på straffe når en manager står i mål: ren gjettelek, så det er andelen av
+ * keeperens mulige kast som ikke treffer ruta. En god avslutter har flere ruter å velge mellom.
  */
 export function penaltyCellChance(shot: TimelineShot, cell: number): number {
   const covering = shot.options.filter((keeperCell) => keeperZone(shot, keeperCell).includes(cell)).length;
@@ -467,20 +475,37 @@ export function shotKeeperRating(shot: TimelineShot, players: Map<string, Manage
 }
 
 /**
- * Utfallet regnes ut likt hos begge managerne: samme kamp, samme minutt og samme to valg
- * gir alltid samme svar, så ingen av dem ser et annet resultat enn den andre.
- *
- * Når keeperen kaster seg – på straffer, og på store sjanser fra versjon 4 – avgjør rutene alt:
- * velger han samme rute som skytteren, er det redning, ellers er det mål.
- *
- * På eldre store sjanser uten keeper avgjøres skuddet i én trekning mot prosenten på ruta.
+ * Sjansen som står på ruta. `guessing` betyr at en manager står i mål på straffe – da er det ren
+ * gjettelek. Ellers er tallet nøyaktig sjansen skuddet avgjøres mot.
  */
-export function resolveShot(matchId: string, shot: TimelineShot, shooting: number, keeper: number | null, shooterCell: number, keeperCell: number | null): "goal" | "saved" | "missed" {
-  if (shot.kind === "penalty" || (shot.keeperId !== undefined && keeperCell !== null)) {
-    return keeperZone(shot, keeperCell).includes(shooterCell) ? "saved" : "goal";
+export function shotGoalChance(shot: TimelineShot, shooting: number, cell: number, keeper: number | null, guessing: boolean): number {
+  if (shot.kind === "penalty") return guessing ? penaltyCellChance(shot, cell) : penaltyGoalChance(shooting, keeper);
+  return cellGoalChance(shooting, cell, keeper);
+}
+
+/** Om en manager står i mål for laget som forsvarer seg på skuddet; AI-klubber gjør aldri det. */
+export function keeperIsManager(kickoff: ManagerKickoffEvent, shot: TimelineShot): boolean {
+  return shot.kind === "penalty" && !kickoff[shot.side === "home" ? "away" : "home"].userId.startsWith("ai");
+}
+
+/**
+ * Avgjør skuddet. `keeperPick` er ruta en manager valgte som keeper på straffe – da er det ren
+ * gjettelek: samme rute er redning, en annen rute er mål.
+ *
+ * Ellers kaster keeperen seg av seg selv, og skuddet avgjøres i én trekning (`roll`) mot nøyaktig
+ * prosenten som står på ruta. Keeperen tegnes etter utfallet: i skytterens rute ved redning, i en
+ * annen rute (`pick`) ved mål – så feil rute er alltid mål. Eldre store sjanser uten keeper bommer
+ * i stedet for å bli reddet.
+ */
+export function resolveShot(shot: TimelineShot, shooting: number, keeper: number | null, shooterCell: number, keeperPick: number | null, roll: number, pick: number): { outcome: "goal" | "saved" | "missed"; keeperCell: number | null } {
+  if (shot.kind === "penalty" && keeperPick !== null) return { outcome: keeperPick === shooterCell ? "saved" : "goal", keeperCell: keeperPick };
+  const keeperDives = shot.kind === "penalty" || shot.keeperId !== undefined;
+  if (roll < shotGoalChance(shot, shooting, shooterCell, keeper, false)) {
+    if (!keeperDives) return { outcome: "goal", keeperCell: null };
+    const elsewhere = shot.options.filter((cell) => cell !== shooterCell);
+    return { outcome: "goal", keeperCell: elsewhere[Math.min(elsewhere.length - 1, Math.floor(pick * elsewhere.length))] ?? null };
   }
-  const roll = numberFromSeed(`${matchId}:${shot.minute}:${shot.side}:shot:${shooterCell}:${keeperCell ?? "none"}`);
-  return roll < cellGoalChance(shooting, shooterCell, keeper) ? "goal" : "missed";
+  return keeperDives ? { outcome: "saved", keeperCell: shooterCell } : { outcome: "missed", keeperCell: null };
 }
 
 /** Et valg for den som ikke rakk å trykke innen tiden gikk ut. */

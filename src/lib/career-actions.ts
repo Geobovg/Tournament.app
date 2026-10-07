@@ -5,7 +5,7 @@ import { dbErrorMessage, getT } from "@/i18n/server";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
 import type { ActionState } from "./actions";
-import { autoShotCell, getManagerKickoff, hasSubWindow, MANAGER_KICKOFF_VERSION, getManagerShots, matchClock, NO_EXTENSION, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotKeeperRating, shotMinutesOf, matchExtension, type ManagerKickoffEvent, type ShotResult } from "./manager-match";
+import { autoShotCell, getManagerKickoff, hasSubWindow, keeperIsManager, MANAGER_KICKOFF_VERSION, getManagerShots, matchClock, NO_EXTENSION, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotKeeperRating, shotMinutesOf, matchExtension, type ManagerKickoffEvent, type ShotResult } from "./manager-match";
 import { managerTeamSnapshots } from "./manager-snapshot";
 import { supabaseAdmin } from "./supabase/server";
 
@@ -86,7 +86,7 @@ async function liveManagerMatch(matchId: string, userId: string) {
   const side = kickoff.home.userId === userId ? "home" : kickoff.away.userId === userId ? "away" : null;
   if (!side) return { error: (await getT()).career.errors.notParticipant } as const;
   const elapsed = Date.now() - new Date(match.started_at).getTime();
-  return { db, match, events, side, elapsed, clock: matchClock(elapsed, shotMinutesOf(events), NO_EXTENSION, hasSubWindow(events)) } as const;
+  return { db, match, events, kickoff, side, elapsed, clock: matchClock(elapsed, shotMinutesOf(events), NO_EXTENSION, hasSubWindow(events)) } as const;
 }
 
 /**
@@ -126,7 +126,7 @@ export async function resolveShotAction(_prev: ActionState, formData: FormData):
   if (!Number.isInteger(minute)) return { error: (await getT()).career.errors.invalidChance };
   const live = await liveManagerMatch(matchId, user.id);
   if ("error" in live) return { error: live.error };
-  const { db, events, clock } = live;
+  const { db, events, kickoff, clock } = live;
   const shot = getManagerShots(events).find((entry) => entry.minute === minute);
   if (!shot) return { error: (await getT()).career.errors.chanceNotFound };
   const choiceOver = clock.shotMinute !== minute || clock.shotElapsedMs >= SHOT_CHOICE_MS;
@@ -138,11 +138,12 @@ export async function resolveShotAction(_prev: ActionState, formData: FormData):
   // Rakk man ikke å trykke, velges det for en – ellers ville en motstander som ikke fulgte med
   // gjort straffen til en gratis scoring.
   const shooterCell = row?.shooter_cell ?? autoShotCell(matchId, shot, "shooter");
-  // På en stor sjanse kaster keeperen seg av seg selv, så skytteren ser hvor han gikk.
-  const keeperCell = shot.kind === "penalty" || shot.keeperId !== undefined ? (row?.keeper_cell ?? autoShotCell(matchId, shot, "keeper")) : null;
+  // Står en manager i mål på straffe, er det gjettelek mot ruta han valgte. Ellers trekkes
+  // utfallet her på serveren, så ingen kan regne det ut på forhånd.
+  const keeperPick = keeperIsManager(kickoff, shot) ? (row?.keeper_cell ?? autoShotCell(matchId, shot, "keeper")) : null;
   const players = playersById(events);
   const taker = players.get(shot.takerId);
-  const outcome = resolveShot(matchId, shot, taker ? shootingOf(taker) : 70, shotKeeperRating(shot, players), shooterCell, keeperCell);
+  const { outcome, keeperCell } = resolveShot(shot, taker ? shootingOf(taker) : 70, shotKeeperRating(shot, players), shooterCell, keeperPick, Math.random(), Math.random());
 
   const { error } = await db
     .from("career_match_shots")
