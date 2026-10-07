@@ -5,7 +5,7 @@ import { dbErrorMessage, getT } from "@/i18n/server";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
 import type { ActionState } from "./actions";
-import { autoShotCell, getManagerKickoff, MANAGER_KICKOFF_VERSION, getManagerShots, getManagerSubstitutions, matchClock, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotKeeperRating, shotMinutesOf, SUB_WINDOW_MINUTE, teamAfterSubstitutions, matchExtension, type ManagerKickoffEvent, type ShotResult } from "./manager-match";
+import { autoShotCell, getManagerKickoff, hasSubWindow, MANAGER_KICKOFF_VERSION, getManagerShots, matchClock, NO_EXTENSION, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotKeeperRating, shotMinutesOf, matchExtension, type ManagerKickoffEvent, type ShotResult } from "./manager-match";
 import { managerTeamSnapshots } from "./manager-snapshot";
 import { supabaseAdmin } from "./supabase/server";
 
@@ -62,7 +62,7 @@ export async function completeManagerMatchAction(_prev: ActionState, formData: F
   const events = Array.isArray(match.events) ? match.events : [];
   const { data: shotRows } = await db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome").eq("match_id", matchId);
   const shots: ShotResult[] = (shotRows ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome }));
-  const fullTime = plannedDurationMs(shotMinutesOf(events), matchExtension(events, shots));
+  const fullTime = plannedDurationMs(shotMinutesOf(events), matchExtension(events, shots), hasSubWindow(events));
   if (match.status !== "live" || !match.started_at || Date.now() - new Date(match.started_at).getTime() < fullTime) return { error: (await getT()).career.errors.notFinished };
   const { data: settled, error } = await db.rpc("settle_finished_manager_matches", { target_match: matchId });
   if (error) return { error: await dbErrorMessage(error) };
@@ -75,7 +75,7 @@ export async function completeManagerMatchAction(_prev: ActionState, formData: F
   revalidatePath(`/managerkarriere/kamp/${matchId}`); profilePaths(); return { ok: true };
 }
 
-/** Felles oppslag for de tre handlingene som skjer mens en managerkamp går. */
+/** Felles oppslag for handlingene som skjer mens en managerkamp går. */
 async function liveManagerMatch(matchId: string, userId: string) {
   const db = supabaseAdmin();
   const { data: match } = await db.from("career_matches").select("*").eq("id", matchId).maybeSingle();
@@ -86,27 +86,7 @@ async function liveManagerMatch(matchId: string, userId: string) {
   const side = kickoff.home.userId === userId ? "home" : kickoff.away.userId === userId ? "away" : null;
   if (!side) return { error: (await getT()).career.errors.notParticipant } as const;
   const elapsed = Date.now() - new Date(match.started_at).getTime();
-  return { db, match, events, side, elapsed, clock: matchClock(elapsed, shotMinutesOf(events)) } as const;
-}
-
-export async function makeManagerSubstitutionAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  const matchId = String(formData.get("match_id") ?? "");
-  const outId = String(formData.get("out_id") ?? "");
-  const inId = String(formData.get("in_id") ?? "");
-  const live = await liveManagerMatch(matchId, user.id);
-  if ("error" in live) return { error: live.error };
-  const { db, events, side, clock } = live;
-  if (clock.phase !== "substitutions") return { error: (await getT()).career.errors.subsOnlyInWindow };
-  if (getManagerSubstitutions(events).filter((event) => event.side === side).length >= 3) return { error: (await getT()).career.errors.subsUsed };
-  const team = teamAfterSubstitutions(events, side);
-  if (!team?.starters.some((player) => player.id === outId) || !team.bench.some((player) => player.id === inId)) return { error: (await getT()).career.errors.pickSubPlayers };
-  // Byttet skjer på 70′, så det slår inn fra 71′ og kan aldri skrive om noe som alt er spilt.
-  const nextEvents = planManagerTimeline(matchId, [...events, { type: "substitution", side, outId, inId, minute: SUB_WINDOW_MINUTE }]);
-  const { error } = await db.from("career_matches").update({ events: nextEvents }).eq("id", matchId).eq("status", "live");
-  if (error) return { error: await dbErrorMessage(error) };
-  revalidatePath(`/managerkarriere/kamp/${matchId}`);
-  return { ok: true };
+  return { db, match, events, side, elapsed, clock: matchClock(elapsed, shotMinutesOf(events), NO_EXTENSION, hasSubWindow(events)) } as const;
 }
 
 /**

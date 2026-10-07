@@ -84,20 +84,6 @@ export const match = {
     onTarget: "达到目标",
     strength: "团队实力",
   },
-  subs: {
-    title: (seconds: number) => `子窗口·${seconds}S`,
-    hint: (left: number) => `使用尽可能多的建议——或者不使用。 ${left} ${left === 1 ? "sub" : "subs"} 已离开。`,
-    allUsed: "您已经使用了所有三个潜艇。",
-    inFor: (name: string) => `开启 ${name}`,
-    swap: "子",
-    none: "没有替补可供推荐——替补席上没有人比他更合适。",
-    reasons: {
-      booked: "黄色 - 有红色风险",
-      stronger: (diff: number) => `更强的选项 (+${diff})`,
-      fresh: "为疲惫的球员提供新鲜的双腿",
-      samePosition: "类似的变化",
-    },
-  },
   feed: {
     noEvents: "我们正在进行中——还没有什么可报告的。",
     notStarted: "比赛还没有开始。",

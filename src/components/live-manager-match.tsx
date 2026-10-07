@@ -5,7 +5,7 @@ import Link from "next/link";
 import { startTransition, useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionState } from "@/lib/actions";
-import { chooseShotCellAction, completeManagerMatchAction, makeManagerSubstitutionAction, resolveShotAction } from "@/lib/career-actions";
+import { chooseShotCellAction, completeManagerMatchAction, resolveShotAction } from "@/lib/career-actions";
 import { clubCrest } from "@/lib/club-crests";
 import { playerPhoto } from "@/lib/player-photos";
 import {
@@ -16,9 +16,9 @@ import {
   getManagerKickoff,
   getManagerMatchReport,
   getManagerShots,
-  getManagerSubstitutions,
   getShootout,
   getManagerTimeline,
+  hasSubWindow,
   keeperZone,
   KICK_REVEAL_AFTER_MS,
   matchClock,
@@ -33,19 +33,16 @@ import {
   SHOT_COLUMNS,
   SHOT_CELLS,
   shotMinutesOf,
-  SUB_WINDOW_MINUTE,
-  suggestSubstitutions,
   type ManagerPlayerSnapshot,
   type MatchSide,
   type ShootoutKick,
   type ShotResult,
-  type SubstitutionSuggestion,
   type TimelineEvent,
   type TimelineShot,
 } from "@/lib/manager-match";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/client";
-import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
+import { buttonClass, cardClass } from "./ui";
 import { useScrollLock } from "./use-scroll-lock";
 
 const initial: ActionState = {};
@@ -180,16 +177,6 @@ function ShootoutPanel({ kicks, revealed, pending, players, home, away, finished
 
 function CardIcon({ card }: { card: "yellow" | "red" }) {
   return <span className={`inline-block h-4 w-3 rounded-[2px] align-middle ${card === "yellow" ? "bg-yellow-400" : "bg-red-500"}`} />;
-}
-
-function suggestionReason(suggestion: SubstitutionSuggestion, t: Dictionary): string {
-  const reasons = t.match.subs.reasons;
-  switch (suggestion.reason) {
-    case "booked": return reasons.booked;
-    case "stronger": return reasons.stronger(suggestion.in.overall - suggestion.out.overall);
-    case "fresh": return reasons.fresh;
-    case "samePosition": return reasons.samePosition;
-  }
 }
 
 type EventCopy = { title: string; detail: string; playerId: string | undefined; playerName: string; icon: React.ReactNode; tone: string };
@@ -377,7 +364,6 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const [serverOffset] = useState(() => match.serverNow - Date.now());
   const [now, setNow] = useState(() => Date.now() + (match.serverNow - Date.now()));
   const [state, finishAction] = useActionState(completeManagerMatchAction, initial);
-  const [substitutionState, substitutionAction, substituting] = useActionState(makeManagerSubstitutionAction, initial);
   const [shotState, shotAction, picking] = useActionState(chooseShotCellAction, initial);
   const [, resolveAction] = useActionState(resolveShotAction, initial);
 
@@ -394,8 +380,9 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const lastMinute = extension.extraTime ? EXTRA_TIME_END : 90;
 
   const elapsed = match.started_at ? Math.max(0, now - new Date(match.started_at).getTime()) : 0;
-  const clock = matchClock(elapsed, shotMinutes, extension);
-  const fullTime = elapsed >= plannedDurationMs(shotMinutes, extension);
+  const subWindow = useMemo(() => hasSubWindow(events), [events]);
+  const clock = matchClock(elapsed, shotMinutes, extension, subWindow);
+  const fullTime = elapsed >= plannedDurationMs(shotMinutes, extension, subWindow);
   const shownMinute = complete ? lastMinute : clock.minute;
   // Målstripa strekkes til 120′ først når ekstraomgangene starter, ellers ville den avslørt at det ender likt.
   const stripMinutes = complete || clock.phase === "extra_break" || shownMinute > 90 ? lastMinute : 90;
@@ -438,9 +425,6 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const report = getManagerMatchReport(match.id, events, match.shots, shownMinute);
   const yourReport = report && userSide ? report[userSide] : null;
   const opponentReport = report && opponentSide ? report[opponentSide] : null;
-  const substitutions = userSide ? getManagerSubstitutions(events).filter((event) => event.side === userSide) : [];
-  // Billig nok å regne ut direkte: den kalles bare i de ti sekundene byttevinduet er åpent.
-  const suggestions = clock.phase === "substitutions" && userSide ? suggestSubstitutions(match.id, events, userSide, SUB_WINDOW_MINUTE) : [];
 
   const seconds = Math.max(0, Math.ceil(clock.remainingMs / 1000));
   const statusLabel = complete
@@ -633,36 +617,6 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
             <b>{yourReport.onTarget}</b><span className="text-muted">{t.match.stats.onTarget}</span><b>{opponentReport.onTarget}</b>
             <b>{yourReport.strength}</b><span className="text-muted">{t.match.stats.strength}</span><b>{opponentReport.strength}</b>
           </div>
-        </section>
-      ) : null}
-
-      {clock.phase === "substitutions" && userSide ? (
-        <section className="grid gap-3 rounded-xl border border-accent bg-accent-soft p-4">
-          <div className="text-center">
-            <p className="text-xs font-bold tracking-[.2em] text-accent">{t.match.subs.title(seconds)}</p>
-            <p className="mt-1 text-sm text-muted">{t.match.subs.hint(3 - substitutions.length)}</p>
-          </div>
-          {substitutions.length >= 3 ? (
-            <p className="text-center text-sm text-muted">{t.match.subs.allUsed}</p>
-          ) : suggestions.length ? (
-            <div className="grid gap-2">
-              {suggestions.map((suggestion) => (
-                <form key={`${suggestion.outId}-${suggestion.inId}`} action={substitutionAction} className="flex items-center gap-2 rounded-lg border border-border bg-surface p-2">
-                  <input type="hidden" name="match_id" value={match.id} />
-                  <input type="hidden" name="out_id" value={suggestion.outId} />
-                  <input type="hidden" name="in_id" value={suggestion.inId} />
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-sm"><b>{shortName(suggestion.in.name)}</b> <span className="text-muted">({suggestion.in.position} {suggestion.in.overall})</span></p>
-                    <p className="truncate text-xs text-muted">{t.match.subs.inFor(shortName(suggestion.out.name))} · {suggestionReason(suggestion, t)}</p>
-                  </div>
-                  <button className={secondaryButtonClass} disabled={substituting}>{t.match.subs.swap}</button>
-                </form>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-muted">{t.match.subs.none}</p>
-          )}
-          {substitutionState.error ? <p className="text-center text-sm text-danger">{substitutionState.error}</p> : null}
         </section>
       ) : null}
 

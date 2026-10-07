@@ -21,13 +21,13 @@ export type ManagerTeamSnapshot = { userId: string; formation: string; starters:
  * `knockout` settes på kamper som må ha en vinner (kvalik til opprykk): står det likt etter 90′,
  * spilles ekstraomganger, og står det fortsatt likt etter 120′, avgjøres kampen på straffer.
  */
-export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot; knockout?: boolean };
+export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4 | 5; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot; knockout?: boolean };
 /**
- * Kamper som startes nå får versjon 4: angrep mot forsvar og avslutter mot keeper. Eldre kamper
- * beholder den gamle modellen, ellers ville et bytte midt i en pågående kamp skrevet om det som
- * alt er spilt – planen regnes ut på nytt fra avspark ved hvert bytte.
+ * Kamper som startes nå får versjon 5: samme modell som versjon 4 (angrep mot forsvar og avslutter
+ * mot keeper), men uten byttevinduet på 70′ – elleveren som starter, spiller hele kampen.
+ * Eldre kamper beholder klokka og modellen de ble startet med.
  */
-export const MANAGER_KICKOFF_VERSION = 4;
+export const MANAGER_KICKOFF_VERSION = 5;
 export type MatchSide = "home" | "away";
 export type ManagerSubstitutionEvent = { type: "substitution"; side: MatchSide; outId: string; inId: string; minute: number };
 export type ManagerFullTimeEvent = { type: "full_time"; minute: 90; homeScore: number; awayScore: number };
@@ -94,12 +94,18 @@ export type MatchClock = { phase: MatchPhase; minute: number; remainingMs: numbe
 export type MatchExtension = { extraTime: boolean; kicks: number };
 export const NO_EXTENSION: MatchExtension = { extraTime: false, kicks: 0 };
 
+/** Bare kamper startet før versjon 5 har byttevinduet på 70′. */
+export function hasSubWindow(events: unknown): boolean {
+  const version = getManagerKickoff(events)?.version;
+  return version !== undefined && version < 5;
+}
+
 type Stoppage = { minute: number; ms: number; phase: MatchPhase };
 
-function stoppagesFor(shotMinutes: number[], extension: MatchExtension): Stoppage[] {
+function stoppagesFor(shotMinutes: number[], extension: MatchExtension, subWindow: boolean): Stoppage[] {
   return [
     { minute: HALF_MINUTES, ms: HALFTIME_MS, phase: "halftime" as const },
-    { minute: SUB_WINDOW_MINUTE, ms: SUB_WINDOW_MS, phase: "substitutions" as const },
+    ...(subWindow ? [{ minute: SUB_WINDOW_MINUTE, ms: SUB_WINDOW_MS, phase: "substitutions" as const }] : []),
     ...shotMinutes.map((minute) => ({ minute, ms: SHOT_MS, phase: "shot" as const })),
     ...(extension.extraTime
       ? [
@@ -121,8 +127,8 @@ function runningPhase(minute: number): MatchPhase {
  * minutt for minutt, med stoppene lagt inn på faste steder. Fordi alle stoppene er kjent
  * ved avspark, kommer begge klientene fram til nøyaktig samme minutt uten å snakke sammen.
  */
-export function matchClock(elapsedMs: number, shotMinutes: number[] = [], extension: MatchExtension = NO_EXTENSION): MatchClock {
-  const stoppages = stoppagesFor(shotMinutes, extension);
+export function matchClock(elapsedMs: number, shotMinutes: number[], extension: MatchExtension, subWindow: boolean): MatchClock {
+  const stoppages = stoppagesFor(shotMinutes, extension, subWindow);
   const lastMinute = extension.extraTime ? EXTRA_TIME_END : 90;
   const idle = { shotMinute: null, shotElapsedMs: 0, kickIndex: 0, kickElapsedMs: 0 };
   let remaining = Math.max(0, elapsedMs);
@@ -158,9 +164,9 @@ function msUntilBreak(minute: number, intoMinute: number, stoppages: Stoppage[],
   return (next - minute) * MS_PER_MINUTE + (MS_PER_MINUTE - intoMinute);
 }
 
-/** Hele kampens lengde i sanntid, inkludert pause, byttevindu, straffer og eventuell forlengelse. */
-export function plannedDurationMs(shotMinutes: number[] = [], extension: MatchExtension = NO_EXTENSION): number {
-  const regular = 90 * MS_PER_MINUTE + HALFTIME_MS + SUB_WINDOW_MS + shotMinutes.length * SHOT_MS;
+/** Hele kampens lengde i sanntid, inkludert pause, eventuelt byttevindu, straffer og forlengelse. */
+export function plannedDurationMs(shotMinutes: number[], extension: MatchExtension, subWindow: boolean): number {
+  const regular = 90 * MS_PER_MINUTE + HALFTIME_MS + (subWindow ? SUB_WINDOW_MS : 0) + shotMinutes.length * SHOT_MS;
   const extra = extension.extraTime ? (EXTRA_TIME_END - 90) * MS_PER_MINUTE + EXTRA_BREAK_MS + EXTRA_HALFTIME_MS : 0;
   const shootout = extension.kicks > 0 ? SHOOTOUT_BREAK_MS + extension.kicks * KICK_MS : 0;
   return regular + extra + shootout;
@@ -187,7 +193,7 @@ export function getManagerKickoff(events: unknown): ManagerKickoffEvent | null {
   const kickoff = events.find((event) => event && typeof event === "object" && (event as { type?: unknown }).type === "kickoff") as Record<string, unknown> | undefined;
   if (!kickoff) return null;
   // Eldre kamper ligger lagret som versjon 1 og 2, uten katalogdata og skuddstat.
-  const known = kickoff.version === 1 || kickoff.version === 2 || kickoff.version === 3 || kickoff.version === 4;
+  const known = kickoff.version === 1 || kickoff.version === 2 || kickoff.version === 3 || kickoff.version === 4 || kickoff.version === 5;
   return known && isTeam(kickoff.home) && isTeam(kickoff.away) ? (kickoff as ManagerKickoffEvent) : null;
 }
 
@@ -598,7 +604,8 @@ function shotSide(matchId: string, minute: number): MatchSide {
 export function planManagerTimeline(matchId: string, events: unknown): ManagerMatchEvent[] {
   const kickoff = getManagerKickoff(events);
   if (!kickoff) return Array.isArray(events) ? (events as ManagerMatchEvent[]) : [];
-  const substitutions = getManagerSubstitutions(events);
+  // Fra versjon 5 finnes det ingen bytter.
+  const substitutions = kickoff.version >= 5 ? [] : getManagerSubstitutions(events);
   const sides: MatchSide[] = ["home", "away"];
   const sentOff = new Set<string>();
   const bookings = new Map<string, number>();
@@ -755,68 +762,6 @@ function planShootout(matchId: string, active: Record<MatchSide, ManagerPlayerSn
     }
   }
   return kicks;
-}
-
-// ---------------------------------------------------------------------------
-// Bytteforslag på 70′
-// ---------------------------------------------------------------------------
-
-/** Hvorfor byttet foreslås. Teksten lages i visningen, på brukerens språk (t.match.subs.reasons). */
-export type SubstitutionReason = "booked" | "stronger" | "fresh" | "samePosition";
-export type SubstitutionSuggestion = { outId: string; out: ManagerPlayerSnapshot; inId: string; in: ManagerPlayerSnapshot; reason: SubstitutionReason };
-
-const positionGroup: Record<string, string> = { GK: "GK", RB: "DEF", CB: "DEF", LB: "DEF", CDM: "MID", CM: "MID", CAM: "MID", RW: "ATT", LW: "ATT", ST: "ATT" };
-
-/**
- * De tre byttene som hjelper laget mest akkurat nå. Et gult kort veier tyngst – en spiller til
- * på kanten av utvisning er dyrere enn noen ratingpoeng – deretter hvor sliten han er og om
- * benken faktisk har en bedre spiller på samme plass.
- */
-export function suggestSubstitutions(matchId: string, events: unknown, side: MatchSide, minute: number): SubstitutionSuggestion[] {
-  const kickoff = getManagerKickoff(events);
-  if (!kickoff) return [];
-  const substitutions = getManagerSubstitutions(events).filter((event) => event.side === side);
-  const team = lineupAtMinute(kickoff[side], substitutions, minute + 1);
-  const timeline = getManagerTimeline(events);
-  const sentOff = new Set(timeline.filter((event): event is TimelineCard => event.type === "card" && event.card === "red" && event.minute <= minute).map((event) => event.playerId));
-  const booked = new Set(timeline.filter((event): event is TimelineCard => event.type === "card" && event.card === "yellow" && event.minute <= minute && event.side === side).map((event) => event.playerId));
-  const onPitch = minutesOnPitch(kickoff[side], substitutions);
-
-  const candidates = team.starters
-    // Keeperen byttes praktisk talt aldri i en kamp, heller ikke på gult kort.
-    .filter((player) => !sentOff.has(player.id) && player.position !== "GK")
-    .flatMap((starter) =>
-      team.bench.map((replacement) => {
-        const exact = starter.position === replacement.position || replacement.position === anyPosition;
-        const sameGroup = positionGroup[starter.position] === positionGroup[replacement.position];
-        if (!exact && !sameGroup) return null;
-        const tired = fatigueAt(onPitch.get(starter.id) ?? 0, minute);
-        const score = (booked.has(starter.id) ? 25 : 0) + (exact ? 12 : 4) + (replacement.overall - starter.overall) * 2.5 + tired * 3;
-        const reason: SubstitutionReason = booked.has(starter.id)
-          ? "booked"
-          : replacement.overall > starter.overall
-            ? "stronger"
-            : tired >= 3
-              ? "fresh"
-              : "samePosition";
-        return { outId: starter.id, out: starter, inId: replacement.id, in: replacement, reason, score };
-      }),
-    )
-    .filter((candidate): candidate is SubstitutionSuggestion & { score: number } => candidate !== null)
-    .sort((first, second) => second.score - first.score || first.out.name.localeCompare(second.out.name));
-
-  // Det samme byttet skal ikke foreslås tre ganger med ulik innbytter.
-  const usedOut = new Set<string>();
-  const usedIn = new Set<string>();
-  const chosen: SubstitutionSuggestion[] = [];
-  for (const candidate of candidates) {
-    if (usedOut.has(candidate.outId) || usedIn.has(candidate.inId)) continue;
-    usedOut.add(candidate.outId);
-    usedIn.add(candidate.inId);
-    chosen.push({ outId: candidate.outId, out: candidate.out, inId: candidate.inId, in: candidate.in, reason: candidate.reason });
-    if (chosen.length === 3) break;
-  }
-  return chosen;
 }
 
 // ---------------------------------------------------------------------------

@@ -84,20 +84,6 @@ export const match = {
     onTarget: "På mål",
     strength: "Lagstyrka",
   },
-  subs: {
-    title: (seconds: number) => `UNDERFÖNSTER · ${seconds}S`,
-    hint: (left: number) => `Använd så många förslag du vill – eller inga. ${left} ${left === 1 ? "sub" : "subs"} kvar.`,
-    allUsed: "Du har använt alla tre subs.",
-    inFor: (name: string) => `på för ${name}`,
-    swap: "Sub",
-    none: "Inga subs att föreslå – ingen på bänken passar bättre.",
-    reasons: {
-      booked: "På en gul – med risk för en röd",
-      stronger: (diff: number) => `Starkare alternativ (+${diff})`,
-      fresh: "Fräscha ben för en trött spelare",
-      samePosition: "Liknande förändring",
-    },
-  },
   feed: {
     noEvents: "Vi är på gång – inget att rapportera ännu.",
     notStarted: "Matchen har inte börjat.",
