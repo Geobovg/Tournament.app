@@ -30,7 +30,7 @@ export const seasons = {
     fullTable: "Full table →",
     legend: "Green: promotion · Blue: play-off · Red: relegation",
     playoffInfo: "Play-off: one match against a club from the division above. You have to win – a draw is not enough.",
-    prizeInfo: "The end-of-season prize grows the higher your division. Promotion also pays a bonus that gets bigger with every division, plus packs from Division 6 and up.",
+    prizeInfo: "Only promotion pays a prize: an MB bonus that gets bigger with every division.",
     yourMatches: "Your matches",
   },
   friend: {
@@ -53,7 +53,7 @@ export const seasons = {
   create: {
     eyebrow: "NEW FRIENDS SEASON",
     title: "Take on your friends",
-    intro: "Everyone plays everyone home and away (once with more than 10 managers). Prizes are only awarded with at least 5 managers: the winner gets 1 Elite Pack, 2 Gold Packs and 50 MB, and second place gets 2 Gold Packs and 50 MB. With 7 or more, third place also gets 1 Gold Pack and 25 MB.",
+    intro: "Everyone plays everyone home and away (once with more than 10 managers). Friend seasons have no prizes.",
     namePlaceholder: "Season name",
     invite: "INVITE",
     submit: "Create and invite",

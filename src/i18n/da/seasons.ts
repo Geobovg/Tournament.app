@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Fuldt bord →",
     legend: "Grøn: oprykning · Blå: kvalifikation · Rød: nedrykning",
     playoffInfo: "Kvalifikation: én kamp mod en klub fra divisionen over. Du skal vinde – uafgjort er ikke nok.",
-    prizeInfo: "Slut-af-sæson-præmien vokser, jo højere din division er. Kampagnen giver også en bonus, der bliver større for hver division, plus pakker fra division 6 og opefter.",
+    prizeInfo: "Kun oprykning giver en præmie: en MB-bonus, der bliver større for hver division.",
     yourMatches: "Dine kampe",
   },
   friend: {
@@ -49,7 +49,7 @@ export const seasons = {
   create: {
     eyebrow: "NYE VENNER SÆSON",
     title: "Tag imod dine venner",
-    intro: "Alle spiller alle hjemme og ude (én gang med over 10 managere). Der uddeles kun præmier med mindst 5 managere: vinderen får 1 Elite Pack, 2 guldpakker og 50 MB, og andenpladsen får 2 guldpakker og 50 MB. Med 7 eller flere får tredjepladsen også 1 guldpakke og 25 MB.",
+    intro: "Alle spiller alle hjemme og ude (én gang med over 10 managere). Vennesæsoner giver ingen præmier.",
     namePlaceholder: "Sæsonens navn",
     invite: "INVITER",
     submit: "Opret og inviter",

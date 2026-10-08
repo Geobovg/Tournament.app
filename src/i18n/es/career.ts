@@ -152,7 +152,7 @@ export const career = {
     loadError: "No se pudieron cargar los jugadores. Intentar otra vez.",
     eyebrow: "MERCADO DE JUGADORES",
     heading: "Construye el equipo de tus sueños",
-    intro: (max: number) => `El catálogo vende jugadores clasificados hasta ${max}. Las estrellas con calificación ${max + 1}+ solo vienen en paquetes y en el Mercado de transferencias.`,
+    intro: (max: number) => `El catálogo vende jugadores con valoración de hasta ${max}. Las estrellas de ${max + 1}+ solo están en el Mercado de transferencias.`,
     playerPlaceholder: "Jugador…",
     hideFilters: "Ocultar filtros",
     showFilters: "Filtros",

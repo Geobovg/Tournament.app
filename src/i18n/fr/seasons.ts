@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Tableau complet →",
     legend: "Vert : promotion · Bleu : barrage · Rouge : relégation",
     playoffInfo: "Barrage : un match contre un club de la division supérieure. Tu dois gagner – un nul ne suffit pas.",
-    prizeInfo: "Le prix de fin de saison augmente à mesure que votre division est élevée. La promotion rapporte également un bonus qui augmente à chaque division, ainsi que des packs à partir de la division 6.",
+    prizeInfo: "Seule la promotion rapporte une prime : un bonus en Mo qui augmente à chaque division.",
     yourMatches: "Vos matchs",
   },
   friend: {
@@ -49,7 +49,7 @@ export const seasons = {
   create: {
     eyebrow: "NOUVELLE SAISON DES AMIS",
     title: "Affrontez vos amis",
-    intro: "Tout le monde joue contre tout le monde en aller-retour (une seule fois au-delà de 10 managers). Les prix ne sont attribués qu'à partir de 5 managers : le gagnant reçoit 1 Elite Pack, 2 Gold Packs et 50 Mo, et le deuxième reçoit 2 Gold Packs et 50 Mo. À partir de 7, le troisième reçoit aussi 1 Gold Pack et 25 Mo.",
+    intro: "Tout le monde joue contre tout le monde en aller-retour (une seule fois au-delà de 10 managers). Les saisons entre amis n'ont pas de prix.",
     namePlaceholder: "Nom de la saison",
     invite: "INVITER",
     submit: "Créer et inviter",

@@ -152,7 +152,7 @@ export const career = {
     loadError: "Pelaajia ei voitu ladata. Yritä uudelleen.",
     eyebrow: "PELAAJIEN MARKKINAT",
     heading: "Rakenna unelmiesi tiimi",
-    intro: (max: number) => `Luettelossa myydään pelaajia, joiden luokitus on enintään ${max}. ${max + 1}+ tähdet tulevat vain pakkauksissa ja Transfer Marketissa.`,
+    intro: (max: number) => `Luettelossa myydään pelaajia, joiden luokitus on enintään ${max}. ${max + 1}+ tähtiä on vain siirtomarkkinoilla.`,
     playerPlaceholder: "Pelaaja…",
     hideFilters: "Piilota suodattimet",
     showFilters: "Suodattimet",

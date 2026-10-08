@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getT } from "@/i18n/server";
-import { clubLevelProgress, describeLevelReward } from "@/lib/club-level";
+import { clubLevelProgress } from "@/lib/club-level";
 
 // Seksjonene som finnes under /managerkarriere/[section]. Fanelinjen nederst viser de viktigste;
-// klubblager, kamplobby og historikk nås fra Tropp- og Sesong-sidene, og informs, TOTS og Icons fra Pakker. Titlene ligger i t.career.sections.
+// klubblager, kamplobby og historikk nås fra Tropp- og Sesong-sidene. Titlene ligger i t.career.sections.
 export const managerSections = [
   { key: "sesong" },
   { key: "lagtropp" },
@@ -33,7 +33,7 @@ export async function ManagerTopBar({ clubName, budget, rating, clubXp, title }:
         <h1 className="mt-1 truncate text-2xl font-black tracking-tight sm:text-3xl">{clubName}</h1>
       </div>
       <div className="flex gap-5 sm:ml-auto">
-        <div title={bar.nextLevel(progress.level + 1, describeLevelReward(progress.nextReward, t))}><p className="text-[10px] font-bold tracking-widest text-white/45">{bar.clubLevel}</p><p className="mt-1 text-lg font-black text-white">{progress.level}</p><div className="mt-1 h-1 w-14 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-lime-300" style={{ width: `${Math.round((progress.into / progress.needed) * 100)}%` }} /></div></div>
+        <div><p className="text-[10px] font-bold tracking-widest text-white/45">{bar.clubLevel}</p><p className="mt-1 text-lg font-black text-white">{progress.level}</p><div className="mt-1 h-1 w-14 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-lime-300" style={{ width: `${Math.round((progress.into / progress.needed) * 100)}%` }} /></div></div>
         <div className="border-l border-white/15 pl-5"><p className="text-[10px] font-bold tracking-widest text-white/45">{bar.budget}</p><p className="mt-1 text-lg font-black text-cyan-300">{budget} MB</p></div>
         <div className="border-l border-white/15 pl-5"><p className="text-[10px] font-bold tracking-widest text-white/45">{bar.rating}</p><p className="mt-1 text-lg font-black text-lime-300">{rating ?? "—"}</p></div>
       </div>

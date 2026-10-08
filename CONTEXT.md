@@ -5,7 +5,7 @@ En app for å holde styr på en simulert fotball-managerkarriere med spillerkort
 ## Language
 
 **Managerkarriere**:
-Den kortbaserte modusen der du bygger en tropp av spillerkort, kjøper/selger på overgangsmarkedet, åpner pakker og spiller simulerte kamper mot venners tropper. Alt skjer inne i appen.
+Den kortbaserte modusen der du bygger en tropp av spillerkort, kjøper i katalogen, kjøper/selger på overgangsmarkedet og spiller simulerte kamper mot venners tropper. Alt skjer inne i appen. Det finnes ingen pakker (fjernet i migrering 0081), og den eneste premien er MB for opprykk i AI-sesongen.
 _Avoid_: Karriere alene (tvetydig med Turnering)
 
 **Markedschat**:
@@ -25,11 +25,11 @@ En sesong der alle kampene spilles mot datamotstandere satt sammen av appen selv
 _Avoid_: Karrieresesong, Solo-sesong
 
 **Vennesesong**:
-En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI. Med 10 eller færre managere spilles det **dobbel serie** (alle møter alle hjemme og borte), med flere møtes alle én gang. Under 5 managere gis det ingen premie, 5–6 gir premie til topp 2, og 7 eller flere til topp 3. Du kan invitere venner direkte, og hver vennesesong har også en invitasjonslenke som alle kan bli med fra (også de som ikke er venner) fram til sesongen startes.
+En sesong der tabellen består av deg og venner som spiller managerkarrieren sammen; alle kampene er mot hverandre, ikke mot AI. Med 10 eller færre managere spilles det **dobbel serie** (alle møter alle hjemme og borte), med flere møtes alle én gang. Vennesesonger gir ingen premie. Du kan invitere venner direkte, og hver vennesesong har også en invitasjonslenke som alle kan bli med fra (også de som ikke er venner) fram til sesongen startes.
 _Avoid_: Liga, Turnering (Turnering er noe annet, se over)
 
 **Arena**:
-Et av fem stadioner i AI-sesongen, som i Clash Royale: Gamle Gress, Ullevaal, Wembley Stadium, Old Trafford og Camp Nou. Hver arena har ti **divisjoner**, så stigen er 50 nivåer lang. Vinner du divisjon 1, går du opp til divisjon 10 i neste arena. Du faller aldri ut av en arena du har nådd. AI-klubbene blir jevnere og får en skjult styrkebonus jo høyere arenaen er, og premiene ganges opp. Første gang du når en ny arena får du en egen belønning.
+Et av fem stadioner i AI-sesongen, som i Clash Royale: Gamle Gress, Ullevaal, Wembley Stadium, Old Trafford og Camp Nou. Hver arena har ti **divisjoner**, så stigen er 50 nivåer lang. Vinner du divisjon 1, går du opp til divisjon 10 i neste arena. Du faller aldri ut av en arena du har nådd. AI-klubbene blir jevnere og får en skjult styrkebonus jo høyere arenaen er, og opprykkspremien ganges opp.
 _Avoid_: Liga, Nivå, Stadion alene (Stadion er navnet, Arena er nivået)
 
 **Divisjon**:
@@ -46,7 +46,7 @@ _Avoid_: Playoff, Omspill
 
 
 **SBC**:
-En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som oppfyller kravene (f.eks. snitt-rating eller antall fra én liga) og får en premie i MB eller pakker. Kortene du leverer er borte for alltid. Forsøkene kan være begrenset per dag (nullstilles kl. 18:00 norsk tid) eller per uke (fredag kl. 18:00). Heter «SBC» på alle språk.
+Slått av i migrering 0081, siden ingenting gir premie lenger utenom opprykk. En utfordring i Managerkarrieren der du leverer inn et bestemt antall kort som oppfyller kravene (f.eks. snitt-rating eller antall fra én liga) og får en premie i MB eller pakker. Kortene du leverer er borte for alltid. Forsøkene kan være begrenset per dag (nullstilles kl. 18:00 norsk tid) eller per uke (fredag kl. 18:00). Heter «SBC» på alle språk.
 _Avoid_: Oppdrag, Utfordring alene (tvetydig med vennekamp-utfordringer), Kjemi (finnes ikke i appen)
 
 **Spesialkort**:
@@ -70,7 +70,7 @@ Premien fra spesial-SBC-en (to kort på 88+): ett tilfeldig spesialkort blant al
 _Avoid_: Inform-pakke
 
 **Personlig kort**:
-Et kort av en ekte manager i appen, med bilde av personen selv. Hver manager kan ha ett, og bare eieren kan ha det: det kan ikke selges, byttes, leveres i SBC, kastes eller trekkes i pakker. Kortet kan spille alle posisjoner. Det starter på 70 og går opp 1 for hvert nytt nivå man når på AI-stigen; det er det høyeste nivået man har nådd som teller, så nedrykk gjør ikke kortet dårligere, og man får ingen oppgradering for å rykke opp igjen til et nivå man har vært på før. Kortet har ikke taket på 99 som alle andre kort. Kortene deles ut for hånd med `grant_personal_card` (migrering 0063). Ved nullstillingen i migrering 0079/0080 ble alle satt til divisjon 10 på Gamle Gress og kortene satt tilbake til 70; de teller bare sesonger etter nullstillingen, så divisjon 1 på Camp Nou gir 119 og første **mestertittel** etter nullstillingen gir 120.
+Et kort av en ekte manager i appen, med bilde av personen selv. Hver manager kan ha ett, og bare eieren kan ha det: det kan ikke selges, byttes, leveres i SBC, kastes eller trekkes i pakker. Kortet kan spille alle posisjoner. Det starter på 70 og går opp 1 for hvert nytt nivå man når på AI-stigen; det er det høyeste nivået man har nådd som teller, så nedrykk gjør ikke kortet dårligere, og man får ingen oppgradering for å rykke opp igjen til et nivå man har vært på før. Kortet har ikke taket på 99 som alle andre kort. Kortene deles ut for hånd med `grant_personal_card` (migrering 0063). Ved nullstillingen i migrering 0081 ble alle satt til divisjon 10 på Gamle Gress og kortene satt tilbake til 70; de teller bare sesonger etter nullstillingen, så divisjon 1 på Camp Nou gir 119 og første **mestertittel** etter nullstillingen gir 120.
 _Avoid_: Ikon, Spesialkort (spesialkort er bedre versjoner av ekte spillere, se over)
 
 **Femmer**:

@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Vollständige Tabelle →",
     legend: "Grün: Aufstieg · Blau: Relegation · Rot: Abstieg",
     playoffInfo: "Relegation: ein Spiel gegen einen Klub aus der Division darüber. Du musst gewinnen – ein Unentschieden reicht nicht.",
-    prizeInfo: "Der Preis am Ende der Saison steigt, je höher Ihre Division ist. Bei der Beförderung gibt es außerdem einen Bonus, der mit jeder Division größer wird, sowie Packs ab Division 6.",
+    prizeInfo: "Nur ein Aufstieg bringt eine Prämie: einen MB-Bonus, der mit jeder Division größer wird.",
     yourMatches: "Deine Streichhölzer",
   },
   friend: {
@@ -49,7 +49,7 @@ export const seasons = {
   create: {
     eyebrow: "NEUE FREUNDE-SAISON",
     title: "Nimm es mit deinen Freunden auf",
-    intro: "Jeder spielt gegen jeden in Hin- und Rückspiel (einmal bei mehr als 10 Managern). Preise gibt es nur ab 5 Managern: Der Gewinner erhält 1 Elite Pack, 2 Gold Packs und 50 MB, der Zweitplatzierte 2 Gold Packs und 50 MB. Ab 7 Managern erhält auch der Drittplatzierte 1 Gold Pack und 25 MB.",
+    intro: "Jeder spielt gegen jeden in Hin- und Rückspiel (einmal bei mehr als 10 Managern). Freundessaisons haben keine Preise.",
     namePlaceholder: "Saisonname",
     invite: "EINLADEN",
     submit: "Erstellen und einladen",

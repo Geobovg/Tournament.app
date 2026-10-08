@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/i18n/client";
-import { arenaOf, arenas, divisionOneWinElitePacks, divisionRating, type Arena } from "@/lib/arenas";
+import { arenaOf, arenas, divisionRating, type Arena } from "@/lib/arenas";
 import type { AiSeason } from "@/lib/seasons";
 import { useScrollLock } from "./use-scroll-lock";
 
@@ -39,11 +39,6 @@ export function StadiumIllustration({ arena, className = "" }: { arena: number; 
   </svg>;
 }
 
-function unlockRewardText(arena: Arena, t: ReturnType<typeof useT>) {
-  if (!arena.unlock) return "";
-  return [`${arena.unlock.mb} MB`, ...arena.unlock.packs.map((pack) => `${pack.count}× ${t.market.packs.name(pack.key, pack.key)}`)].join(" + ");
-}
-
 /** Arenaveien som i Clash Royale: alle fem stadionene, hvor du er nå og hva som er låst opp. */
 export function ArenaRoad({ season }: { season: AiSeason }) {
   const t = useT(); const text = t.seasons.arena;
@@ -61,8 +56,7 @@ export function ArenaRoad({ season }: { season: AiSeason }) {
           <div className="min-w-0">
             <p className="text-[10px] font-black tracking-[.22em]" style={{ color: arena.colors.primary }}>{text.eyebrow(arena.number)} · {current ? text.current : reached ? text.reached : text.locked}</p>
             <p className="truncate text-lg font-black">{reached ? "" : "🔒 "}{arena.name}</p>
-            <p className="text-xs text-white/60">{text.aiRange(divisionRating(arena.number, 10), divisionRating(arena.number, 1))} · {text.divisionOneWin(divisionOneWinElitePacks(arena.number))}</p>
-            {arena.unlock ? <p className="text-xs text-white/50">{text.unlockReward(unlockRewardText(arena, t))}</p> : null}
+            <p className="text-xs text-white/60">{text.aiRange(divisionRating(arena.number, 10), divisionRating(arena.number, 1))}</p>
           </div>
         </li>;
       })}
@@ -92,10 +86,10 @@ export function ArenaUnlockCelebration({ season }: { season: AiSeason }) {
     }
   }, [fresh, season.arena]);
   if (!open) return null;
-  return <Celebration arena={arenaOf(season.arena)} rewards={unlockRewardText(arenaOf(season.arena), t)} title={text.unlockedTitle} body={text.unlockedBody(arenaOf(season.arena).name)} button={text.continue} onClose={() => setOpen(false)} />;
+  return <Celebration arena={arenaOf(season.arena)} title={text.unlockedTitle} body={text.unlockedBody(arenaOf(season.arena).name)} button={text.continue} onClose={() => setOpen(false)} />;
 }
 
-function Celebration({ arena, rewards, title, body, button, onClose }: { arena: Arena; rewards: string; title: string; body: string; button: string; onClose: () => void }) {
+function Celebration({ arena, title, body, button, onClose }: { arena: Arena; title: string; body: string; button: string; onClose: () => void }) {
   useScrollLock();
   return createPortal(<div className="pack-stage" role="dialog" aria-modal="true" aria-label={title}>
     <div className="pack-rays" style={{ "--pack-glow": arena.colors.primary } as React.CSSProperties} />
@@ -104,7 +98,6 @@ function Celebration({ arena, rewards, title, body, button, onClose }: { arena: 
       <StadiumIllustration arena={arena.number} className="h-32 w-full" />
       <h2 className="text-3xl font-black italic">{arena.name}</h2>
       <p className="text-sm text-white/75">{body}</p>
-      {rewards ? <p className="rounded-lg bg-black/40 px-3 py-2 text-sm font-bold" style={{ color: arena.colors.primary }}>🎁 {rewards}</p> : null}
       <button type="button" onClick={onClose} className="justify-self-center rounded-xl px-6 py-3 font-black text-slate-950" style={{ background: arena.colors.primary }}>{button}</button>
     </div>
   </div>, document.body);

@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Fullständigt bord →",
     legend: "Grön: uppflyttning · Blå: kval · Röd: nedflyttning",
     playoffInfo: "Kval: en match mot en klubb från divisionen ovanför. Du måste vinna – oavgjort räcker inte.",
-    prizeInfo: "Priset i slutet av säsongen växer ju högre din division är. Kampanj ger också en bonus som blir större för varje division, plus paket från division 6 och uppåt.",
+    prizeInfo: "Bara uppflyttning ger ett pris: en MB-bonus som blir större för varje division.",
     yourMatches: "Dina matchningar",
   },
   friend: {
@@ -49,7 +49,7 @@ export const seasons = {
   create: {
     eyebrow: "NYA VÄNNER SÄSONG",
     title: "Ta emot dina vänner",
-    intro: "Alla spelar alla hemma och borta (en gång med fler än 10 managers). Priser delas bara ut med minst 5 managers: vinnaren får 1 Elite Pack, 2 Gold Packs och 50 MB, och andra plats får 2 Gold Packs och 50 MB. Med 7 eller fler får även tredje plats 1 Gold Pack och 25 MB.",
+    intro: "Alla spelar alla hemma och borta (en gång med fler än 10 managers). Vänsäsonger ger inga priser.",
     namePlaceholder: "Säsongens namn",
     invite: "BJUD IN",
     submit: "Skapa och bjud in",

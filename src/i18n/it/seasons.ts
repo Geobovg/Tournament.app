@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Tavola completa →",
     legend: "Verde: promozione · Blu: spareggio · Rosso: retrocessione",
     playoffInfo: "Spareggio: una partita contro un club della divisione superiore. Devi vincere: il pareggio non basta.",
-    prizeInfo: "Il premio di fine stagione aumenta quanto più alta è la tua divisione. La promozione paga anche un bonus che aumenta con ogni divisione, oltre ai pacchetti dalla Divisione 6 in su.",
+    prizeInfo: "Solo la promozione dà un premio: un bonus in MB che aumenta con ogni divisione.",
     yourMatches: "Le tue partite",
   },
   friend: {
@@ -49,7 +49,7 @@ export const seasons = {
   create: {
     eyebrow: "NUOVA STAGIONE AMICI",
     title: "Affronta i tuoi amici",
-    intro: "Tutti giocano con tutti andata e ritorno (una volta con più di 10 manager). I premi vengono assegnati solo con almeno 5 manager: il vincitore riceve 1 Elite Pack, 2 Gold Pack e 50 MB, e il secondo classificato riceve 2 Gold Pack e 50 MB. Con 7 o più anche il terzo riceve 1 Gold Pack e 25 MB.",
+    intro: "Tutti giocano con tutti andata e ritorno (una volta con più di 10 manager). Le stagioni tra amici non hanno premi.",
     namePlaceholder: "Nome della stagione",
     invite: "INVITA",
     submit: "Crea e invita",
