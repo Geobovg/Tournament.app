@@ -19,7 +19,7 @@ export async function FiveLeaderboard({ board, userId }: { board: Leaderboard; u
   return <div className="grid gap-4 md:grid-cols-2">
     <Table title={t.leaderboard.ladder} rows={board.ladder.map((row) => ({ key: row.userId, name: row.username, value: t.leaderboard.step(row.best), me: row.userId === userId }))} />
     <Table title={t.leaderboard.rating} rows={board.ratings.map((row) => ({ key: row.userId, name: row.username, value: row.rating, me: row.userId === userId }))} />
-    <Table title={t.leaderboard.scorers} rows={board.scorers.map((row) => ({ key: row.cardId, name: <>{row.name}{row.inform ? <span className="ml-1 text-amber-300">★</span> : null} <span className="text-xs text-muted">({row.owner})</span></>, value: t.leaderboard.goals(row.goals), me: false }))} />
+    <Table title={t.leaderboard.scorers} rows={board.scorers.map((row) => ({ key: row.cardId, name: <>{row.name} <span className="text-xs text-muted">({row.owner})</span></>, value: t.leaderboard.goals(row.goals), me: false }))} />
     <Table title={t.leaderboard.results} rows={board.records.map((row) => ({ key: row.userId, name: row.username, value: t.recordValue(row.wins, row.draws, row.losses), me: row.userId === userId }))} />
   </div>;
 }

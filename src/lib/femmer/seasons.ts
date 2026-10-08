@@ -3,7 +3,7 @@ import "server-only";
 import { supabaseAdmin } from "../supabase/server";
 
 /** Vennesesonger i Femmer (migrering 0076). Med 10 eller færre spilles det dobbel serie, ellers enkel. */
-export type FiveSeasonMember = { userId: string; username: string; status: "invited" | "joined"; finalRank: number | null; prize: number };
+export type FiveSeasonMember = { userId: string; username: string; status: "invited" | "joined"; finalRank: number | null };
 export type FiveSeasonFixture = { id: string; round: number; homeUserId: string; awayUserId: string; matchId: string | null; status: "scheduled" | "live" | "played"; homeScore: number | null; awayScore: number | null };
 export type FiveStandingRow = { userId: string; username: string; played: number; wins: number; draws: number; losses: number; goalsFor: number; goalsAgainst: number; points: number };
 export type FiveSeason = { id: string; name: string; ownerId: string; ownerName: string; status: "open" | "active" | "completed"; inviteCode: string; createdAt: string; members: FiveSeasonMember[]; fixtures: FiveSeasonFixture[]; table: FiveStandingRow[] };
@@ -47,7 +47,7 @@ async function loadSeasons(seasonIds: string[]): Promise<FiveSeason[]> {
   const db = supabaseAdmin();
   const [{ data: seasons, error }, { data: members, error: membersError }, { data: fixtures, error: fixturesError }] = await Promise.all([
     db.from("five_seasons").select("*").in("id", seasonIds).order("created_at", { ascending: false }),
-    db.from("five_season_members").select("season_id, user_id, status, final_rank, prize").in("season_id", seasonIds),
+    db.from("five_season_members").select("season_id, user_id, status, final_rank").in("season_id", seasonIds),
     db.from("five_season_fixtures").select("id, season_id, round, home_user_id, away_user_id, match_id, status, five_matches(home_score, away_score)").in("season_id", seasonIds).order("round"),
   ]);
   if (error || membersError || fixturesError) throw new Error(error?.message ?? membersError?.message ?? fixturesError?.message);
@@ -55,7 +55,7 @@ async function loadSeasons(seasonIds: string[]): Promise<FiveSeason[]> {
   const { data: profiles } = ids.length ? await db.from("profiles").select("id, username").in("id", ids) : { data: [] };
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.username as string]));
   return (seasons ?? []).map((season) => {
-    const seasonMembers: FiveSeasonMember[] = (members ?? []).filter((member) => member.season_id === season.id).map((member) => ({ userId: member.user_id, username: names.get(member.user_id) ?? "?", status: member.status, finalRank: member.final_rank, prize: member.prize }));
+    const seasonMembers: FiveSeasonMember[] = (members ?? []).filter((member) => member.season_id === season.id).map((member) => ({ userId: member.user_id, username: names.get(member.user_id) ?? "?", status: member.status, finalRank: member.final_rank }));
     const seasonFixtures: FiveSeasonFixture[] = (fixtures ?? []).filter((fixture) => fixture.season_id === season.id).map((fixture) => {
       const match = Array.isArray(fixture.five_matches) ? fixture.five_matches[0] : fixture.five_matches;
       return { id: fixture.id, round: fixture.round, homeUserId: fixture.home_user_id, awayUserId: fixture.away_user_id, matchId: fixture.match_id, status: fixture.status, homeScore: fixture.status === "played" ? match?.home_score ?? null : null, awayScore: fixture.status === "played" ? match?.away_score ?? null : null };

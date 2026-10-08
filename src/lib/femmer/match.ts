@@ -6,7 +6,7 @@
 
 import { fiveFormations, fivePositionPenalty, FIVE_XP, isFiveFormation, type FiveFormation, type FivePosition, type FiveRole } from "./rules";
 
-export type FivePlayer = { id: string; personId: string; name: string; slug: string; overall: number; position?: FivePosition | null; inform?: boolean };
+export type FivePlayer = { id: string; personId: string; name: string; slug: string; overall: number; position?: FivePosition | null };
 export type FiveTeam = { name: string; formation: FiveFormation; starters: FivePlayer[]; bench: FivePlayer[]; userId: string | null };
 export type FiveSide = "home" | "away";
 export type FiveEvent =

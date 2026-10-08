@@ -6,7 +6,6 @@ import { useT } from "@/i18n/client";
 import type { ActionState } from "@/lib/actions";
 import { createFiveSeasonAction, declineFiveSeasonAction, inviteFiveSeasonAction, joinFiveSeasonAction, playFiveFixtureAction, startFiveSeasonAction } from "@/lib/femmer/actions";
 import type { FiveSeason, FiveSeasonFixture } from "@/lib/femmer/seasons";
-import { FIVE_SEASON_PRIZES } from "@/lib/femmer/rules";
 import { buttonClass, cardClass, secondaryButtonClass } from "../ui";
 
 const initial: ActionState = {};
@@ -28,7 +27,7 @@ function CreateSeason({ friends }: { friends: Friend[] }) {
     <h3 className="font-black">{t.seasons.create}</h3>
     <input name="name" required maxLength={40} placeholder={t.seasons.namePlaceholder} className="rounded-lg border border-border bg-surface px-3 py-2" />
     {friends.length ? <fieldset className="grid gap-1"><legend className="mb-1 text-sm font-bold">{t.seasons.inviteFriends}</legend>{friends.map((friend) => <label key={friend.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="friend_id" value={friend.id} />{friend.username}</label>)}</fieldset> : <p className="text-sm text-muted">{t.seasons.noFriends}</p>}
-    <p className="text-xs text-muted">{t.seasons.rules(FIVE_SEASON_PRIZES)}</p>
+    <p className="text-xs text-muted">{t.seasons.rules}</p>
     <button type="submit" disabled={pending} className={buttonClass}>{t.seasons.createButton}</button>
     {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
   </form>;
@@ -81,7 +80,6 @@ export function FiveSeasonDetails({ season, userId, friends }: { season: FiveSea
   const isMember = joined.some((member) => member.userId === userId);
   const rounds = [...new Set(season.fixtures.map((fixture) => fixture.round))];
   const notInvited = friends.filter((friend) => !season.members.some((member) => member.userId === friend.id));
-  const prizes = new Map(season.members.map((member) => [member.userId, member.prize]));
 
   return <div className="grid gap-4">
     <section className={`${cardClass} grid gap-2`}>
@@ -89,7 +87,7 @@ export function FiveSeasonDetails({ season, userId, friends }: { season: FiveSea
       <h2 className="text-2xl font-black">{season.name}</h2>
       <p className="text-sm text-muted">{t.seasons.createdBy(season.ownerName)} · {t.seasons.members(joined.length)}</p>
       {season.status === "open" ? <>
-        <p className="text-sm text-muted">{t.seasons.rules(FIVE_SEASON_PRIZES)}</p>
+        <p className="text-sm text-muted">{t.seasons.rules}</p>
         <div className="flex flex-wrap items-center gap-2"><code className="rounded bg-black/30 px-2 py-1 text-xs">{invitePath}</code><button type="button" onClick={() => { void navigator.clipboard?.writeText(`${window.location.origin}${invitePath}`); setCopied(true); }} className={secondaryButtonClass}>{copied ? t.seasons.copied : t.seasons.copyLink}</button></div>
         {invited.length ? <p className="text-sm">{t.seasons.waitingFor(invited.map((member) => member.username).join(", "))}</p> : null}
         {isMember && notInvited.length ? <div className="flex flex-wrap gap-2">{notInvited.map((friend) => <SimpleForm key={friend.id} action={inviteFiveSeasonAction} fields={{ season_id: season.id, friend_id: friend.id }} label={`+ ${friend.username}`} className={`${secondaryButtonClass} px-3 py-1 text-xs`} />)}</div> : null}
@@ -103,7 +101,7 @@ export function FiveSeasonDetails({ season, userId, friends }: { season: FiveSea
       <table className="w-full text-sm">
         <thead><tr className="text-left text-xs text-muted"><th className="py-1">#</th><th>{t.seasons.manager}</th><th className="text-right">{t.seasons.cols.played}</th><th className="text-right">{t.seasons.cols.wins}</th><th className="text-right">{t.seasons.cols.draws}</th><th className="text-right">{t.seasons.cols.losses}</th><th className="text-right">{t.seasons.cols.goals}</th><th className="text-right">{t.seasons.cols.points}</th></tr></thead>
         <tbody>{season.table.map((row, index) => <tr key={row.userId} className={`border-t border-white/10 ${row.userId === userId ? "font-black text-lime-300" : ""}`}>
-          <td className="py-1.5">{index + 1}</td><td>{row.username}{season.status === "completed" && (prizes.get(row.userId) ?? 0) > 0 ? <span className="ml-1 text-xs text-amber-300">+{prizes.get(row.userId)}</span> : null}</td>
+          <td className="py-1.5">{index + 1}</td><td>{row.username}</td>
           <td className="text-right">{row.played}</td><td className="text-right">{row.wins}</td><td className="text-right">{row.draws}</td><td className="text-right">{row.losses}</td><td className="text-right">{row.goalsFor}–{row.goalsAgainst}</td><td className="text-right">{row.points}</td>
         </tr>)}</tbody>
       </table>

@@ -10,8 +10,7 @@ import { supabaseAdmin } from "../supabase/server";
 import { getFiveMatch, getFiveState, getLiveFiveMatchId, listFivePeople } from "./data";
 import { aiTeam, createLiveMatch, resolveShot, settleIfFinished, shotChoiceOpen, teamFromState } from "./live";
 import { fiveClock, fiveMsPerMinute, fiveShotMinutes, FIVE_MATCH_MINUTES, FIVE_TACTIC_COOLDOWN, isFiveTactic, type FiveShotResult, type FiveTacticChange } from "./match";
-import { fiveObjectives, getFiveObjectives } from "./objectives";
-import { FIVE_AI_LEVELS, fivePacks, fivePositions, isFiveFormation, isFivePosition } from "./rules";
+import { FIVE_AI_LEVELS, fivePositions, isFiveFormation, isFivePosition } from "./rules";
 import { fiveRoundRobin, getFiveSeason } from "./seasons";
 
 const path = "/femmer";
@@ -35,48 +34,7 @@ export async function saveFiveLineupAction(_prev: ActionState, formData: FormDat
   const starters = formData.getAll("starter_ids").map(String).filter(Boolean);
   const bench = formData.getAll("bench_ids").map(String).filter(Boolean);
   if (!isFiveFormation(formation)) return { error: t.errors.invalidFormation };
-  // Vanlig-kortet og informen til samme person kan ikke stå i laget samtidig.
-  const { data: cards } = await supabaseAdmin().from("five_cards").select("person_id").eq("owner_id", user.id).in("id", [...starters, ...bench]);
-  const people = (cards ?? []).map((card) => card.person_id);
-  if (new Set(people).size !== people.length) return { error: t.errors.samePersonTwice };
   const { error } = await supabaseAdmin().rpc("save_five_lineup", { target_user: user.id, next_formation: formation, next_starters: starters, next_bench: bench });
-  if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
-  revalidatePath(path);
-  return { ok: true };
-}
-
-export type FivePull = { cardId: string; personId: string; informId: string | null; overall: number; upgrade: boolean };
-export type FivePackState = ActionState & { pulls?: FivePull[]; openedAt?: number; coins?: number };
-type RawPull = { card_id: string; person_id: string; inform_id: string | null; overall: number; upgrade: boolean };
-const toPulls = (data: unknown): FivePull[] => ((Array.isArray(data) ? data : []) as RawPull[]).map((pull) => ({ cardId: pull.card_id, personId: pull.person_id, informId: pull.inform_id ?? null, overall: pull.overall, upgrade: pull.upgrade }));
-
-export async function openFivePackAction(_prev: FivePackState, formData: FormData): Promise<FivePackState> {
-  const user = await requireUser();
-  const pack = fivePacks.find((entry) => entry.key === formData.get("pack_key"));
-  if (!pack) return { error: (await getT()).femmer.errors.invalidPack };
-  const { data, error } = await supabaseAdmin().rpc("open_five_pack", { target_user: user.id, card_count: pack.cards, pack_price: pack.price });
-  if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
-  revalidatePath(path);
-  return { ok: true, pulls: toPulls(data), openedAt: Date.now() };
-}
-
-export async function claimFiveObjectiveAction(_prev: FivePackState, formData: FormData): Promise<FivePackState> {
-  const user = await requireUser();
-  const t = (await getT()).femmer;
-  const key = String(formData.get("objective") ?? "");
-  if (!fiveObjectives.some((objective) => objective.key === key)) return { error: t.errors.objectiveNotDone };
-  // Fremgangen sjekkes her på serveren; databasen passer på at premien bare hentes én gang per periode.
-  const status = (await getFiveObjectives(user.id)).find((objective) => objective.key === key)!;
-  if (status.progress < status.target) return { error: t.errors.objectiveNotDone };
-  const { data, error } = await supabaseAdmin().rpc("claim_five_objective", { target_user: user.id, objective_key: key, period: status.periodStart, reward_coins: status.coins, pack_cards: status.packCards, with_inform: status.inform });
-  if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
-  revalidatePath(path);
-  return { ok: true, pulls: toPulls(data), openedAt: Date.now(), coins: status.coins };
-}
-
-export async function upgradeFiveCardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  const { error } = await supabaseAdmin().rpc("upgrade_five_card", { target_user: user.id, target_card: String(formData.get("card_id") ?? "") });
   if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
   revalidatePath(path);
   return { ok: true };
@@ -212,11 +170,11 @@ export async function setFiveTacticAction(matchId: string, tactic: string): Prom
   return { ok: true, tactics: [...match.tactics, { minute: from, side, tactic }] };
 }
 
-export type FiveCompleteState = ActionState & { coins?: number; shots?: FiveShotResult[] };
+export type FiveCompleteState = ActionState & { shots?: FiveShotResult[] };
 
 /**
  * Kalles når klokka har gått ut. Kampen gjøres opp bare hvis serverens klokke sier at den er ferdig.
- * Svarer med myntene til den som spør og alle avgjorte stopp, så kampsiden kan vise sluttresultatet
+ * Svarer med alle avgjorte stopp, så kampsiden kan vise sluttresultatet
  * uten å hentes på nytt før den sender brukeren tilbake.
  */
 export async function completeFiveMatchAction(matchId: string): Promise<FiveCompleteState> {
@@ -227,8 +185,7 @@ export async function completeFiveMatchAction(matchId: string): Promise<FiveComp
   revalidatePath(path); revalidatePath(`/femmer/kamp/${matchId}`);
   if (match.seasonId) revalidatePath(`/femmer/sesong/${match.seasonId}`);
   const settled = await getFiveMatch(matchId, user.id);
-  const coins = settled ? (settled.homeUserId === user.id ? settled.coins : settled.awayCoins) : 0;
-  return { ok: true, coins, shots: settled?.shots ?? [] };
+  return { ok: true, shots: settled?.shots ?? [] };
 }
 
 // ---------------------------------------------------------------------------
