@@ -20,6 +20,8 @@ function parsePlace(value: string | undefined): Place | null {
 }
 /** Musa begynner å dra etter noen piksler. På mobil må man holde fingeren litt, ellers er det vanlig scrolling. */
 const DRAG_DISTANCE = 6;
+/** Formasjonene går fra angrep (y ≈ 22) til keeper (y = 90). Her strekkes de over hele den indre flaten. */
+const pitchY = (y: number) => Math.min(100, Math.max(0, ((y - 22) / (90 - 22)) * 100));
 const TOUCH_HOLD_MS = 220;
 
 /** Beste lag: for hver plass det beste kortet med riktig posisjon, ellers det beste som er igjen. Én person per lag. */
@@ -202,13 +204,17 @@ export function FiveSquad({ cards, starters: savedStarters, bench: savedBench, f
     </div>
 
     {/* Banen: et lite femmerfelt med eget mål nederst. */}
-    <div className="relative mx-auto aspect-[4/5] w-full max-w-xl overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(180deg,#0d5a3c,#12744c)]">
+    {/* Banen er høyere på mobil, så fire rader med kort får plass uten å ligge oppå hverandre. */}
+    <div className="relative mx-auto aspect-[3/5] min-h-[34rem] w-full max-w-xl overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(180deg,#0d5a3c,#12744c)] sm:aspect-[3/4]">
       <div className="absolute inset-3 rounded-xl border-2 border-white/40" />
       <div className="absolute inset-x-3 top-1/2 border-t-2 border-white/40" />
       <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/40" />
       <div className="absolute bottom-3 left-1/2 h-16 w-40 -translate-x-1/2 rounded-t-full border-2 border-b-0 border-white/40" />
       <div className="absolute left-1/2 top-3 h-16 w-40 -translate-x-1/2 rounded-b-full border-2 border-t-0 border-white/40" />
-      {slots.map((slot, index) => <div key={index} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${slot.x}%`, top: `${slot.y}%` }}>{tile(starters[index], { area: "starters", index }, slot.role)}</div>)}
+      {/* Kortene plasseres innenfor en indre flate som er et halvt kort mindre på alle kanter, så de aldri går utenfor banen. */}
+      <div className="absolute inset-x-[42px] inset-y-[66px] sm:inset-x-[52px] sm:inset-y-[80px]">
+        {slots.map((slot, index) => <div key={index} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${slot.x}%`, top: `${pitchY(slot.y)}%` }}>{tile(starters[index], { area: "starters", index }, slot.role)}</div>)}
+      </div>
     </div>
 
     <section className={`${cardClass} grid gap-3`}>

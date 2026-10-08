@@ -9,12 +9,13 @@ export type FiveRole = "GK" | "D" | "M" | "A";
 export type FiveFormation = "1-2-1" | "2-2" | "3-1" | "1-1-2";
 export type FiveSlot = { role: FiveRole; x: number; y: number };
 
-// x og y er prosent av banen, med eget mål nederst.
+// x og y er prosent av banen, med eget mål nederst. Rader som står rett bak hverandre, har minst 22 i avstand,
+// ellers ligger kortene oppå hverandre på smale mobiler.
 export const fiveFormations: Record<FiveFormation, FiveSlot[]> = {
   "1-2-1": [{ role: "GK", x: 50, y: 90 }, { role: "D", x: 50, y: 68 }, { role: "M", x: 20, y: 46 }, { role: "M", x: 80, y: 46 }, { role: "A", x: 50, y: 22 }],
   "2-2": [{ role: "GK", x: 50, y: 90 }, { role: "D", x: 28, y: 66 }, { role: "D", x: 72, y: 66 }, { role: "A", x: 28, y: 28 }, { role: "A", x: 72, y: 28 }],
-  "3-1": [{ role: "GK", x: 50, y: 90 }, { role: "D", x: 18, y: 64 }, { role: "D", x: 50, y: 70 }, { role: "D", x: 82, y: 64 }, { role: "A", x: 50, y: 26 }],
-  "1-1-2": [{ role: "GK", x: 50, y: 90 }, { role: "D", x: 50, y: 70 }, { role: "M", x: 50, y: 48 }, { role: "A", x: 26, y: 24 }, { role: "A", x: 74, y: 24 }],
+  "3-1": [{ role: "GK", x: 50, y: 90 }, { role: "D", x: 12, y: 62 }, { role: "D", x: 50, y: 68 }, { role: "D", x: 88, y: 62 }, { role: "A", x: 50, y: 26 }],
+  "1-1-2": [{ role: "GK", x: 50, y: 90 }, { role: "D", x: 50, y: 68 }, { role: "M", x: 50, y: 46 }, { role: "A", x: 26, y: 24 }, { role: "A", x: 74, y: 24 }],
 };
 export const fiveFormationNames = Object.keys(fiveFormations) as FiveFormation[];
 export function isFiveFormation(value: unknown): value is FiveFormation {
