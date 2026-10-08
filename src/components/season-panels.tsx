@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import type { ActionState } from "@/lib/actions";
 import type { Friend } from "@/lib/friends";
-import { createFriendSeasonAction, playAiSeasonMatchAction, playFriendSeasonMatchAction, respondFriendSeasonAction, startFriendSeasonAction } from "@/lib/season-actions";
+import { createFriendSeasonAction, joinFriendSeasonByCodeAction, playAiSeasonMatchAction, playFriendSeasonMatchAction, respondFriendSeasonAction, startFriendSeasonAction } from "@/lib/season-actions";
 import { arenaOf, lastArena } from "@/lib/arenas";
 import { directPromotionSpots, isRelegation, playoffPosition } from "@/lib/season-rules";
 import type { AiSeason, FriendSeason, SeasonFixture, SeasonTableRow } from "@/lib/seasons";
@@ -132,6 +132,37 @@ function PlayFriendFixture({ fixture }: { fixture: SeasonFixture }) {
   return <form action={action} className="shrink-0"><input type="hidden" name="fixture_id" value={fixture.id} /><button disabled={pending} title={state.error} className="rounded-lg bg-lime-300 px-2.5 py-1 text-xs font-black text-slate-950 disabled:opacity-60">{fixture.status === "live" ? t.seasons.friend.watchLive : t.seasons.friend.play}</button>{state.error ? <span className="sr-only">{state.error}</span> : null}</form>;
 }
 
+// Lenken bygges når den deles, så den får riktig domene. På mobil åpnes delingsmenyen,
+// ellers kopieres lenken.
+function FriendSeasonInvite({ season }: { season: FriendSeason }) {
+  const copy = useT().seasons.friend;
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const url = `${window.location.origin}/join/sesong/${season.inviteCode}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: season.name, url }); return; } catch (error) { if (error instanceof DOMException && error.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(url); setCopied(true); } catch { setCopied(false); }
+  };
+  return <div className="grid gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div><p className="text-[10px] font-black tracking-widest text-white/45">{copy.inviteLink}</p><p className="font-black tracking-[0.2em]">{season.inviteCode}</p></div>
+      <button type="button" onClick={share} className={secondaryButtonClass}>{copied ? copy.linkCopied : copy.shareLink}</button>
+    </div>
+    <p className="text-xs text-white/50">{copy.inviteLinkHint}</p>
+  </div>;
+}
+
+export function JoinFriendSeasonButton({ code }: { code: string }) {
+  const copy = useT().seasons.joinLink;
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return <div className="grid gap-2">
+    <button type="button" disabled={pending} onClick={() => startTransition(async () => { const result = await joinFriendSeasonByCodeAction(code); setError(result.error ?? null); })} className={buttonClass}>{pending ? copy.joining : copy.button}</button>
+    {error ? <p className="text-sm text-red-500">{error}</p> : null}
+  </div>;
+}
+
 function FriendSeasonCard({ season }: { season: FriendSeason }) {
   const t = useT();
   const copy = t.seasons.friend;
@@ -142,6 +173,7 @@ function FriendSeasonCard({ season }: { season: FriendSeason }) {
   return <section className={`${panelClass} grid content-start gap-3`}>
     <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-black tracking-[.22em] text-cyan-300">{copy.status[season.status]}</p><h3 className="text-xl font-black">{season.name}</h3></div><p className="text-xs text-white/50">{copy.managers(joined.length)}</p></div>
     {season.status === "open" ? <>
+      {season.myStatus === "joined" ? <FriendSeasonInvite season={season} /> : null}
       <ul className="flex flex-wrap gap-1.5">{season.members.map((member) => <li key={member.userId} className={`rounded-full px-2.5 py-1 text-xs font-bold ${member.status === "joined" ? "bg-lime-300/15 text-lime-200" : "bg-white/5 text-white/50"}`}>{member.username}{member.status === "invited" ? copy.invitedSuffix : ""}</li>)}</ul>
       {season.myStatus === "invited" ? <form action={respond} className="flex gap-2"><input type="hidden" name="season_id" value={season.id} /><button name="answer" value="join" disabled={responding} className={buttonClass}>{copy.join}</button><button name="answer" value="decline" disabled={responding} className={secondaryButtonClass}>{copy.decline}</button></form>
         : season.isOwner ? <form action={start}><input type="hidden" name="season_id" value={season.id} /><button disabled={starting || joined.length < 2} className={buttonClass}>{copy.start}</button><p className="mt-1 text-xs text-white/45">{copy.startHint}</p></form>
@@ -160,12 +192,14 @@ function CreateFriendSeason({ friends }: { friends: Friend[] }) {
   const [state, action, pending] = useActionState(createFriendSeasonAction, initial);
   return <section className={`${panelClass} grid content-start gap-3`}>
     <div><p className="text-xs font-black tracking-[.22em] text-cyan-300">{copy.eyebrow}</p><h3 className="text-xl font-black">{copy.title}</h3><p className="mt-1 text-sm text-white/55">{copy.intro}</p></div>
-    {friends.length ? <form action={action} className="grid gap-3">
+    <form action={action} className="grid gap-3">
       <input name="name" required maxLength={40} placeholder={copy.namePlaceholder} className="rounded-lg border border-white/15 bg-black/30 px-3 py-2" />
-      <fieldset className="grid gap-1.5"><legend className="mb-1 text-xs font-black tracking-widest text-white/45">{copy.invite}</legend>{friends.map((friend) => <label key={friend.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm"><input type="checkbox" name="friend_id" value={friend.id} />{friend.username}</label>)}</fieldset>
+      {friends.length ? <fieldset className="grid gap-1.5"><legend className="mb-1 text-xs font-black tracking-widest text-white/45">{copy.invite}</legend>{friends.map((friend) => <label key={friend.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm"><input type="checkbox" name="friend_id" value={friend.id} />{friend.username}</label>)}</fieldset>
+        : <p className="text-sm text-white/55">{copy.noFriendsBefore}<Link href="/venner" className="text-cyan-300 hover:underline">{copy.friendsLink}</Link>{copy.noFriendsAfter}</p>}
+      <p className="text-xs text-white/45">{copy.linkHint}</p>
       <button disabled={pending} className={buttonClass}>{copy.submit}</button>
       {state.error ? <p className="text-sm text-rose-300">{state.error}</p> : state.ok ? <p className="text-sm text-lime-300">{copy.created}</p> : null}
-    </form> : <p className="text-sm text-white/55">{copy.noFriendsBefore}<Link href="/venner" className="text-cyan-300 hover:underline">{copy.friendsLink}</Link>{copy.noFriendsAfter}</p>}
+    </form>
   </section>;
 }
 
