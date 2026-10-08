@@ -2,67 +2,88 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "@/i18n/client";
-import { chooseFiveShotAction, completeFiveMatchAction } from "@/lib/femmer/actions";
-import { controllerShoots, effectiveRatings, fiveCellChance, fiveClock, fiveScore, fiveShotMinutes, FIVE_MATCH_MINUTES, FIVE_SHOT_CELLS, FIVE_SHOT_CHOICE_MS, playerOfMatch, teamRating, type FiveMatchData, type FiveShot, type FiveShotResult, type FiveTeam } from "@/lib/femmer/match";
+import { chooseFiveShotAction, completeFiveMatchAction, setFiveTacticAction } from "@/lib/femmer/actions";
+import { fiveClock, fiveMsPerMinute, fivePlay, fiveScore, fiveShotMinutes, FIVE_HALF_MINUTES, FIVE_MATCH_MINUTES, FIVE_SHOT_CHOICE_MS, FIVE_TACTIC_COOLDOWN, fiveTacticNames, playerOfMatch, type FiveClock, type FiveMatchData, type FiveShotResult, type FiveSide, type FiveTactic, type FiveTacticChange } from "@/lib/femmer/match";
 import { buttonClass, cardClass, secondaryButtonClass } from "../ui";
-import { FiveCardTile } from "./five-card";
+import { FivePitch, sideColors } from "./five-pitch";
 
-function Lineup({ team, title }: { team: FiveTeam; title: string }) {
-  const t = useT().femmer;
-  const ratings = effectiveRatings(team);
+const tacticIcons: Record<FiveTactic, string> = { balanced: "⚖️", attack: "⚔️", defend: "🛡️", press: "🔥" };
+
+/** Taktikkbytter for den som spiller: fire knapper, med nedkjøling mellom byttene. */
+function TacticPanel({ current, pending, nextFrom, opponent, busy, onPick }: { current: FiveTactic; pending: FiveTacticChange | null; nextFrom: number | null; opponent: FiveTactic; busy: boolean; onPick: (tactic: FiveTactic) => void }) {
+  const t = useT().femmer.match;
+  const chosen = pending?.tactic ?? current;
   return <section className={`${cardClass} grid gap-2`}>
-    <h3 className="font-black">{title} <span className="text-sm text-muted">· {team.formation} · {t.teamRating} {teamRating(team.starters) ?? "—"}</span></h3>
-    <div className="flex flex-wrap gap-2">{team.starters.map((player) => { const rating = ratings.get(player.id) ?? player.overall; return <FiveCardTile key={player.id} name={player.name} slug={player.slug} overall={player.overall} position={player.position} inform={player.inform} size="sm" label={rating < player.overall ? `${rating}` : undefined} warn={rating < player.overall} />; })}</div>
-    {team.bench.length ? <><p className="text-xs font-bold text-muted">{t.match.bench}</p><div className="flex flex-wrap gap-1 opacity-80">{team.bench.map((player) => <FiveCardTile key={player.id} name={player.name} slug={player.slug} overall={player.overall} position={player.position} inform={player.inform} size="sm" />)}</div></> : null}
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 className="font-black">{t.tactics.title}</h3>
+      <p className="text-xs text-muted">{t.opponentTactic(`${tacticIcons[opponent]} ${t.tactics[opponent]}`)}</p>
+    </div>
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {fiveTacticNames.map((tactic) => {
+        const active = tactic === chosen;
+        return <button key={tactic} type="button" disabled={busy || active || nextFrom !== null} onClick={() => onPick(tactic)} className={`grid gap-0.5 rounded-xl border px-3 py-2 text-left transition ${active ? "border-lime-300 bg-lime-300/15" : "border-white/15 bg-white/5 enabled:hover:border-lime-300/60 enabled:hover:bg-white/10 disabled:opacity-50"}`}>
+          <span className="font-black">{tacticIcons[tactic]} {t.tactics[tactic]}</span>
+          <span className="text-[11px] leading-tight text-muted">{t.tacticHelp[tactic]}</span>
+        </button>;
+      })}
+    </div>
+    {pending || nextFrom !== null ? <p className="text-xs font-bold text-amber-300">{pending ? t.tacticFrom(pending.minute) : t.tacticNext(nextFrom!)}</p> : null}
   </section>;
 }
 
-/** Målet delt i 3 × 2 ruter. Som skytter står sjansen på hver rute; som keeper velger man hvor man kaster seg. */
-function ShotGoal({ match, shot, result, interactive, onPick }: { match: FiveMatchData; shot: FiveShot; result: FiveShotResult | undefined; interactive: boolean; onPick: (cell: number) => void }) {
-  const shooting = controllerShoots(match, shot);
-  return <div className="mx-auto grid w-full max-w-md grid-cols-3 gap-1.5 rounded-t-xl border-4 border-b-0 border-white bg-[repeating-linear-gradient(45deg,rgba(255,255,255,.07)_0_6px,transparent_6px_12px)] p-2">
-    {Array.from({ length: FIVE_SHOT_CELLS }, (_, cell) => {
-      const ball = result?.shooterCell === cell; const glove = result?.keeperCell === cell;
-      return <button key={cell} type="button" disabled={!interactive} onClick={() => onPick(cell)} className={`grid h-16 place-items-center rounded-lg border text-lg font-black transition sm:h-20 ${interactive ? "border-lime-300/60 bg-lime-300/10 hover:bg-lime-300/30" : "border-white/15 bg-black/20"}`}>
-        {result ? <span className="text-3xl">{ball && glove ? "🧤⚽" : ball ? "⚽" : glove ? "🧤" : ""}</span> : shooting ? `${Math.round(fiveCellChance(shot, cell) * 100)}%` : "🧤"}
-      </button>;
-    })}
-  </div>;
+/** Målene til et lag så langt, med minutt. */
+function Scorers({ goals, side }: { goals: { minute: number; side: FiveSide; name: string }[]; side: FiveSide }) {
+  const mine = goals.filter((goal) => goal.side === side);
+  return <ul className={`grid gap-0.5 text-xs text-white/75 ${side === "home" ? "text-right" : "text-left"}`}>{mine.map((goal, index) => <li key={index} className="truncate">⚽ {goal.name} <span className="tabular-nums text-white/50">{goal.minute}′</span></li>)}</ul>;
 }
 
-type Props = { matchId: string; match: FiveMatchData; initialShots: FiveShotResult[]; status: "live" | "completed"; startedAt: string | null; serverNow: number; isController: boolean; viewerSide: "home" | "away" | null; coins: number; returnPath: string; season: boolean };
+type Props = { matchId: string; match: FiveMatchData; initialShots: FiveShotResult[]; initialTactics: FiveTacticChange[]; status: "live" | "completed"; startedAt: string | null; serverNow: number; isController: boolean; viewerSide: "home" | "away" | null; coins: number; returnPath: string; season: boolean };
 
 /** Som i managerkarrieren: etter en kamp som nettopp ble spilt, går man tilbake av seg selv etter litt. */
 const RETURN_AFTER_MS = 3_000;
+const finished: FiveClock = { phase: "full_time", minute: FIVE_MATCH_MINUTES, progress: 0, shotMinute: null, shotElapsedMs: 0 };
+
+/** Tiden på banen i kampminutter: minuttet som spilles nå og hvor langt det har kommet. */
+function pitchTime(clock: FiveClock) {
+  if (clock.phase === "first_half" || clock.phase === "second_half") return clock.minute + clock.progress;
+  return clock.phase === "halftime" ? FIVE_HALF_MINUTES : clock.minute;
+}
 
 /**
  * Kampen spilles med klokke fra serveren, så den kan ikke hoppes over og fortsetter der den var hvis
- * man laster siden på nytt. På straffer og store sjanser stopper klokka og den som spiller velger.
+ * man laster siden på nytt. Den vises på en bane der spillerne og ballen spiller ut hendelsene. Den som
+ * spiller, bytter taktikk underveis; på straffer og store sjanser zoomer banen inn og man velger rute.
  */
-export function FiveMatch({ matchId, match, initialShots, status, startedAt, serverNow, isController, viewerSide, coins, returnPath, season }: Props) {
+export function FiveMatch({ matchId, match: planned, initialShots, initialTactics, status, startedAt, serverNow, isController, viewerSide, coins, returnPath, season }: Props) {
   const t = useT().femmer;
   const router = useRouter();
   const [offset] = useState(() => serverNow - Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [results, setResults] = useState<FiveShotResult[]>(initialShots);
+  const [tactics, setTactics] = useState<FiveTacticChange[]>(initialTactics);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Satt når kampen ble ferdig mens man så på den: myntene man fikk, fra serveren.
   const [settled, setSettled] = useState<{ coins: number } | null>(null);
   const requested = useRef(new Set<string>());
   const live = status === "live" && startedAt !== null;
-  const shotMinutes = fiveShotMinutes(match);
+  const shotMinutes = fiveShotMinutes(planned);
+  const msPerMinute = fiveMsPerMinute(planned);
+  const known = live ? results : initialShots;
+  // Kampen spilles på nytt med taktikkene og stoppene vi kjenner, så banen viser det som faktisk skjer.
+  const { match, timeline } = useMemo(() => fivePlay(planned, tactics, known), [planned, tactics, known]);
 
   useEffect(() => {
     if (!live) return;
-    const tick = () => setElapsed(Date.now() + offset - new Date(startedAt).getTime());
+    let frame = 0;
+    const tick = () => { setElapsed(Date.now() + offset - new Date(startedAt).getTime()); frame = requestAnimationFrame(tick); };
     tick();
-    const timer = setInterval(tick, 100);
-    return () => clearInterval(timer);
+    return () => cancelAnimationFrame(frame);
   }, [live, offset, startedAt]);
 
-  const clock = live ? fiveClock(elapsed, shotMinutes) : { phase: "full_time" as const, minute: FIVE_MATCH_MINUTES, shotMinute: null, shotElapsedMs: 0 };
+  const clock = live ? fiveClock(elapsed, shotMinutes, msPerMinute) : finished;
   const activeShot = clock.shotMinute !== null ? (match.shots ?? []).find((shot) => shot.minute === clock.shotMinute) : undefined;
   const activeResult = activeShot ? results.find((result) => result.minute === activeShot.minute && result.outcome) : undefined;
 
@@ -74,6 +95,14 @@ export function FiveMatch({ matchId, match, initialShots, status, startedAt, ser
       if (response.result) setResults((current) => [...current.filter((entry) => entry.minute !== minute), response.result!]);
       else if (response.error) setError(response.error);
     }).catch(() => requested.current.delete(key));
+  };
+
+  const pickTactic = (tactic: FiveTactic) => {
+    setBusy(true); setError(null);
+    setFiveTacticAction(matchId, tactic).then((response) => {
+      if (response.tactics) setTactics(response.tactics);
+      else if (response.error) setError(response.error);
+    }).catch(() => setError(t.errors.matchNotLive)).finally(() => setBusy(false));
   };
 
   // Tiden for å velge er ute: da velges det for en. Klokka på serveren avgjør om valget kom i tide.
@@ -103,7 +132,6 @@ export function FiveMatch({ matchId, match, initialShots, status, startedAt, ser
     return () => clearTimeout(timer);
   }, [settled, router, returnPath]);
 
-  const known = live ? results : initialShots;
   const score = fiveScore(match, known, clock.minute);
   const done = !live || settled !== null;
   const shownCoins = settled ? settled.coins : coins;
@@ -112,29 +140,39 @@ export function FiveMatch({ matchId, match, initialShots, status, startedAt, ser
   const outcome = mine > theirs ? "win" : mine === theirs ? "draw" : "loss";
   const best = done ? playerOfMatch(match, known) : null;
 
-  // Hendelsene så langt: åpent spill og avgjorte stopp, nyeste øverst.
-  const feed = [
-    ...match.events.filter((event) => event.minute <= clock.minute).map((event) => ({ minute: event.minute, side: event.side, goal: event.type === "goal", text: event.type === "goal" ? `⚽ ${t.match.goal} – ${event.player}${event.assist ? ` (${t.match.assist(event.assist)})` : ""}` : event.type === "save" ? `🧤 ${event.player} – ${t.match.saved(event.keeper)}` : `▮ ${event.player} – ${t.match.post}` })),
-    ...(match.shots ?? []).filter((shot) => shot.minute <= clock.minute).flatMap((shot) => {
-      const result = known.find((entry) => entry.minute === shot.minute);
-      if (!result?.outcome) return [];
-      const label = shot.kind === "penalty" ? t.match.penalty : t.match.bigChance;
-      return [{ minute: shot.minute, side: shot.side, goal: result.outcome === "goal", text: `${result.outcome === "goal" ? "⚽" : result.outcome === "saved" ? "🧤" : "✕"} ${label} – ${shot.taker}: ${t.match.shotOutcome[result.outcome]}` }];
-    }),
-  ].sort((first, second) => second.minute - first.minute);
+  const goals = [
+    ...match.events.filter((event) => event.type === "goal" && event.minute <= clock.minute).map((event) => ({ minute: event.minute, side: event.side, name: event.player })),
+    ...(match.shots ?? []).filter((shot) => shot.minute <= clock.minute && known.some((result) => result.minute === shot.minute && result.outcome === "goal")).map((shot) => ({ minute: shot.minute, side: shot.side, name: `${shot.taker}${shot.kind === "penalty" ? ` (${t.match.penaltyShort})` : ""}` })),
+  ].sort((first, second) => first.minute - second.minute);
 
-  const shooting = activeShot ? controllerShoots(match, activeShot) : false;
   const secondsLeft = Math.max(0, Math.ceil((FIVE_SHOT_CHOICE_MS - clock.shotElapsedMs) / 1000));
 
+  // Taktikk: hva hvert lag spiller med nå, og når den som spiller kan bytte igjen.
+  const controller: FiveSide = match.controllerSide ?? "home";
+  const nowMinute = Math.min(FIVE_MATCH_MINUTES, clock.minute + 1);
+  const playing = clock.phase === "first_half" || clock.phase === "second_half";
+  const from = clock.minute + (playing ? 2 : 1);
+  const myChanges = tactics.filter((change) => change.side === controller).sort((first, second) => first.minute - second.minute);
+  const last = myChanges.at(-1) ?? null;
+  const pending = last && last.minute > nowMinute ? last : null;
+  const nextFrom = last && from < last.minute + FIVE_TACTIC_COOLDOWN ? last.minute + FIVE_TACTIC_COOLDOWN : null;
+  const showTactics = live && !done && match.version === 3 && clock.phase !== "full_time" && from <= FIVE_MATCH_MINUTES;
+  const current = timeline[nowMinute] ?? { home: "balanced", away: "balanced" };
+
   return <div className="grid gap-4">
-    <section className="rounded-2xl border border-white/15 bg-gradient-to-br from-fuchsia-500/25 via-slate-950 to-amber-500/20 p-5 text-center">
-      <p className="text-sm font-black tracking-widest text-white/60">{done ? t.match.fullTime : clock.phase === "halftime" ? t.match.halfTime : clock.phase === "full_time" ? t.match.settling : clock.minute === 0 ? t.match.kickoff : `${clock.minute}′`}</p>
+    <section className="rounded-2xl border border-white/15 bg-gradient-to-br from-fuchsia-500/25 via-slate-950 to-amber-500/20 p-4 text-center sm:p-5">
+      <p className="text-sm font-black tracking-widest text-white/60">{done ? t.match.fullTime : clock.phase === "halftime" ? t.match.halfTime : clock.phase === "full_time" ? t.match.settling : clock.minute === 0 && clock.progress < 0.2 ? t.match.kickoff : `${Math.min(FIVE_MATCH_MINUTES, clock.minute + (playing ? 1 : 0))}′`}</p>
       <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <p className="truncate text-right text-lg font-black sm:text-2xl">{match.home.name}</p>
+        <p className={`truncate text-right text-lg font-black sm:text-2xl ${sideColors.home.text}`}>{match.home.name}</p>
         <p className="text-5xl font-black tabular-nums">{score.home}–{score.away}</p>
-        <p className="truncate text-left text-lg font-black sm:text-2xl">{match.away.name}</p>
+        <p className={`truncate text-left text-lg font-black sm:text-2xl ${sideColors.away.text}`}>{match.away.name}</p>
       </div>
-      <div className="mx-auto mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15"><div className="h-full bg-lime-300 transition-all" style={{ width: `${(clock.minute / FIVE_MATCH_MINUTES) * 100}%` }} /></div>
+      <div className="mx-auto mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15"><div className="h-full bg-lime-300" style={{ width: `${(Math.min(FIVE_MATCH_MINUTES, clock.minute + (playing ? clock.progress : 0)) / FIVE_MATCH_MINUTES) * 100}%` }} /></div>
+      {goals.length ? <div className="mt-2 grid grid-cols-[1fr_auto_1fr] gap-3"><Scorers goals={goals} side="home" /><span className="w-[5.5rem]" /><Scorers goals={goals} side="away" /></div> : null}
+      {match.version === 3 && !done ? <div className="mt-2 flex justify-between gap-2 text-[11px] font-black">
+        <span className={`rounded-full px-2 py-0.5 ${sideColors.home.chip}`}>{tacticIcons[current.home]} {t.match.tactics[current.home]}</span>
+        <span className={`rounded-full px-2 py-0.5 ${sideColors.away.chip}`}>{tacticIcons[current.away]} {t.match.tactics[current.away]}</span>
+      </div> : null}
       {done ? <div className="mt-4 grid gap-1">
         {viewerSide ? <p className={`text-2xl font-black ${outcome === "win" ? "text-lime-300" : outcome === "loss" ? "text-red-300" : ""}`}>{t.match[outcome]}</p> : null}
         {best ? <p className="text-sm text-white/70">{t.match.playerOfMatch}: <b>{best}</b></p> : null}
@@ -143,23 +181,11 @@ export function FiveMatch({ matchId, match, initialShots, status, startedAt, ser
       </div> : null}
     </section>
 
-    {activeShot && live ? <section className={`${cardClass} grid gap-3 text-center`}>
-      <p className="text-xs font-black tracking-widest text-amber-300">{activeShot.kind === "penalty" ? t.match.penalty : t.match.bigChance} · {activeShot.minute}′</p>
-      <h3 className="text-xl font-black">{isController ? (shooting ? t.match.youShoot(activeShot.taker, activeShot.keeper ?? "?") : t.match.youSave(activeShot.keeper ?? "?", activeShot.taker)) : t.match.watching(activeShot.taker)}</h3>
-      {!activeResult && isController ? <p className="text-sm text-muted">{shooting ? t.match.pickCorner : t.match.pickDive} · {secondsLeft}s</p> : null}
-      <ShotGoal match={match} shot={activeShot} result={activeResult} interactive={isController && !activeResult && clock.shotElapsedMs < FIVE_SHOT_CHOICE_MS} onPick={(cell) => send(activeShot.minute, cell)} />
-      {activeResult?.outcome ? <p className={`text-2xl font-black ${activeResult.outcome === "goal" ? "text-lime-300" : "text-red-300"}`}>{t.match.shotOutcome[activeResult.outcome]}</p> : null}
-    </section> : null}
-    {error ? <p className="text-red-400">{error}</p> : null}
+    <FivePitch match={match} results={known} time={live ? pitchTime(clock) : FIVE_MATCH_MINUTES} shot={live ? activeShot : undefined} shotResult={activeResult} shotInteractive={isController && !activeResult && clock.shotElapsedMs < FIVE_SHOT_CHOICE_MS} secondsLeft={secondsLeft} isController={isController} onPick={(cell) => activeShot && send(activeShot.minute, cell)} />
+    {error ? <p className="text-center text-sm text-red-400">{error}</p> : null}
 
-    <section className={`${cardClass} grid gap-2`}>
-      {feed.length === 0 ? <p className="text-sm text-muted">{t.match.kickoff}…</p> : null}
-      <ul className="grid gap-1.5">{feed.map((entry, index) => <li key={`${entry.minute}-${entry.side}-${index}`} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${entry.goal ? "bg-lime-400/15 font-black" : "bg-white/5"} ${entry.side === "home" ? "" : "flex-row-reverse text-right"}`}>
-        <span className="w-8 shrink-0 font-black tabular-nums text-white/60">{entry.minute}′</span><span className="min-w-0 flex-1">{entry.text}</span>
-      </li>)}</ul>
-    </section>
+    {showTactics && isController ? <TacticPanel current={current[controller]} pending={pending} nextFrom={nextFrom} opponent={current[controller === "home" ? "away" : "home"]} busy={busy} onPick={pickTactic} /> : null}
 
-    <div className="grid gap-4 lg:grid-cols-2"><Lineup team={match.home} title={match.home.name} /><Lineup team={match.away} title={match.away.name} /></div>
-    {done ? <div className="flex flex-wrap gap-2"><Link href={returnPath} replace={Boolean(settled)} className={buttonClass}>{season ? t.match.backSeason : t.match.back}</Link>{season ? null : <Link href="/femmer?tab=kamp" className={secondaryButtonClass}>{t.match.playAgain}</Link>}</div> : null}
+    {done ? <div className="flex flex-wrap justify-center gap-2"><Link href={returnPath} replace={Boolean(settled)} className={buttonClass}>{season ? t.match.backSeason : t.match.back}</Link>{season ? null : <Link href="/femmer?tab=kamp" className={secondaryButtonClass}>{t.match.playAgain}</Link>}</div> : null}
   </div>;
 }

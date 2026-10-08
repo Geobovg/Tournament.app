@@ -19,9 +19,23 @@ export type FiveShot = { minute: number; side: FiveSide; kind: FiveShotKind; tak
 export type FiveShotResult = { minute: number; side: FiveSide; shooterCell: number | null; keeperCell: number | null; outcome: "goal" | "saved" | "missed" | null };
 /**
  * Versjon 1 var de første kampene, som ble simulert ferdig uten valg. De har `score` og ingen `shots`.
- * `controllerSide` er laget til den som spiller kampen og tar valgene.
+ * Versjon 3 har taktikk: åpent spill regnes ut på nytt fra frøet med taktikkene som gjaldt hvert minutt
+ * (se fivePlay), så `events` i en slik kamp er bare slik kampen ser ut uten taktikkbytter.
+ * `controllerSide` er laget til den som spiller kampen og tar valgene. `msPerMinute` er tempoet kampen
+ * ble spilt i; kamper fra før det fantes, gikk på FIVE_MS_PER_MINUTE.
  */
-export type FiveMatchData = { version: 1 | 2; seed: string; home: FiveTeam; away: FiveTeam; events: FiveEvent[]; shots?: FiveShot[]; controllerSide?: FiveSide; score?: { home: number; away: number }; playerOfMatch?: string | null };
+export type FiveMatchData = { version: 1 | 2 | 3; seed: string; home: FiveTeam; away: FiveTeam; events: FiveEvent[]; shots?: FiveShot[]; controllerSide?: FiveSide; msPerMinute?: number; score?: { home: number; away: number }; playerOfMatch?: string | null };
+
+/** Taktikken et lag spiller med. Den som spiller bytter selv; motstanderen svarer på stillingen. */
+export type FiveTactic = "balanced" | "attack" | "defend" | "press";
+export const fiveTacticNames: FiveTactic[] = ["balanced", "attack", "defend", "press"];
+export function isFiveTactic(value: unknown): value is FiveTactic {
+  return typeof value === "string" && (fiveTacticNames as string[]).includes(value);
+}
+/** Et taktikkbytte, som gjelder fra og med `minute`. */
+export type FiveTacticChange = { minute: number; side: FiveSide; tactic: FiveTactic };
+/** Kampminutter man må vente mellom to taktikkbytter. */
+export const FIVE_TACTIC_COOLDOWN = 5;
 
 export const FIVE_HALF_MINUTES = 20;
 export const FIVE_MATCH_MINUTES = 40;
@@ -45,7 +59,10 @@ export function teamRating(players: { overall: number }[]): number | null {
 // Klokka
 // ---------------------------------------------------------------------------
 
+/** Tempoet i kamper fra før kampen ble vist på banen. */
 export const FIVE_MS_PER_MINUTE = 450;
+/** Tempoet i nye kamper: sakte nok til å se angrepene og bytte taktikk. */
+export const FIVE_LIVE_MS_PER_MINUTE = 1_500;
 export const FIVE_HALFTIME_MS = 3_000;
 /** På et stopp: sju sekunder på å velge, tre på å se hvordan det gikk. */
 export const FIVE_SHOT_CHOICE_MS = 7_000;
@@ -53,28 +70,33 @@ export const FIVE_SHOT_REVEAL_MS = 3_000;
 export const FIVE_SHOT_MS = FIVE_SHOT_CHOICE_MS + FIVE_SHOT_REVEAL_MS;
 
 export type FivePhase = "first_half" | "halftime" | "second_half" | "shot" | "full_time";
-export type FiveClock = { phase: FivePhase; minute: number; shotMinute: number | null; shotElapsedMs: number };
+/** `minute` er minuttene som er spilt ferdig; `progress` (0–1) er hvor langt det neste har kommet. */
+export type FiveClock = { phase: FivePhase; minute: number; progress: number; shotMinute: number | null; shotElapsedMs: number };
+
+export function fiveMsPerMinute(match: Pick<FiveMatchData, "msPerMinute">) {
+  return match.msPerMinute ?? FIVE_MS_PER_MINUTE;
+}
 
 /** Hvor kampen er etter `elapsed` millisekunder. Stoppene ligger fast fra avspark, så alle får samme svar. */
-export function fiveClock(elapsed: number, shotMinutes: number[]): FiveClock {
+export function fiveClock(elapsed: number, shotMinutes: number[], msPerMinute = FIVE_MS_PER_MINUTE): FiveClock {
   let remaining = Math.max(0, elapsed);
   for (let minute = 1; minute <= FIVE_MATCH_MINUTES; minute += 1) {
-    if (remaining < FIVE_MS_PER_MINUTE) return { phase: minute <= FIVE_HALF_MINUTES ? "first_half" : "second_half", minute: minute - 1, shotMinute: null, shotElapsedMs: 0 };
-    remaining -= FIVE_MS_PER_MINUTE;
+    if (remaining < msPerMinute) return { phase: minute <= FIVE_HALF_MINUTES ? "first_half" : "second_half", minute: minute - 1, progress: remaining / msPerMinute, shotMinute: null, shotElapsedMs: 0 };
+    remaining -= msPerMinute;
     if (shotMinutes.includes(minute)) {
-      if (remaining < FIVE_SHOT_MS) return { phase: "shot", minute, shotMinute: minute, shotElapsedMs: remaining };
+      if (remaining < FIVE_SHOT_MS) return { phase: "shot", minute, progress: 0, shotMinute: minute, shotElapsedMs: remaining };
       remaining -= FIVE_SHOT_MS;
     }
     if (minute === FIVE_HALF_MINUTES) {
-      if (remaining < FIVE_HALFTIME_MS) return { phase: "halftime", minute, shotMinute: null, shotElapsedMs: 0 };
+      if (remaining < FIVE_HALFTIME_MS) return { phase: "halftime", minute, progress: 0, shotMinute: null, shotElapsedMs: 0 };
       remaining -= FIVE_HALFTIME_MS;
     }
   }
-  return { phase: "full_time", minute: FIVE_MATCH_MINUTES, shotMinute: null, shotElapsedMs: 0 };
+  return { phase: "full_time", minute: FIVE_MATCH_MINUTES, progress: 0, shotMinute: null, shotElapsedMs: 0 };
 }
 
-export function fiveDurationMs(shotMinutes: number[]) {
-  return FIVE_MATCH_MINUTES * FIVE_MS_PER_MINUTE + FIVE_HALFTIME_MS + shotMinutes.length * FIVE_SHOT_MS;
+export function fiveDurationMs(shotMinutes: number[], msPerMinute = FIVE_MS_PER_MINUTE) {
+  return FIVE_MATCH_MINUTES * msPerMinute + FIVE_HALFTIME_MS + shotMinutes.length * FIVE_SHOT_MS;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,22 +245,72 @@ function planShots(seed: string, teams: Record<FiveSide, Placed[]>): FiveShot[] 
 // Planlegging
 // ---------------------------------------------------------------------------
 
-export function planFiveMatch(seed: string, home: FiveTeam, away: FiveTeam, controllerSide: FiveSide = "home"): FiveMatchData {
-  const teams = { home: placed(home), away: placed(away) };
-  const formations = { home: home.formation, away: away.formation };
-  const benches = { home: home.bench.length, away: away.bench.length };
-  const shots = planShots(seed, teams);
+// Taktikken flytter ratingpoeng mellom angrep og forsvar. Press gir litt av begge, men laget blir
+// slitent for hvert minutt det presser, og det tar ikke benken bort.
+const tacticEdge: Record<FiveTactic, { attack: number; defence: number }> = {
+  balanced: { attack: 0, defence: 0 },
+  attack: { attack: 5, defence: -6 },
+  defend: { attack: -6, defence: 6 },
+  press: { attack: 3, defence: 3 },
+};
+const PRESS_FATIGUE = 0.15;
+
+/** Hva laget uten noen som styrer det spiller med, ut fra stillingen før minuttet (`goalDiff` er egne mål minus motstanderens). */
+export function fiveAiTactic(minute: number, goalDiff: number): FiveTactic {
+  if (goalDiff >= 1 && minute > 30) return "defend";
+  if (goalDiff <= -2 && minute > 10) return "attack";
+  if (goalDiff <= -1 && minute > 24) return "attack";
+  if (goalDiff <= -1 && minute > 14) return "press";
+  return "balanced";
+}
+
+/** Taktikken den som spiller har valgt for et minutt: det siste byttet som gjelder fra før eller fra det minuttet. */
+function chosenTactic(changes: FiveTacticChange[], side: FiveSide, minute: number): FiveTactic {
+  let tactic: FiveTactic = "balanced"; let from = 0;
+  for (const change of changes) if (change.side === side && change.minute <= minute && change.minute >= from) { tactic = change.tactic; from = change.minute; }
+  return tactic;
+}
+
+/** Taktikkene i hvert minutt; indeks 0 er ubrukt. */
+export type FiveTacticTimeline = Record<FiveSide, FiveTactic>[];
+
+/**
+ * Spiller det åpne spillet minutt for minutt. Hvert minutt trekkes fra frøet for seg, så et taktikkbytte
+ * endrer bare minuttene etter at det gjelder. Laget uten noen som styrer det, svarer på stillingen, og
+ * da teller straffer og sjanser som er avgjort (`results`).
+ */
+function openPlay(data: Pick<FiveMatchData, "seed" | "home" | "away" | "controllerSide">, shots: FiveShot[], changes: FiveTacticChange[], results: FiveShotResult[]) {
+  const { seed } = data;
+  const teams = { home: placed(data.home), away: placed(data.away) };
+  const formations = { home: data.home.formation, away: data.away.formation };
+  const benches = { home: data.home.bench.length, away: data.away.bench.length };
   const shotMinutes = new Set(shots.map((shot) => shot.minute));
+  const controller = data.controllerSide ?? "home";
   const events: FiveEvent[] = [];
+  const timeline: FiveTacticTimeline = [{ home: "balanced", away: "balanced" }];
+  const score = { home: 0, away: 0 };
+  const pressed = { home: 0, away: 0 };
 
   for (let minute = 1; minute <= FIVE_MATCH_MINUTES; minute += 1) {
-    // Minuttet med straffe eller stor sjanse har ingen andre hendelser, så stoppet står alene.
-    if (shotMinutes.has(minute)) continue;
+    const tactics = {} as Record<FiveSide, FiveTactic>;
     for (const side of ["home", "away"] as const) {
       const opponent: FiveSide = side === "home" ? "away" : "home";
-      const tired = fatigue(minute, benches[side]);
-      const opponentTired = fatigue(minute, benches[opponent]);
-      const edge = unit(teams[side], attackWeights, tired) + tilt(formations[side]).attack - unit(teams[opponent], defenceWeights, opponentTired) - tilt(formations[opponent]).defence;
+      tactics[side] = side === controller ? chosenTactic(changes, side, minute) : fiveAiTactic(minute, score[side] - score[opponent]);
+      if (tactics[side] === "press") pressed[side] += 1;
+    }
+    timeline.push(tactics);
+    // Minuttet med straffe eller stor sjanse har ingen andre hendelser, så stoppet står alene.
+    if (shotMinutes.has(minute)) {
+      const result = results.find((entry) => entry.minute === minute);
+      if (result?.outcome === "goal") score[result.side] += 1;
+      continue;
+    }
+    for (const side of ["home", "away"] as const) {
+      const opponent: FiveSide = side === "home" ? "away" : "home";
+      const tired = fatigue(minute, benches[side]) + pressed[side] * PRESS_FATIGUE;
+      const opponentTired = fatigue(minute, benches[opponent]) + pressed[opponent] * PRESS_FATIGUE;
+      const edge = unit(teams[side], attackWeights, tired) + tilt(formations[side]).attack + tacticEdge[tactics[side]].attack
+        - unit(teams[opponent], defenceWeights, opponentTired) - tilt(formations[opponent]).defence - tacticEdge[tactics[opponent]].defence;
       const attemptRate = bounded(0.13 * Math.exp(edge * 0.04), 0.03, 0.3);
       if (seededRoll(`${seed}:${minute}:${side}:attempt`) >= attemptRate) continue;
 
@@ -251,6 +323,7 @@ export function planFiveMatch(seed: string, home: FiveTeam, away: FiveTeam, cont
         const solo = seededRoll(`${seed}:${minute}:${side}:solo`) < 0.25;
         const assist = solo ? null : weightedPick(teams[side].filter((player) => player.id !== shooter.id), assistWeights, seededRoll(`${seed}:${minute}:${side}:assist`), minute);
         events.push({ type: "goal", minute, side, playerId: shooter.id, player: shooter.name, assistId: assist?.id ?? null, assist: assist?.name ?? null });
+        score[side] += 1;
       } else if ((finish - scoring) / (1 - scoring) < 0.7) {
         events.push({ type: "save", minute, side, playerId: shooter.id, player: shooter.name, keeper: keeper?.name ?? null });
       } else {
@@ -258,7 +331,23 @@ export function planFiveMatch(seed: string, home: FiveTeam, away: FiveTeam, cont
       }
     }
   }
-  return { version: 2, seed, home, away, events, shots, controllerSide };
+  return { events, timeline };
+}
+
+export function planFiveMatch(seed: string, home: FiveTeam, away: FiveTeam, controllerSide: FiveSide = "home"): FiveMatchData {
+  const shots = planShots(seed, { home: placed(home), away: placed(away) });
+  const { events } = openPlay({ seed, home, away, controllerSide }, shots, [], []);
+  return { version: 3, seed, home, away, events, shots, controllerSide, msPerMinute: FIVE_LIVE_MS_PER_MINUTE };
+}
+
+/**
+ * Kampen slik den faktisk ble spilt med taktikkbyttene og stoppene som er avgjort. Eldre kamper uten
+ * taktikk har hendelsene sine lagret og spilte balansert hele veien.
+ */
+export function fivePlay(match: FiveMatchData, changes: FiveTacticChange[], results: FiveShotResult[]): { match: FiveMatchData; timeline: FiveTacticTimeline } {
+  if (match.version !== 3) return { match, timeline: Array.from({ length: FIVE_MATCH_MINUTES + 1 }, () => ({ home: "balanced", away: "balanced" })) };
+  const { events, timeline } = openPlay(match, match.shots ?? [], changes, results);
+  return { match: { ...match, events }, timeline };
 }
 
 // ---------------------------------------------------------------------------
