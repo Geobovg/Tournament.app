@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "@/i18n/client";
 import type { ActionState } from "@/lib/actions";
 import type { FiveCard } from "@/lib/femmer/data";
@@ -13,6 +13,16 @@ import { FiveCardDialog } from "./five-card-dialog";
 
 const initial: ActionState = {};
 type Place = { area: "starters" | "bench" | "reserves"; index: number };
+const placeKey = (place: Place) => `${place.area}:${place.index}`;
+function parsePlace(value: string | undefined): Place | null {
+  const [area, index] = (value ?? "").split(":");
+  return area === "starters" || area === "bench" || area === "reserves" ? { area, index: Number(index) } : null;
+}
+/** Musa begynner å dra etter noen piksler. På mobil må man holde fingeren litt, ellers er det vanlig scrolling. */
+const DRAG_DISTANCE = 6;
+/** Formasjonene går fra angrep (y ≈ 22) til keeper (y = 90). Her strekkes de over hele den indre flaten. */
+const pitchY = (y: number) => Math.min(100, Math.max(0, ((y - 22) / (90 - 22)) * 100));
+const TOUCH_HOLD_MS = 220;
 
 /** Beste lag: for hver plass det beste kortet med riktig posisjon, ellers det beste som er igjen. Én person per lag. */
 function bestTeam(cards: FiveCard[], formation: FiveFormation) {
@@ -55,14 +65,97 @@ export function FiveSquad({ cards, starters: savedStarters, bench: savedBench, f
     if (place.area === "starters") nextStarters[place.index] = id;
     else if (place.area === "bench") nextBench[place.index] = id;
   };
+  const swap = (first: Place, second: Place) => {
+    if (placeKey(first) === placeKey(second)) return;
+    const firstId = idAt(first); const secondId = idAt(second);
+    const nextStarters = [...starters]; const nextBench = [...bench];
+    setAt(first, secondId, nextStarters, nextBench);
+    setAt(second, firstId, nextStarters, nextBench);
+    setStarters(nextStarters); setBench(nextBench);
+  };
   const tap = (place: Place) => {
     if (!selected) { if (idAt(place) || place.area !== "reserves") setSelected(place); return; }
-    if (selected.area === place.area && selected.index === place.index) { setSelected(null); return; }
-    const first = idAt(selected); const second = idAt(place);
-    const nextStarters = [...starters]; const nextBench = [...bench];
-    setAt(selected, second, nextStarters, nextBench);
-    setAt(place, first, nextStarters, nextBench);
-    setStarters(nextStarters); setBench(nextBench); setSelected(null);
+    if (placeKey(selected) !== placeKey(place)) swap(selected, place);
+    setSelected(null);
+  };
+
+  // ---- Dra og slipp ----------------------------------------------------------------
+  // Kortet som dras, følger fingeren/musa i et eget lag som flyttes direkte (uten ny tegning av
+  // siden). Bare målet under fingeren ligger i state, så siden tegnes bare når det endrer seg.
+  const [dragging, setDragging] = useState<Place | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const ghost = useRef<HTMLDivElement>(null);
+  const press = useRef<{ place: Place; x: number; y: number; touch: boolean; timer: number | null; started: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const beginRef = useRef<() => void>(() => undefined);
+  const swapRef = useRef(swap);
+  useEffect(() => { swapRef.current = swap; });
+
+  useEffect(() => {
+    const moveGhost = (x: number, y: number) => { if (ghost.current) { ghost.current.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -60%)`; ghost.current.style.opacity = "1"; } };
+    const targetAt = (x: number, y: number) => (document.elementFromPoint(x, y)?.closest("[data-place]") as HTMLElement | null)?.dataset.place ?? null;
+    const begin = () => {
+      const current = press.current;
+      if (!current) return;
+      current.started = true;
+      setSelected(null);
+      setDragging(current.place);
+      setOver(placeKey(current.place));
+      requestAnimationFrame(() => moveGhost(current.x, current.y));
+      navigator.vibrate?.(10);
+    };
+    const onMove = (event: PointerEvent) => {
+      const current = press.current;
+      if (!current) return;
+      const moved = Math.hypot(event.clientX - current.x, event.clientY - current.y);
+      if (!current.started) {
+        // På mobil: beveger fingeren seg før den har holdt lenge nok, er det scrolling og ikke dra.
+        if (current.touch) { if (moved > 10) cancel(); return; }
+        if (moved < DRAG_DISTANCE) return;
+        current.x = event.clientX; current.y = event.clientY;
+        begin();
+        return;
+      }
+      moveGhost(event.clientX, event.clientY);
+      const target = targetAt(event.clientX, event.clientY);
+      setOver((previous) => (previous === target ? previous : target));
+    };
+    const onUp = (event: PointerEvent) => {
+      const current = press.current;
+      if (!current) return;
+      if (current.started) {
+        const target = parsePlace(targetAt(event.clientX, event.clientY) ?? undefined);
+        if (target) swapRef.current(current.place, target);
+        suppressClick.current = true;
+        setTimeout(() => { suppressClick.current = false; }, 0);
+      }
+      cancel();
+    };
+    // Mens et kort dras på mobil, skal ikke siden scrolle under fingeren.
+    const onTouchMove = (event: TouchEvent) => { if (press.current?.started) event.preventDefault(); };
+    function cancel() {
+      if (press.current?.timer) clearTimeout(press.current.timer);
+      press.current = null;
+      setDragging(null); setOver(null);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    beginRef.current = begin;
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
+
+  const startPress = (event: React.PointerEvent, place: Place) => {
+    if (!idAt(place) || event.button > 0) return;
+    const touch = event.pointerType !== "mouse";
+    press.current = { place, x: event.clientX, y: event.clientY, touch, timer: null, started: false };
+    if (touch) press.current.timer = window.setTimeout(() => beginRef.current(), TOUCH_HOLD_MS);
   };
   const autoPick = () => {
     const best = bestTeam(cards, formation);
@@ -74,12 +167,18 @@ export function FiveSquad({ cards, starters: savedStarters, bench: savedBench, f
   const tile = (id: string | null, place: Place, role?: FiveRole) => {
     const card = id ? byId.get(id) : null;
     const penalty = card && role ? fivePositionPenalty(card.position, role) : 0;
-    return <button type="button" onClick={() => tap(place)} className="grid justify-items-center" aria-pressed={isSelected(place)}>
-      {card ? <FiveCardTile name={card.name} slug={card.slug} overall={card.overall} position={card.position} inform={Boolean(card.informId)} size="sm" label={role ? (penalty ? `${t.squad.roles[role]} −${penalty}` : t.squad.roles[role]) : undefined} warn={penalty > 0} selected={isSelected(place)} /> : <span className={`grid h-28 w-[72px] place-items-center rounded-xl border-2 border-dashed text-xs font-bold sm:h-36 sm:w-[92px] ${isSelected(place) ? "border-lime-300 text-lime-300" : "border-white/25 text-white/45"}`}>{role ? t.squad.roles[role] : t.squad.empty}</span>}
+    const key = placeKey(place);
+    const isSource = dragging !== null && placeKey(dragging) === key;
+    const isTarget = dragging !== null && over === key && !isSource;
+    // Hele flaten er både trykk- og dra-mål. select-none og touch-callout hindrer at mobilen markerer tekst når man holder.
+    return <button type="button" data-place={key} onPointerDown={(event) => startPress(event, place)} onClick={() => { if (!suppressClick.current) tap(place); }} onContextMenu={(event) => event.preventDefault()} onDragStart={(event) => event.preventDefault()} className={`grid select-none justify-items-center rounded-xl [-webkit-touch-callout:none] ${isTarget ? "ring-4 ring-amber-300" : ""} ${isSource ? "opacity-40" : ""} ${dragging ? "cursor-grabbing" : card ? "cursor-grab" : ""}`} aria-pressed={isSelected(place)}>
+      {card ? <FiveCardTile name={card.name} slug={card.slug} overall={card.overall} position={card.position} inform={Boolean(card.informId)} size="sm" label={role ? (penalty ? `${t.squad.roles[role]} −${penalty}` : t.squad.roles[role]) : undefined} warn={penalty > 0} selected={isSelected(place)} /> : <span className={`grid h-28 w-[72px] place-items-center rounded-xl border-2 border-dashed text-xs font-bold sm:h-36 sm:w-[92px] ${isSelected(place) || isTarget ? "border-lime-300 text-lime-300" : "border-white/25 text-white/45"}`}>{role ? t.squad.roles[role] : t.squad.empty}</span>}
     </button>;
   };
   const selectedId = selected ? idAt(selected) : null;
   const detailCard = details ? byId.get(details) : undefined;
+  const draggedId = dragging ? idAt(dragging) : null;
+  const dragCard = draggedId ? byId.get(draggedId) : undefined;
 
   return <form action={action} className="grid gap-4">
     <input type="hidden" name="formation" value={formation} />
@@ -93,21 +192,29 @@ export function FiveSquad({ cards, starters: savedStarters, bench: savedBench, f
       <span className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-black">{t.teamRating}: {rating ?? "—"}</span>
       <button type="button" onClick={autoPick} className={secondaryButtonClass}>{t.squad.autoPick}</button>
       <button type="submit" disabled={pending || !dirty || starters.some((id) => !id) || duplicatePerson} className={buttonClass}>{t.squad.save}</button>
-      {dirty ? <span className="text-sm font-bold text-amber-300">{t.squad.unsaved}</span> : state.ok ? <span className="text-sm font-bold text-lime-300">{t.squad.saved}</span> : null}
     </div>
     <p className="text-sm text-muted">{t.squad.hint}</p>
-    {selectedId ? <div className="flex flex-wrap items-center gap-2 rounded-xl border border-lime-300/40 bg-lime-300/10 p-2 text-sm"><span className="font-bold">{byId.get(selectedId)?.name}</span><button type="button" onClick={() => { setDetails(selectedId); setSelected(null); }} className={secondaryButtonClass}>{t.squad.details}</button></div> : null}
-    {duplicatePerson ? <p className="text-sm text-amber-300">{t.errors.samePersonTwice}</p> : null}
-    {state.error ? <p className="text-red-400">{state.error}</p> : null}
+    {/* Statuslinja har fast høyde og én linje, så banen under aldri flytter seg når den endrer innhold. */}
+    <div className="flex h-11 items-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-slate-900/60 px-3 text-sm">
+      {selectedId ? <><span className="truncate font-bold text-lime-300">{byId.get(selectedId)?.name}</span><span className="hidden truncate text-muted sm:inline">{t.squad.tapTarget}</span><button type="button" onClick={() => { setDetails(selectedId); setSelected(null); }} className="ml-auto shrink-0 rounded-lg bg-white/10 px-3 py-1 text-xs font-black hover:bg-white/20">{t.squad.details}</button></>
+        : duplicatePerson ? <span className="truncate text-amber-300">{t.errors.samePersonTwice}</span>
+        : state.error ? <span className="truncate text-red-400">{state.error}</span>
+        : dirty ? <span className="truncate font-bold text-amber-300">{t.squad.unsaved}</span>
+        : <span className={`truncate font-bold ${state.ok ? "text-lime-300" : "text-lime-300/60"}`}>{t.squad.saved}</span>}
+    </div>
 
     {/* Banen: et lite femmerfelt med eget mål nederst. */}
-    <div className="relative mx-auto aspect-[4/5] w-full max-w-xl overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(180deg,#0d5a3c,#12744c)]">
+    {/* Banen er høyere på mobil, så fire rader med kort får plass uten å ligge oppå hverandre. */}
+    <div className="relative mx-auto aspect-[3/5] min-h-[34rem] w-full max-w-xl overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(180deg,#0d5a3c,#12744c)] sm:aspect-[3/4]">
       <div className="absolute inset-3 rounded-xl border-2 border-white/40" />
       <div className="absolute inset-x-3 top-1/2 border-t-2 border-white/40" />
       <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/40" />
       <div className="absolute bottom-3 left-1/2 h-16 w-40 -translate-x-1/2 rounded-t-full border-2 border-b-0 border-white/40" />
       <div className="absolute left-1/2 top-3 h-16 w-40 -translate-x-1/2 rounded-b-full border-2 border-t-0 border-white/40" />
-      {slots.map((slot, index) => <div key={index} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${slot.x}%`, top: `${slot.y}%` }}>{tile(starters[index], { area: "starters", index }, slot.role)}</div>)}
+      {/* Kortene plasseres innenfor en indre flate som er et halvt kort mindre på alle kanter, så de aldri går utenfor banen. */}
+      <div className="absolute inset-x-[42px] inset-y-[66px] sm:inset-x-[52px] sm:inset-y-[80px]">
+        {slots.map((slot, index) => <div key={index} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${slot.x}%`, top: `${pitchY(slot.y)}%` }}>{tile(starters[index], { area: "starters", index }, slot.role)}</div>)}
+      </div>
     </div>
 
     <section className={`${cardClass} grid gap-3`}>
@@ -121,5 +228,6 @@ export function FiveSquad({ cards, starters: savedStarters, bench: savedBench, f
     </section>
     <p className="text-xs text-muted">{t.squad.positionRule} {t.cards.xpRule(FIVE_XP_PER_LEVEL)}</p>
     {detailCard ? <FiveCardDialog card={detailCard} coins={coins} onClose={() => setDetails(null)} /> : null}
+    {dragCard ? <div ref={ghost} aria-hidden className="pointer-events-none fixed left-0 top-0 z-50 opacity-0 drop-shadow-2xl will-change-transform"><FiveCardTile name={dragCard.name} slug={dragCard.slug} overall={dragCard.overall} position={dragCard.position} inform={Boolean(dragCard.informId)} size="sm" /></div> : null}
   </form>;
 }
