@@ -427,7 +427,7 @@ const iconPhotos = new Set<string>([
  * i personal_cards.slug og begynner alltid med «personal-», så den aldri kolliderer med en ekte spiller.
  * Nytt kort: legg bildet i public/personal/<slug>.png (256 × 256, gjennomsiktig bakgrunn) og slugen her.
  */
-const personalPhotos = new Set<string>(["personal-theodor", "personal-wrualswhuarne", "personal-gryteknuten", "personal-sigma", "personal-per", "personal-mjau", "personal-big-cal", "personal-geo", "personal-joeltje", "personal-bjarne", "personal-luch", "personal-loud8", "personal-rogbert", "personal-vicco", "personal-chriseek", "personal-danmatsol", "personal-howie", "personal-hakis", "personal-navidadunlefrwhuin"]);
+const personalPhotos = new Set<string>(["personal-theodor", "personal-wrualswhuarne", "personal-gryteknuten", "personal-sigma", "personal-per", "personal-mjau", "personal-big-cal", "personal-geo", "personal-joeltje", "personal-bjarne", "personal-luch", "personal-loud8", "personal-rogbert", "personal-vicco", "personal-chriseek", "personal-danmatsol", "personal-howie", "personal-hakis", "personal-navidadunlefrwhuin", "personal-f-edits"]);
 
 export function playerPhoto(slug: string): string | null {
   if (personalPhotos.has(slug)) return `/personal/${slug}.png`;
