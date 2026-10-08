@@ -39,12 +39,7 @@ export function fiveAiRating(level: number) {
   return Math.min(98, Math.round(62 + Math.max(1, level) * 1.2));
 }
 
-/**
- * Mynter per kamp. Bare de første kampene hver dag gir mynter, så man ikke kan spille
- * hundre kamper på rad for å få råd til alle pakkene.
- */
-export const FIVE_REWARDED_AI_MATCHES_PER_DAY = 15;
-export const FIVE_REWARDED_FRIEND_MATCHES_PER_DAY = 5;
+/** Mynter per kamp. Alle kamper gir mynter, uansett hvor mange man spiller. */
 export function fiveAiReward(level: number, result: "win" | "draw" | "loss") {
   if (result === "win") return 100 + level * 10;
   if (result === "draw") return 40 + level * 3;
@@ -53,6 +48,37 @@ export function fiveAiReward(level: number, result: "win" | "draw" | "loss") {
 export function fiveFriendReward(result: "win" | "draw" | "loss") {
   return result === "win" ? 150 : result === "draw" ? 60 : 25;
 }
+export function fiveSeasonReward(result: "win" | "draw" | "loss") {
+  return result === "win" ? 200 : result === "draw" ? 80 : 30;
+}
+/** Premiene i en vennesesong (finish_five_season). Med to managere får bare vinneren premie. */
+export const FIVE_SEASON_PRIZES = [1000, 500, 250];
+export const FIVE_SEASON_MAX_MEMBERS = 16;
+
+/**
+ * Posisjonen eieren har valgt for kortet. Spiller kortet på en annen plass, blir det svakere i kampen:
+ * litt mellom utespillerplassene, mye mellom mål og ute.
+ */
+export const fivePositions = ["GK", "D", "M", "A"] as const;
+export type FivePosition = (typeof fivePositions)[number];
+export function isFivePosition(value: unknown): value is FivePosition {
+  return typeof value === "string" && (fivePositions as readonly string[]).includes(value);
+}
+export function fivePositionPenalty(position: FivePosition | null, role: FiveRole) {
+  if (position === role) return 0;
+  if (position === "GK" || role === "GK") return 15;
+  return position === null ? 6 : 4;
+}
+/** Første posisjon er gratis; å bytte senere koster (set_five_card_position). */
+export const FIVE_POSITION_CHANGE_COST = 200;
+/** Prisen for +1 rating med mynter (five_upgrade_cost i databasen). */
+export function fiveUpgradeCost(overall: number) {
+  return 150 + Math.max(0, overall - 70) * 30;
+}
+
+/** Innloggingsbonusen dag 1–7 (claim_five_login). Dag 7 gir en pakke med tre kort i stedet for mynter. */
+export const fiveLoginRewards = [50, 75, 100, 125, 150, 200, 0];
+export const FIVE_LOGIN_PACK_CARDS = 3;
 
 /** Erfaring per kamp. 100 xp gir +1 rating (se record_five_match). */
 export const FIVE_XP = { starter: 15, bench: 8, goal: 10, assist: 5, win: 10 } as const;

@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useT } from "@/i18n/client";
 import type { ActionState } from "@/lib/actions";
 import type { FiveOpponent } from "@/lib/femmer/data";
 import { playFiveAiAction, playFiveFriendAction } from "@/lib/femmer/actions";
-import { FIVE_AI_LEVELS, FIVE_REWARDED_AI_MATCHES_PER_DAY, FIVE_REWARDED_FRIEND_MATCHES_PER_DAY, fiveAiRating, fiveAiReward, fiveFriendReward } from "@/lib/femmer/rules";
+import { FIVE_AI_LEVELS, fiveAiRating, fiveAiReward, fiveFriendReward } from "@/lib/femmer/rules";
 import { buttonClass, cardClass, secondaryButtonClass } from "../ui";
 
 const initial: ActionState = {};
@@ -21,11 +22,12 @@ function FriendRow({ opponent }: { opponent: FiveOpponent }) {
   </form>;
 }
 
-export function FivePlay({ aiLevel, bestAiLevel, opponents, ready }: { aiLevel: number; bestAiLevel: number; opponents: FiveOpponent[]; ready: boolean }) {
+export function FivePlay({ aiLevel, bestAiLevel, opponents, ready, liveMatchId }: { aiLevel: number; bestAiLevel: number; opponents: FiveOpponent[]; ready: boolean; liveMatchId: string | null }) {
   const t = useT().femmer;
   const [state, action, pending] = useActionState(playFiveAiAction, initial);
   const level = Math.min(FIVE_AI_LEVELS, aiLevel);
   return <div className="grid gap-4 lg:grid-cols-2">
+    {liveMatchId ? <Link href={`/femmer/kamp/${liveMatchId}`} className="rounded-2xl border border-amber-300/50 bg-amber-300/15 p-4 font-black text-amber-200 lg:col-span-2">{t.play.resume}</Link> : null}
     <section className="relative overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-br from-fuchsia-500/30 via-rose-950 to-slate-950 p-5">
       <p className="text-xs font-black tracking-[.25em] text-white/60">{t.play.aiTitle}</p>
       <p className="mt-2 text-5xl font-black">{level}<span className="text-xl text-white/50">/{FIVE_AI_LEVELS}</span></p>
@@ -45,6 +47,6 @@ export function FivePlay({ aiLevel, bestAiLevel, opponents, ready }: { aiLevel: 
       <p className="text-xs text-muted">{t.play.rewardLine(fiveFriendReward("win"), fiveFriendReward("draw"), fiveFriendReward("loss"))}</p>
       {opponents.length ? opponents.map((opponent) => <FriendRow key={opponent.id} opponent={opponent} />) : <p className="text-sm text-muted">{t.play.noFriends}</p>}
     </section>
-    <p className="text-xs text-muted lg:col-span-2">{t.play.rewards(FIVE_REWARDED_AI_MATCHES_PER_DAY, FIVE_REWARDED_FRIEND_MATCHES_PER_DAY)}</p>
+    <p className="text-xs text-muted lg:col-span-2">{t.play.rewards}</p>
   </div>;
 }

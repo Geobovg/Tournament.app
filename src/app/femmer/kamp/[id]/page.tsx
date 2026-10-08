@@ -2,15 +2,20 @@ import { notFound, redirect } from "next/navigation";
 import { FiveMatch } from "@/components/femmer/five-match";
 import { currentUser } from "@/lib/auth";
 import { getFiveMatch } from "@/lib/femmer/data";
+import { settleIfFinished } from "@/lib/femmer/live";
 
 export const dynamic = "force-dynamic";
 
-export default async function FemmerMatchPage({ params, searchParams }: PageProps<"/femmer/kamp/[id]">) {
+export default async function FemmerMatchPage({ params }: PageProps<"/femmer/kamp/[id]">) {
   const user = await currentUser();
   if (!user) redirect("/login");
-  const { id } = await params; const { live } = await searchParams;
-  const match = await getFiveMatch(id, user.id);
+  const { id } = await params;
+  let match = await getFiveMatch(id, user.id);
   if (!match?.data) notFound();
-  // Kampen spilles av med klokke rett etter at den er spilt; fra historikken vises resultatet med en gang.
-  return <div className="mx-auto grid w-full max-w-5xl gap-5"><FiveMatch match={match.data} coins={match.coins} viewerIsHome={match.homeUserId === user.id} replay={live === "1"} /></div>;
+  // En kamp som er ferdig på klokka, men ikke gjort opp (siden ble lukket underveis), gjøres opp nå.
+  if (match.status === "live" && (await settleIfFinished(id))) match = (await getFiveMatch(id, user.id))!;
+  const viewerSide = match.homeUserId === user.id ? "home" : match.awayUserId === user.id ? "away" : null;
+  const coins = viewerSide === "home" ? match.coins : viewerSide === "away" ? match.awayCoins : 0;
+  // Klokka forankres i serverens tid, så en nettleser som går feil ikke flytter kampminuttet.
+  return <div className="mx-auto grid w-full max-w-5xl gap-5"><FiveMatch key={match.status} matchId={match.id} match={match.data!} initialShots={match.shots} status={match.status} startedAt={match.startedAt} serverNow={match.serverNow} isController={match.controllerId === user.id} viewerSide={viewerSide} coins={coins} /></div>;
 }
