@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { listFriends } from "../friends";
 import { supabaseAdmin } from "../supabase/server";
-import { isFiveMatchData, teamRating, type FiveMatchData, type FiveShotResult } from "./match";
+import { fivePlay, isFiveMatchData, isFiveTactic, teamRating, type FiveMatchData, type FiveShotResult, type FiveTacticChange } from "./match";
 import { isFiveFormation, isFivePosition, type FiveFormation, type FivePosition } from "./rules";
 
 /** En person som har et personlig kort, altså et kort som kan brukes i Femmer. Nye kort dukker opp her med en gang. */
@@ -111,6 +111,8 @@ export type FiveMatchRow = {
   id: string; kind: "ai" | "friend" | "season"; status: "live" | "completed"; homeUserId: string; awayUserId: string | null; awayName: string; homeName: string;
   homeScore: number; awayScore: number; coins: number; awayCoins: number; aiLevel: number | null; seasonId: string | null; controllerId: string | null;
   createdAt: string; startedAt: string | null; data: FiveMatchData | null; shots: FiveShotResult[];
+  /** Taktikkbyttene i kampen. `data` er allerede spilt med dem (og med stoppene i `shots`). */
+  tactics: FiveTacticChange[];
   /** Serverens klokke da raden ble hentet, så kampklokka i nettleseren kan forankres i den. */
   serverNow: number;
 };
@@ -123,11 +125,12 @@ async function usernames(ids: string[]) {
 
 type MatchRecord = { id: string; kind: FiveMatchRow["kind"]; status: FiveMatchRow["status"]; home_user_id: string; away_user_id: string | null; away_name: string; home_score: number; away_score: number; coins: number; away_coins: number; ai_level: number | null; season_id: string | null; controller_id: string | null; created_at: string; started_at: string | null; events?: unknown };
 
-function toRow(row: MatchRecord, names: Map<string, string>, shots: FiveShotResult[] = []): FiveMatchRow {
+function toRow(row: MatchRecord, names: Map<string, string>, shots: FiveShotResult[] = [], tactics: FiveTacticChange[] = []): FiveMatchRow {
+  const data = isFiveMatchData(row.events) ? fivePlay(row.events, tactics, shots).match : null;
   return {
     id: row.id, kind: row.kind, status: row.status, homeUserId: row.home_user_id, awayUserId: row.away_user_id, awayName: row.away_name, homeName: names.get(row.home_user_id) ?? "",
     homeScore: row.home_score, awayScore: row.away_score, coins: row.coins, awayCoins: row.away_coins ?? 0, aiLevel: row.ai_level, seasonId: row.season_id, controllerId: row.controller_id,
-    createdAt: row.created_at, startedAt: row.started_at, data: isFiveMatchData(row.events) ? row.events : null, shots, serverNow: Date.now(),
+    createdAt: row.created_at, startedAt: row.started_at, data, shots, tactics, serverNow: Date.now(),
   };
 }
 
@@ -147,14 +150,20 @@ export async function getFiveShots(matchId: string): Promise<FiveShotResult[]> {
   return (data ?? []).map((shot) => ({ minute: shot.minute, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome }));
 }
 
+export async function getFiveTactics(matchId: string): Promise<FiveTacticChange[]> {
+  const { data, error } = await supabaseAdmin().from("five_match_tactics").select("minute, side, tactic").eq("match_id", matchId).order("minute");
+  if (error) throw new Error(error.message);
+  return (data ?? []).filter((row) => isFiveTactic(row.tactic)).map((row) => ({ minute: row.minute, side: row.side, tactic: row.tactic }));
+}
+
 export async function getFiveMatch(matchId: string, userId?: string): Promise<FiveMatchRow | null> {
   let query = supabaseAdmin().from("five_matches").select("*").eq("id", matchId);
   if (userId) query = query.or(`home_user_id.eq.${userId},away_user_id.eq.${userId}`);
   const { data, error } = await query.maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  const [names, shots] = await Promise.all([usernames([data.home_user_id]), getFiveShots(matchId)]);
-  return toRow(data as MatchRecord, names, shots);
+  const [names, shots, tactics] = await Promise.all([usernames([data.home_user_id]), getFiveShots(matchId), getFiveTactics(matchId)]);
+  return toRow(data as MatchRecord, names, shots, tactics);
 }
 
 /** Kampen brukeren spiller akkurat nå, hvis noen. */

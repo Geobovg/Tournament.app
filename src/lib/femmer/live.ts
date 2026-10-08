@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../supabase/server";
 import { getFiveMatch, getLiveFiveMatchId, type FivePerson, type FiveState } from "./data";
-import { fiveCardStats, fiveClock, fiveDurationMs, fiveScore, fiveShotMinutes, FIVE_SHOT_CELLS, FIVE_SHOT_CHOICE_MS, planFiveMatch, resolveFiveShot, seededRoll, type FiveMatchData, type FivePlayer, type FiveShotResult, type FiveSide, type FiveTeam } from "./match";
+import { fiveCardStats, fiveClock, fiveDurationMs, fiveMsPerMinute, fivePlay, fiveScore, fiveShotMinutes, FIVE_SHOT_CELLS, FIVE_SHOT_CHOICE_MS, planFiveMatch, resolveFiveShot, seededRoll, type FiveMatchData, type FivePlayer, type FiveShotResult, type FiveSide, type FiveTeam } from "./match";
 import { FIVE_BENCH, fiveAiRating, fiveFormations, fiveMatchReward, type FiveFormation, type FivePosition } from "./rules";
 
 /** Laget slik brukeren har satt det opp, eller null uten en hel startfemmer. */
@@ -74,7 +74,7 @@ export async function resolveShot(matchId: string, data: FiveMatchData, minute: 
 
 /** Om valget på et stopp fortsatt er åpent, ut fra serverens klokke. Litt slingringsmonn for nettverket. */
 export function shotChoiceOpen(data: FiveMatchData, startedAt: string, minute: number) {
-  const clock = fiveClock(Date.now() - new Date(startedAt).getTime(), fiveShotMinutes(data));
+  const clock = fiveClock(Date.now() - new Date(startedAt).getTime(), fiveShotMinutes(data), fiveMsPerMinute(data));
   return clock.shotMinute === minute && clock.shotElapsedMs < FIVE_SHOT_CHOICE_MS + 1_500;
 }
 
@@ -86,14 +86,15 @@ export async function settleIfFinished(matchId: string): Promise<boolean> {
   const match = await getFiveMatch(matchId);
   if (!match?.data) return false;
   if (match.status === "completed") return true;
-  const data = match.data;
-  if (!match.startedAt || Date.now() - new Date(match.startedAt).getTime() < fiveDurationMs(fiveShotMinutes(data))) return false;
+  if (!match.startedAt || Date.now() - new Date(match.startedAt).getTime() < fiveDurationMs(fiveShotMinutes(match.data), fiveMsPerMinute(match.data))) return false;
   const results: FiveShotResult[] = [];
-  for (const shot of data.shots ?? []) {
+  for (const shot of match.data.shots ?? []) {
     const existing = match.shots.find((entry) => entry.minute === shot.minute && entry.outcome);
-    const result = existing ?? await resolveShot(matchId, data, shot.minute, null);
+    const result = existing ?? await resolveShot(matchId, match.data, shot.minute, null);
     if (result) results.push(result);
   }
+  // Motstanderens taktikk svarer på stillingen, så kampen spilles på nytt med alle stoppene avgjort.
+  const data = fivePlay(match.data, match.tactics, results).match;
   const score = fiveScore(data, results);
   const homeResult = resultFor(score, "home"); const awayResult = resultFor(score, "away");
   // Vennen i en vennekamp spilte ikke selv og får ingen mynter; i sesongkamper får begge.

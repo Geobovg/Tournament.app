@@ -9,7 +9,7 @@ import { friendshipId } from "../friends";
 import { supabaseAdmin } from "../supabase/server";
 import { getFiveMatch, getFiveState, getLiveFiveMatchId, listFivePeople } from "./data";
 import { aiTeam, createLiveMatch, resolveShot, settleIfFinished, shotChoiceOpen, teamFromState } from "./live";
-import type { FiveShotResult } from "./match";
+import { fiveClock, fiveMsPerMinute, fiveShotMinutes, FIVE_MATCH_MINUTES, FIVE_TACTIC_COOLDOWN, isFiveTactic, type FiveShotResult, type FiveTacticChange } from "./match";
 import { fiveObjectives, getFiveObjectives } from "./objectives";
 import { FIVE_AI_LEVELS, fivePacks, fivePositions, isFiveFormation, isFivePosition } from "./rules";
 import { fiveRoundRobin, getFiveSeason } from "./seasons";
@@ -184,6 +184,32 @@ export async function chooseFiveShotAction(matchId: string, minute: number, cell
   const pick = cell !== null && shotChoiceOpen(match.data, match.startedAt, minute) ? cell : null;
   const result = await resolveShot(matchId, match.data, minute, pick);
   return result ? { ok: true, result } : { error: t.errors.matchNotLive };
+}
+
+export type FiveTacticState = ActionState & { tactics?: FiveTacticChange[] };
+
+/**
+ * Bytter taktikk for laget til den som spiller. Byttet gjelder fra neste minutt som ikke er i gang,
+ * etter serverens klokke, og det må ha gått FIVE_TACTIC_COOLDOWN minutter siden forrige bytte.
+ */
+export async function setFiveTacticAction(matchId: string, tactic: string): Promise<FiveTacticState> {
+  const user = await requireUser();
+  const t = (await getT()).femmer;
+  const match = await getFiveMatch(matchId, user.id);
+  if (!match?.data || match.data.version !== 3 || match.status !== "live" || !match.startedAt || match.controllerId !== user.id) return { error: t.errors.matchNotLive };
+  if (!isFiveTactic(tactic)) return { error: t.errors.invalidTactic };
+  const side = match.data.controllerSide ?? "home";
+  const clock = fiveClock(Date.now() - new Date(match.startedAt).getTime(), fiveShotMinutes(match.data), fiveMsPerMinute(match.data));
+  // Under spill er neste minutt allerede i gang (og vises på banen); i pause og på stopp er det ikke det.
+  const from = clock.minute + (clock.phase === "first_half" || clock.phase === "second_half" ? 2 : 1);
+  if (clock.phase === "full_time" || from > FIVE_MATCH_MINUTES) return { error: t.errors.tacticTooLate };
+  const mine = match.tactics.filter((change) => change.side === side).sort((first, second) => first.minute - second.minute);
+  const last = mine.at(-1);
+  if ((last?.tactic ?? "balanced") === tactic) return { ok: true, tactics: match.tactics };
+  if (last && from < last.minute + FIVE_TACTIC_COOLDOWN) return { error: t.errors.tacticCooldown(last.minute + FIVE_TACTIC_COOLDOWN) };
+  const { error } = await supabaseAdmin().from("five_match_tactics").insert({ match_id: matchId, minute: from, side, tactic });
+  if (error) return { error: error.code === "23505" ? t.errors.tacticCooldown(from + 1) : await dbErrorMessage(error) };
+  return { ok: true, tactics: [...match.tactics, { minute: from, side, tactic }] };
 }
 
 export type FiveCompleteState = ActionState & { coins?: number; shots?: FiveShotResult[] };
