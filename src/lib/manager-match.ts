@@ -20,8 +20,11 @@ export type ManagerTeamSnapshot = { userId: string; formation: string; starters:
 /**
  * `knockout` settes på kamper som må ha en vinner (kvalik til opprykk): står det likt etter 90′,
  * spilles ekstraomganger, og står det fortsatt likt etter 120′, avgjøres kampen på straffer.
+ *
+ * `ratingWeight` forsterker hvor mye ratingforskjellen betyr i åpent spill (1 når den mangler).
+ * Vennesesongkamper får en høyere vekt, så det beste laget oftere vinner.
  */
-export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4 | 5; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot; knockout?: boolean };
+export type ManagerKickoffEvent = { type: "kickoff"; version: 1 | 2 | 3 | 4 | 5; home: ManagerTeamSnapshot; away: ManagerTeamSnapshot; knockout?: boolean; ratingWeight?: number };
 /**
  * Kamper som startes nå får versjon 5: samme modell som versjon 4 (angrep mot forsvar og avslutter
  * mot keeper), men uten byttevinduet på 70′ – elleveren som starter, spiller hele kampen.
@@ -552,8 +555,8 @@ const BASE_FINISH = 0.33;
 const FINISH_SLOPE = 0.012;
 
 /** Sjansen for at en avslutning i åpent spill går i mål. */
-export function finishChance(shooting: number, keeper: number): number {
-  return bounded(BASE_FINISH * Math.exp((shooting - keeper) * FINISH_SLOPE), 0.08, 0.7);
+export function finishChance(shooting: number, keeper: number, ratingWeight = 1): number {
+  return bounded(BASE_FINISH * Math.exp((shooting - keeper) * FINISH_SLOPE * ratingWeight), 0.08, 0.7);
 }
 
 /**
@@ -598,6 +601,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
   const timeline: TimelineEvent[] = [];
   const shotSlots = new Map(plannedShotSlots(matchId).map((slot) => [slot.minute, slot.kind]));
   const rated = kickoff.version >= 4;
+  const ratingWeight = kickoff.ratingWeight ?? 1;
   const bonus = { home: kickoff.home.bonus ?? 0, away: kickoff.away.bonus ?? 0 };
   const onPitch = {
     home: minutesOnPitch(kickoff.home, substitutions.filter((event) => event.side === "home")),
@@ -622,7 +626,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
 
       if (rated) {
         const edge = unitStrength(players, attackWeights, onPitch[side], minute) + bonus[side] - unitStrength(active[opponent], defenceWeights, onPitch[opponent], minute) - bonus[opponent];
-        const attemptRate = bounded(BASE_ATTEMPT_RATE * Math.exp(edge * ATTACK_SLOPE), 0.012, 0.15);
+        const attemptRate = bounded(BASE_ATTEMPT_RATE * Math.exp(edge * ATTACK_SLOPE * ratingWeight), 0.012, 0.15);
         goalRate = 0;
         chanceRate = attemptRate;
         if (roll < attemptRate) {
@@ -630,7 +634,7 @@ export function planManagerTimeline(matchId: string, events: unknown): ManagerMa
           if (!shooter) continue;
           const keeper = keeperOf(active[opponent]);
           const finish = numberFromSeed(`${matchId}:${minute}:${side}:finish`);
-          const scoring = finishChance(shootingOf(shooter) + bonus[side], keeper.rating + bonus[opponent]);
+          const scoring = finishChance(shootingOf(shooter) + bonus[side], keeper.rating + bonus[opponent], ratingWeight);
           if (finish < scoring) {
             const assistCandidates = players.filter((player) => player.id !== shooter.id);
             const solo = numberFromSeed(`${matchId}:${minute}:${side}:solo`) < 0.22;
