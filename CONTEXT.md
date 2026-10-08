@@ -73,6 +73,14 @@ _Avoid_: Inform-pakke
 Et kort av en ekte manager i appen, med bilde av personen selv. Hver manager kan ha ett, og bare eieren kan ha det: det kan ikke selges, byttes, leveres i SBC, kastes eller trekkes i pakker. Kortet kan spille alle posisjoner. Det starter på 80 og går opp 1 for hvert nytt nivå man når på AI-stigen; det er det høyeste nivået man har nådd som teller, så nedrykk gjør ikke kortet dårligere, og man får ingen oppgradering for å rykke opp igjen til et nivå man har vært på før. Kortet har ikke taket på 99 som alle andre kort: divisjon 1 på Camp Nou gir 129, og første **mestertittel** gir 130. Kortene deles ut for hånd med `grant_personal_card` (migrering 0063).
 _Avoid_: Ikon, Spesialkort (spesialkort er bedre versjoner av ekte spillere, se over)
 
+**Femmer**:
+En egen modus utenfor Managerkarrieren der lagene bare består av **personlige kort**, aldri ekte spillere. Fem står på banen (keeper + fire utespillere) og opptil fem på benken; resten er reserver. Man starter med sitt eget personlige kort (hvis man har ett) og velger resten selv, så man har fem kort. Alle kort starter på 70 her, uansett ratingen i Managerkarrieren, og nye personlige kort er med i pakkene og galleriet med en gang de deles ut. Man har ett vanlig-kort per person: trekker man en man har fra før, blir kortet 1 bedre. Kortene blir også bedre av XP fra kamper (100 XP = +1) og kan oppgraderes med **mynter**, som ikke har noe med MB å gjøre. Hvert kort har en **posisjon** eieren velger (keeper, forsvar, midtbane, angrep); første valg er gratis, senere bytter koster mynter, og kortet er svakere utenfor posisjon. Kampene spilles live med klokke fra serveren og kan ikke hoppes over; på straffer og store sjanser velger den som spiller hjørne eller hvor keeperen kaster seg. Man spiller mot en **AI-stige** med 30 trinn, mot venners lagrede lag eller i en vennesesong (migrering 0075 og 0076).
+_Avoid_: Futsal, 5-er-karriere, Managerkarriere (det er noe annet)
+
+**Inform** (i Femmer):
+Hver fredag kl. 18 får de tre managerne med flest poeng i Femmer forrige uke (3 for seier, 1 for uavgjort) et inform-kort av seg selv: +5, +4 og +3 på sitt forrige inform, eller på 70 første gang. Det er et eget kort som blir værende; blir man inform igjen, bygger det nye på det forrige. Ukens informer kan trekkes i pakker og vinnes i utfordringer. Ikke det samme som informene i Managerkarrieren, som er ekte spillere.
+_Avoid_: TOTW, Ukens lag
+
 **Fantasy**:
 En egen modus utenfor Managerkarrieren, som Premier League Fantasy, men for spillere fra alle de fem store ligaene. Du velger et lag av ekte spillere innenfor et budsjett og får poeng etter hva de gjør i ekte kamper. Kampdataene hentes fra API-Football; appen simulerer ingenting her.
 _Avoid_: Managerkarriere, Draft
