@@ -25,7 +25,7 @@ export type SeasonStats = {
 export type TeamDefence = { matches: number; cleanSheets: number; conceded: number };
 
 // Poeng som i Premier League Fantasy.
-const GOAL_POINTS: Record<Position, number> = { GK: 6, DEF: 6, MID: 5, FWD: 4 };
+const GOAL_POINTS: Record<Position, number> = { GK: 10, DEF: 6, MID: 5, FWD: 4 };
 const CLEAN_SHEET_POINTS: Record<Position, number> = { GK: 4, DEF: 4, MID: 1, FWD: 0 };
 const ASSIST_POINTS = 3;
 

@@ -223,6 +223,8 @@ export type PlayerResult = {
   yellowCards: number;
   redCards: number;
   saves: number;
+  // Taklinger + blokkeringer + brytninger (DC i FPL).
+  defensiveContribution: number;
   bonus: number;
   price: number | null;
 };
@@ -245,6 +247,7 @@ type FixtureLineRow = {
   red_cards: number;
   own_goals: number;
   goals_conceded: number;
+  defensive_actions: number;
   bonus: number;
 };
 
@@ -260,7 +263,7 @@ export async function getFantasyPlayerDetails(season: FantasySeason, playerId: n
   const teamId: number = player.api_team_id;
   const [teamFixtures, lines, teams, prices, previous, previousSeason] = await Promise.all([
     check(await db.from("football_fixtures").select(PLAYER_FIXTURE_COLUMNS).eq("api_season", season.apiSeason).or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`).order("kickoff_at")) as PlayerFixtureRow[],
-    check(await db.from("football_fixture_players").select("api_fixture_id, api_team_id, points, minutes, goals, assists, saves, penalties_saved, penalties_missed, yellow_cards, red_cards, own_goals, goals_conceded, bonus, football_fixtures!inner (api_season)").eq("api_player_id", playerId).eq("football_fixtures.api_season", season.apiSeason)) as unknown as FixtureLineRow[],
+    check(await db.from("football_fixture_players").select("api_fixture_id, api_team_id, points, minutes, goals, assists, saves, penalties_saved, penalties_missed, yellow_cards, red_cards, own_goals, goals_conceded, defensive_actions, bonus, football_fixtures!inner (api_season)").eq("api_player_id", playerId).eq("football_fixtures.api_season", season.apiSeason)) as unknown as FixtureLineRow[],
     check(await db.from("football_season_teams").select("api_team_id, football_clubs (name)").eq("api_season", season.apiSeason)) as unknown as { api_team_id: number; football_clubs: { name: string } }[],
     // Tabellen kommer med migrering 0050. Finnes den ikke ennå, vises prisen som «–».
     db.from("fantasy_player_round_prices").select("round_number, price").eq("api_season", season.apiSeason).eq("api_player_id", playerId),
@@ -307,6 +310,7 @@ export async function getFantasyPlayerDetails(season: FantasySeason, playerId: n
       yellowCards: line?.yellow_cards ?? 0,
       redCards: line?.red_cards ?? 0,
       saves: line?.saves ?? 0,
+      defensiveContribution: line?.defensive_actions ?? 0,
       bonus: line?.bonus ?? 0,
       price: fixture.round_number === null ? null : priceByRound.get(fixture.round_number) ?? null,
     });
@@ -459,7 +463,7 @@ export async function getTeamRound(teamId: string, round: number, season: number
   for (const line of lines as { api_player_id: number; breakdown: PointsBreakdown }[]) {
     const current = breakdowns.get(line.api_player_id);
     if (!current) breakdowns.set(line.api_player_id, { ...line.breakdown });
-    else for (const key of Object.keys(line.breakdown) as (keyof PointsBreakdown)[]) current[key] += line.breakdown[key];
+    else for (const key of Object.keys(line.breakdown) as (keyof PointsBreakdown)[]) current[key] = (current[key] ?? 0) + (line.breakdown[key] ?? 0);
   }
   return {
     teamId,

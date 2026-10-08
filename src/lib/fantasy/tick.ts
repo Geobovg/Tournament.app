@@ -211,6 +211,7 @@ async function refreshFixtureDetails(db: Db, api: ApiFootballClient, season: num
         red_cards: line.redCards,
         own_goals: line.ownGoals,
         goals_conceded: line.goalsConceded,
+        defensive_actions: line.defensiveActions,
         rating: line.rating,
         bonus: breakdown.bonus,
         points: total,

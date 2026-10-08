@@ -40,6 +40,7 @@ export type ApiFixtureDetails = ApiFixture & {
         // position er G, D, M eller F i kampdataene.
         games: { minutes: number | null; rating: string | null; position: string | null };
         goals: { total: number | null; assists: number | null; saves: number | null };
+        tackles: { total: number | null; blocks: number | null; interceptions: number | null };
         cards: { yellow: number | null; red: number | null };
         penalty: { saved: number | null; missed: number | null };
       }[];

@@ -29,7 +29,7 @@ function loadDetails(playerId: number) {
 
 type Column = keyof PlayerResult & keyof ReturnType<typeof useT>["fantasy"]["playerInfo"]["columns"];
 // Kolonnene i Resultater etter runde og motstander, i samme rekkefølge som i FPL.
-const RESULT_COLUMNS: Column[] = ["points", "minutes", "goals", "assists", "cleanSheet", "goalsConceded", "ownGoals", "penaltiesSaved", "penaltiesMissed", "yellowCards", "redCards", "saves", "bonus"];
+const RESULT_COLUMNS: Column[] = ["points", "minutes", "goals", "assists", "cleanSheet", "goalsConceded", "ownGoals", "penaltiesSaved", "penaltiesMissed", "yellowCards", "redCards", "saves", "defensiveContribution", "bonus"];
 
 // Infovinduet når man trykker på en spiller, som i FPL: stort bilde, klubb, pris, form og poeng
 // med plassering blant spillerne på samme posisjon, og fanene Kamper og Resultater.

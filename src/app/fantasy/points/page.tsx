@@ -98,7 +98,11 @@ export default async function FantasyPointsPage({ searchParams }: PageProps<"/fa
       {!view ? <div className={cardClass}><p className="text-muted">{text.noTeam}</p></div> : (
         <>
           <div className={`${cardClass} flex flex-wrap items-center justify-between gap-4`}>
-            <div><p className="font-semibold">{view.teamName}</p><p className="text-sm text-muted">{view.username}</p></div>
+            <div>
+              <p className="font-semibold">{view.teamName}</p>
+              <p className="text-sm text-muted">{view.username}</p>
+              <Link href={`/fantasy/history${params.team ? `?team=${params.team}` : ""}`} className="text-sm font-medium text-accent hover:underline">{t.fantasy.historyPage.link}</Link>
+            </div>
             <div className="flex gap-6 text-center">
               <div><p className="text-xs text-muted">{text.roundPoints}</p><p className="text-3xl font-black">{view.points}</p></div>
               <div><p className="text-xs text-muted">{text.total}</p><p className="text-3xl font-black">{view.totalPoints}</p></div>

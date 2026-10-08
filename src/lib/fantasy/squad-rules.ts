@@ -114,3 +114,23 @@ export function defaultLineup(squad: readonly SquadPlayer[]): Lineup {
   const outfield = sorted.filter((player) => starters.includes(player.id));
   return { starters, bench, captainId: outfield[0]?.id ?? 0, viceCaptainId: outfield[1]?.id ?? 0 };
 }
+
+// De 11 med flest poeng i en gyldig formasjon (Dream Team i FPL): beste keeper, så minstekravet
+// på hver posisjon (3 DEF, 2 MID, 1 FWD), og resten fylles med de beste utespillerne uten å gå
+// over maks (5 DEF, 5 MID, 3 FWD). Ved likt antall poeng kommer den første i lista først.
+export function bestEleven<T extends { position: FantasyPosition; points: number }>(players: readonly T[]): T[] {
+  const sorted = [...players].sort((a, b) => b.points - a.points);
+  const picked = new Set<T>();
+  const count = (position: FantasyPosition) => [...picked].filter((player) => player.position === position).length;
+  for (const position of FANTASY_POSITIONS) {
+    for (const player of sorted) {
+      if (count(position) >= STARTING_LIMITS[position][0]) break;
+      if (player.position === position) picked.add(player);
+    }
+  }
+  for (const player of sorted) {
+    if (picked.size >= STARTERS) break;
+    if (!picked.has(player) && player.position !== "GK" && count(player.position) < STARTING_LIMITS[player.position][1]) picked.add(player);
+  }
+  return sorted.filter((player) => picked.has(player));
+}
