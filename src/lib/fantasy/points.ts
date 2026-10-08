@@ -130,6 +130,8 @@ export function teamRoundPoints(input: {
 
   // Automatiske innbyttere: en i startelleveren som ikke spilte (og er ferdig), byttes med
   // første på benken som spilte, så lenge formasjonen fortsatt er gyldig. Keeper bare med keeper.
+  // Som i FPL gjelder benkrekkefølgen: har en benkespiller som kan komme inn ikke spilt ennå,
+  // venter vi på ham i stedet for å hoppe til neste på benken.
   if (!benchBoost) {
     for (const starterId of starters) {
       const starter = player(starterId);
@@ -137,13 +139,16 @@ export function teamRoundPoints(input: {
       for (const benchId of bench) {
         if (subbedIn.has(benchId)) continue;
         const candidate = player(benchId);
-        if (candidate.minutes === 0) continue;
         if ((starter.position === "GK") !== (candidate.position === "GK")) continue;
         const after = playing.map((id) => (id === starterId ? benchId : id));
         const counts = new Map<FantasyPosition, number>();
         for (const id of after) counts.set(player(id).position, (counts.get(player(id).position) ?? 0) + 1);
         const valid = (Object.keys(FORMATION_MIN) as FantasyPosition[]).every((position) => (counts.get(position) ?? 0) >= FORMATION_MIN[position]);
         if (!valid) continue;
+        if (candidate.minutes === 0) {
+          if (candidate.done) continue;
+          break;
+        }
         playing[playing.indexOf(starterId)] = benchId;
         subbedIn.add(benchId);
         subbedOut.add(starterId);
