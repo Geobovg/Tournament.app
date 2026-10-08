@@ -44,6 +44,7 @@ export const seasons = {
     shareLink: "Partager le lien",
     linkCopied: "Lien copié",
     inviteLinkHint: "Toute personne ayant le lien peut rejoindre jusqu'au début de la saison, même si elle n'est pas ton amie.",
+    archive: (count: number) => `Archives · ${count} ${count === 1 ? "terminée" : "terminées"}`,
   },
   create: {
     eyebrow: "NOUVELLE SAISON DES AMIS",

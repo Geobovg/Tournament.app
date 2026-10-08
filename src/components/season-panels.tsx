@@ -203,10 +203,23 @@ function CreateFriendSeason({ friends }: { friends: Friend[] }) {
   </section>;
 }
 
+// Avsluttede sesonger ligger i et lukket arkiv nederst, så de ikke skyver de pågående ned.
 export function FriendSeasonsPanel({ seasons, friends }: { seasons: FriendSeason[]; friends: Friend[] }) {
-  return <div className="grid gap-4 lg:grid-cols-2">
-    {seasons.map((season) => <FriendSeasonCard key={season.id} season={season} />)}
-    <CreateFriendSeason friends={friends} />
+  const t = useT();
+  const ongoing = seasons.filter((season) => season.status !== "completed");
+  const completed = seasons.filter((season) => season.status === "completed");
+  return <div className="grid gap-4">
+    <div className="grid gap-4 lg:grid-cols-2">
+      {ongoing.map((season) => <FriendSeasonCard key={season.id} season={season} />)}
+      <CreateFriendSeason friends={friends} />
+    </div>
+    {completed.length ? <details className="group rounded-2xl border border-white/10 bg-slate-900/50">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 font-black sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span>{t.seasons.friend.archive(completed.length)}</span>
+        <span className="text-white/50 transition group-open:rotate-180">▾</span>
+      </summary>
+      <div className="grid gap-4 px-4 pb-4 sm:px-5 sm:pb-5 lg:grid-cols-2">{completed.map((season) => <FriendSeasonCard key={season.id} season={season} />)}</div>
+    </details> : null}
   </div>;
 }
 

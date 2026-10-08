@@ -45,6 +45,7 @@ export const seasons: SeasonsDict = {
     shareLink: "Del lenke",
     linkCopied: "Lenken er kopiert",
     inviteLinkHint: "Alle som har lenken kan bli med fram til sesongen startes, også de som ikke er vennene dine.",
+    archive: (count: number) => `Arkiv · ${count} avsluttet${count === 1 ? "" : "e"}`,
   },
   create: {
     eyebrow: "NY VENNESESONG",
