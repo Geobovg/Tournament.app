@@ -80,6 +80,7 @@ export const seasons = {
     needEleven: "Scegli un XI iniziale di 11 giocatori in squadra prima di giocare",
     matchNotFound: "Impossibile trovare la corrispondenza",
     matchAlreadyPlayed: "La partita è già stata giocata",
+    finishLiveMatchFirst: "Hai già una partita in corso. Finiscila prima di iniziarne un'altra.",
     bothNeedEleven: "Entrambi gli allenatori hanno bisogno di un XI iniziale di 11 giocatori",
     nameRequired: "Dai un nome alla stagione",
     seasonNotFound: "Stagione non trovata",

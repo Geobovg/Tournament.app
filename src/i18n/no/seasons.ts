@@ -81,6 +81,7 @@ export const seasons: SeasonsDict = {
     needEleven: "Sett opp en ellever med 11 spillere i Tropp før du spiller",
     matchNotFound: "Fant ikke kampen",
     matchAlreadyPlayed: "Kampen er allerede spilt",
+    finishLiveMatchFirst: "Du har allerede en kamp i gang. Spill den ferdig før du starter en ny.",
     bothNeedEleven: "Begge managerne må ha en ellever med 11 spillere",
     nameRequired: "Gi sesongen et navn",
     seasonNotFound: "Fant ikke sesongen",

@@ -84,6 +84,7 @@ export const seasons = {
     needEleven: "Pick a starting XI of 11 players in Squad before you play",
     matchNotFound: "Couldn't find the match",
     matchAlreadyPlayed: "The match has already been played",
+    finishLiveMatchFirst: "You already have a match in progress. Finish it before starting a new one.",
     bothNeedEleven: "Both managers need a starting XI of 11 players",
     nameRequired: "Give the season a name",
     seasonNotFound: "Season not found",
