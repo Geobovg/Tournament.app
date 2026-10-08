@@ -408,5 +408,5 @@ export function fiveCardStats(match: FiveMatchData, side: FiveSide, results: Fiv
 export function isFiveMatchData(value: unknown): value is FiveMatchData {
   if (!value || typeof value !== "object") return false;
   const data = value as Record<string, unknown>;
-  return (data.version === 1 || data.version === 2) && Array.isArray(data.events) && typeof data.home === "object" && typeof data.away === "object";
+  return (data.version === 1 || data.version === 2 || data.version === 3) && Array.isArray(data.events) && typeof data.home === "object" && typeof data.away === "object";
 }
