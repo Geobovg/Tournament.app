@@ -44,6 +44,7 @@ export const seasons = {
     shareLink: "分享链接",
     linkCopied: "链接已复制",
     inviteLinkHint: "在赛季开始前，任何拥有链接的人都可以加入，即使不是你的好友。",
+    archive: (count: number) => `归档 · ${count} 个已结束`,
   },
   create: {
     eyebrow: "新朋友季",

@@ -44,6 +44,7 @@ export const seasons = {
     shareLink: "Jaa linkki",
     linkCopied: "Linkki kopioitu",
     inviteLinkHint: "Kuka tahansa linkin saanut voi liittyä ennen kauden alkua, myös muut kuin ystäväsi.",
+    archive: (count: number) => `Arkisto · ${count} päättynyt${count === 1 ? "" : "tä"}`,
   },
   create: {
     eyebrow: "UUSI YSTÄVIEN KAUSI",

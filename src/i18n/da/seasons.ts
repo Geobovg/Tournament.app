@@ -44,6 +44,7 @@ export const seasons = {
     shareLink: "Del link",
     linkCopied: "Linket er kopieret",
     inviteLinkHint: "Alle med linket kan deltage, indtil sæsonen starter – også dem, der ikke er dine venner.",
+    archive: (count: number) => `Arkiv · ${count} afsluttet${count === 1 ? "" : "e"}`,
   },
   create: {
     eyebrow: "NYE VENNER SÆSON",
