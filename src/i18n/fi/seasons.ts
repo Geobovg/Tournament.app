@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Täysi pöytä →",
     legend: "Vihreä: nousu · Sininen: karsinta · Punainen: putoaminen",
     playoffInfo: "Karsinta: yksi ottelu ylemmän divisioonan seuraa vastaan. Sinun on voitettava – tasapeli ei riitä.",
-    prizeInfo: "Kauden lopun palkinto kasvaa mitä korkeammalle divisioonasi. Promotion maksaa myös bonuksen, joka kasvaa jokaisen divisioonan myötä, sekä paketteja Division 6:sta ja uudemmista.",
+    prizeInfo: "Vain nousu tuo palkinnon: MB-bonuksen, joka kasvaa jokaisen divisioonan myötä.",
     yourMatches: "Sinun ottelusi",
   },
   friend: {
@@ -49,7 +49,7 @@ export const seasons = {
   create: {
     eyebrow: "UUSI YSTÄVIEN KAUSI",
     title: "Ota ystäväsi vastaan",
-    intro: "Jokainen pelaa kaikkia vastaan koti- ja vierasottelun (kerran, jos managereita on yli 10). Palkintoja jaetaan vain, jos managereita on vähintään 5: voittaja saa 1 Elite Packin, 2 Gold Packia ja 50 Mt, ja toinen saa 2 Gold Packia ja 50 Mt. Vähintään 7 managerilla myös kolmas saa 1 Gold Packin ja 25 Mt.",
+    intro: "Jokainen pelaa kaikkia vastaan koti- ja vierasottelun (kerran, jos managereita on yli 10). Kaverikausista ei jaeta palkintoja.",
     namePlaceholder: "Kauden nimi",
     invite: "KUTSU",
     submit: "Luo ja kutsu",

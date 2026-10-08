@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Tabla completa →",
     legend: "Verde: ascenso · Azul: promoción · Rojo: descenso",
     playoffInfo: "Promoción: un partido contra un club de la división superior. Tienes que ganar: el empate no basta.",
-    prizeInfo: "El premio de final de temporada crece cuanto más alta sea tu división. La promoción también ofrece una bonificación que aumenta con cada división, además de paquetes de la División 6 en adelante.",
+    prizeInfo: "Solo el ascenso da premio: una bonificación en MB que aumenta con cada división.",
     yourMatches: "Tus coincidencias",
   },
   friend: {
@@ -49,7 +49,7 @@ export const seasons = {
   create: {
     eyebrow: "NUEVA TEMPORADA DE AMIGOS",
     title: "Enfréntate a tus amigos",
-    intro: "Todos juegan contra todos en casa y fuera (una vez con más de 10 mánagers). Solo hay premios con al menos 5 mánagers: el ganador se lleva 1 Elite Pack, 2 Gold Packs y 50 MB, y el segundo lugar recibe 2 Gold Packs y 50 MB. Con 7 o más, el tercer lugar también recibe 1 Gold Pack y 25 MB.",
+    intro: "Todos juegan contra todos en casa y fuera (una vez con más de 10 mánagers). Las temporadas con amigos no tienen premios.",
     namePlaceholder: "Nombre de la temporada",
     invite: "INVITAR",
     submit: "Crear e invitar",

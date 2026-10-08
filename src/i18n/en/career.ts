@@ -152,7 +152,7 @@ export const career = {
     loadError: "Couldn't load players. Try again.",
     eyebrow: "PLAYER MARKET",
     heading: "Build your dream team",
-    intro: (max: number) => `The catalogue sells players rated up to ${max}. Stars rated ${max + 1}+ only come in packs and on the Transfer Market.`,
+    intro: (max: number) => `The catalogue sells players rated up to ${max}. Stars rated ${max + 1}+ are only on the Transfer Market.`,
     playerPlaceholder: "Player…",
     hideFilters: "Hide filters",
     showFilters: "Filters",
