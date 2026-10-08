@@ -80,6 +80,7 @@ export const seasons = {
     needEleven: "Valitse Squadissa 11 pelaajasta lähtöisin ennen pelaamista",
     matchNotFound: "Vastaavaa ei löytynyt",
     matchAlreadyPlayed: "Ottelu on jo pelattu",
+    finishLiveMatchFirst: "Sinulla on jo ottelu käynnissä. Pelaa se loppuun ennen kuin aloitat uuden.",
     bothNeedEleven: "Molemmat managerit tarvitsevat 11 pelaajan aloitussarjan",
     nameRequired: "Anna kaudelle nimi",
     seasonNotFound: "Kautta ei löytynyt",

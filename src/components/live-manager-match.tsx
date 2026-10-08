@@ -58,6 +58,8 @@ type ManagerMatch = {
   away: ManagerSideInfo;
   serverNow: number;
   shots: ShotResult[];
+  /** Hvor du sendes når kampen er ferdig. */
+  returnPath: string;
 };
 
 /**
@@ -463,9 +465,9 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
 
   useEffect(() => {
     if (!complete || !returnAfterComplete) return;
-    const timer = setTimeout(() => router.replace("/managerkarriere"), 3_000);
+    const timer = setTimeout(() => router.replace(match.returnPath), 3_000);
     return () => clearTimeout(timer);
-  }, [complete, returnAfterComplete, router]);
+  }, [complete, returnAfterComplete, router, match.returnPath]);
 
   // Feeden holder seg nederst mens kampen går. Dette kjøres etter hver render, ikke bare når
   // en hendelse kommer, fordi lista også vokser når spillerbildene lastes ferdig etterpå.
@@ -662,7 +664,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
             <div className="border-b border-border p-3 sm:border-b-0 sm:border-r"><p className="text-xs text-muted">{t.match.stats.shots.toUpperCase()}</p><p className="mt-1 text-lg font-bold">{yourReport.shots} <span className="text-muted">–</span> {opponentReport.shots}</p></div>
             <div className="p-3"><p className="text-xs text-muted">{t.match.stats.onTarget.toUpperCase()}</p><p className="mt-1 text-lg font-bold">{yourReport.onTarget} <span className="text-muted">–</span> {opponentReport.onTarget}</p></div>
           </div>
-          {!returnAfterComplete ? <Link href="/managerkarriere" className={buttonClass}>{t.match.summary.backButton}</Link> : null}
+          {!returnAfterComplete ? <Link href={match.returnPath} className={buttonClass}>{t.match.summary.backButton}</Link> : null}
         </section>
       ) : null}
 

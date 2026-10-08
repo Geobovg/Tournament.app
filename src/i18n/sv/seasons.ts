@@ -80,6 +80,7 @@ export const seasons = {
     needEleven: "Välj en start XI av 11 spelare i Squad innan du spelar",
     matchNotFound: "Kunde inte hitta matchen",
     matchAlreadyPlayed: "Matchen är redan spelad",
+    finishLiveMatchFirst: "Du har redan en match igång. Spela klart den innan du startar en ny.",
     bothNeedEleven: "Båda tränarna behöver en start XI på 11 spelare",
     nameRequired: "Ge säsongen ett namn",
     seasonNotFound: "Säsongen hittades inte",

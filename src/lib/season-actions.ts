@@ -71,6 +71,11 @@ export async function playFriendSeasonMatchAction(_prev: ActionState, formData: 
   if (!fixture?.friend_season_id || (fixture.home_user_id !== user.id && fixture.away_user_id !== user.id)) return { error: errors.matchNotFound };
   if (fixture.status === "live" && fixture.match_id) redirect(`/managerkarriere/kamp/${fixture.match_id}`);
   if (fixture.status !== "scheduled" || !fixture.home_user_id || !fixture.away_user_id) return { error: errors.matchAlreadyPlayed };
+  // Du spiller én vennesesongkamp om gangen: den som er i gang må spilles ferdig før du starter en ny.
+  // Andre kan fortsatt starte en kamp mot deg mens du er i en annen kamp.
+  const { data: liveFixtures, error: liveError } = await db.from("career_season_matches").select("id").not("friend_season_id", "is", null).eq("status", "live").or(`home_user_id.eq.${user.id},away_user_id.eq.${user.id}`).limit(1);
+  if (liveError) return { error: await dbErrorMessage(liveError) };
+  if (liveFixtures?.length) return { error: errors.finishLiveMatchFirst };
   const snapshots = await managerTeamSnapshots(db, [fixture.home_user_id, fixture.away_user_id]);
   if ("error" in snapshots) return { error: snapshots.error };
   const home = snapshots.get(fixture.home_user_id); const away = snapshots.get(fixture.away_user_id);

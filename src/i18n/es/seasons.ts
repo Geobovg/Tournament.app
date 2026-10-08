@@ -80,6 +80,7 @@ export const seasons = {
     needEleven: "Elige un once inicial de 11 jugadores en el equipo antes de jugar.",
     matchNotFound: "No se pudo encontrar la coincidencia",
     matchAlreadyPlayed: "El partido ya se ha jugado.",
+    finishLiveMatchFirst: "Ya tienes un partido en curso. Termínalo antes de empezar otro.",
     bothNeedEleven: "Ambos entrenadores necesitan un once inicial de 11 jugadores",
     nameRequired: "Dale un nombre a la temporada",
     seasonNotFound: "No se encontró la temporada",

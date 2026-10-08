@@ -129,7 +129,7 @@ export function AiSeasonDetails({ season }: { season: AiSeason }) {
 function PlayFriendFixture({ fixture }: { fixture: SeasonFixture }) {
   const t = useT();
   const [state, action, pending] = useActionState(playFriendSeasonMatchAction, initial);
-  return <form action={action} className="shrink-0"><input type="hidden" name="fixture_id" value={fixture.id} /><button disabled={pending} title={state.error} className="rounded-lg bg-lime-300 px-2.5 py-1 text-xs font-black text-slate-950 disabled:opacity-60">{fixture.status === "live" ? t.seasons.friend.watchLive : t.seasons.friend.play}</button>{state.error ? <span className="sr-only">{state.error}</span> : null}</form>;
+  return <form action={action} className="grid max-w-48 shrink-0 justify-items-end gap-1"><input type="hidden" name="fixture_id" value={fixture.id} /><button disabled={pending} className="rounded-lg bg-lime-300 px-2.5 py-1 text-xs font-black text-slate-950 disabled:opacity-60">{fixture.status === "live" ? t.seasons.friend.watchLive : t.seasons.friend.play}</button>{state.error ? <p role="alert" className="text-right text-xs text-rose-300">{state.error}</p> : null}</form>;
 }
 
 // Lenken bygges når den deles, så den får riktig domene. På mobil åpnes delingsmenyen,

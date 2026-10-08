@@ -80,6 +80,7 @@ export const seasons = {
     needEleven: "اختر تشكيلة أساسية مكونة من 11 لاعبًا في الفريق قبل اللعب",
     matchNotFound: "تعذر العثور على المباراة",
     matchAlreadyPlayed: "لقد تم لعب المباراة بالفعل",
+    finishLiveMatchFirst: "لديك مباراة جارية بالفعل. أنهِها قبل أن تبدأ مباراة جديدة.",
     bothNeedEleven: "يحتاج كلا المديرين إلى تشكيلة أساسية مكونة من 11 لاعبًا",
     nameRequired: "إعطاء الموسم اسما",
     seasonNotFound: "لم يتم العثور على الموسم",

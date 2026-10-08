@@ -80,6 +80,7 @@ export const seasons = {
     needEleven: "比赛前选择球队中 11 名首发球员",
     matchNotFound: "找不到匹配项",
     matchAlreadyPlayed: "比赛已经打完",
+    finishLiveMatchFirst: "你已经有一场比赛正在进行。请先打完再开始新的比赛。",
     bothNeedEleven: "两位主帅都需要 11 名首发球员",
     nameRequired: "给季节起个名字",
     seasonNotFound: "找不到该赛季",
