@@ -152,7 +152,8 @@ export async function getFiveShots(matchId: string): Promise<FiveShotResult[]> {
 
 export async function getFiveTactics(matchId: string): Promise<FiveTacticChange[]> {
   const { data, error } = await supabaseAdmin().from("five_match_tactics").select("minute, side, tactic").eq("match_id", matchId).order("minute");
-  if (error) throw new Error(error.message);
+  // Uten tabellen (migrering 0078 ikke kjørt) spilles kampen uten taktikkbytter i stedet for å feile.
+  if (error) { if (error.code === "42P01" || error.code === "PGRST205") return []; throw new Error(error.message); }
   return (data ?? []).filter((row) => isFiveTactic(row.tactic)).map((row) => ({ minute: row.minute, side: row.side, tactic: row.tactic }));
 }
 
