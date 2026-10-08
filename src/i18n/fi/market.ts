@@ -15,7 +15,7 @@ const packDescriptions: Record<string, string> = {
   gull: "Kahdeksan korttia, joista vähintään yksi 83 tai parempi.",
   elite: "Kaksitoista korttia, joista kaksi 84+ ja yksi 86+ taattu.",
   inform: "Seitsemän korttia: taattu yksi Inform, yksi 88+, kaksi 86+ ja kolme 83+. Yksi viikossa.",
-  spesial: "Yksi satunnainen erikoiskortti: inform tai TOTS. Ei myytävissä markkinoilla.",
+  spesial: "Yksi satunnainen erikoiskortti: inform, TOTS tai Icon. Ei myytävissä markkinoilla.",
   ungdomstoooor: "Ilmainen! Viisi 84+ korttia, vähintään yksi TOTS taattu. Yksi päivässä sunnuntaihin asti.",
 };
 
@@ -107,11 +107,13 @@ export const market = {
     tooExpensive: "Liian kallista",
     informOdds: "Inform (per kortti)",
     totsOdds: "TOTS (per kortti)",
+    iconOdds: "Icon (per kortti)",
     informWeekTitle: "Viikon Inform",
     informWeekIntro: (count: number) => `${count} pelaajaa on tällä viikolla vireessä. Heidän Inform-korttinsa voivat tulla paketeista.`,
     informWeekResets: (when: string) => `Uudet Informit ${when}`,
     allInforms: "Näytä kaikki Informit",
     allTots: "Näytä kaikki TOTS",
+    allIcons: "Näytä kaikki Iconit",
     informPulled: "INFORM!",
     untradable: " · ei myytävissä",
     specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "Inform" : scope === "tots" ? "TOTS" : "erikoiskortti"}`,

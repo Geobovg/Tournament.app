@@ -19,6 +19,7 @@ export const career = {
     sbc: "SBC",
     informs: "Informs",
     tots: "TOTS",
+    icons: "Icons",
   },
   subTabs: {
     squad: "Kader",
@@ -257,7 +258,7 @@ export const career = {
     unusableCard: "Der Trupp enthält eine Karte, die Sie nicht verwenden können",
     wrongPosition: "Ein Spieler befindet sich auf einer Position, die er nicht spielen kann",
   },
-  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "PERSÖNLICH" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Persönliche Karte" }, untradable: "Nicht handelbar", anyPosition: "ALLE", personalHint: "Spielt jede Position. +1 Wertung für jede neue Division, die du erreichst" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", icon: "ICON", personal: "PERSÖNLICH" }, name: { inform: "Inform", tots: "Team of the Season", icon: "Icon", personal: "Persönliche Karte" }, untradable: "Nicht handelbar", anyPosition: "ALLE", personalHint: "Spielt jede Position. +1 Wertung für jede neue Division, die du erreichst" },
   tots: {
     intro: (count: number) => `${count} Team-of-the-Season-Karten mit den besten Spielern jeder Liga. Sie können in Packs auftauchen.`,
     all: "Alle",
@@ -265,6 +266,10 @@ export const career = {
     count: (count: number) => `${count} Karten`,
     boost: (boost: number) => `+${boost} gegenüber der normalen Karte`,
     empty: "Hier gibt es keine TOTS-Karten.",
+  },
+  icons: {
+    intro: (count: number) => `${count} Icon-Karten der größten Legenden der Fußballgeschichte. Sie sind in Packs seltener als TOTS.`,
+    empty: "Keine Icons hier.",
   },
   informs: {
     intro: (total: number, rounds: number) => `${total} Inform-Karten aus ${rounds} ${rounds === 1 ? "Runde" : "Runden"}. Neue werden jeden Freitag um 18:00 Uhr gezogen.`,

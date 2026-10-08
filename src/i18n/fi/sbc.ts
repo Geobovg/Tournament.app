@@ -33,6 +33,7 @@ export const sbc: SbcDict = {
     super_lig: "Süper Lig",
     saudi_pro_league: "Saudi Pro League",
     other: "Muut liigat",
+    icons: "Icons",
   } as Record<string, string>,
   groups: { goalkeeper: "maalivahtia", defender: "puolustajaa", midfielder: "keskikentän pelaajaa", attacker: "hyökkääjää" },
   req: {

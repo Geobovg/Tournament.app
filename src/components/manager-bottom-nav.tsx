@@ -14,7 +14,7 @@ const tabs = [
   { href: "/managerkarriere/lagtropp", label: "squad", icon: "◈", match: (path: string) => path.startsWith("/managerkarriere/lagtropp") || path.startsWith("/managerkarriere/klubblager") },
   { href: "/managerkarriere/spillermarked", label: "market", icon: "↗", match: (path: string) => path.startsWith("/managerkarriere/spillermarked") },
   { href: "/managerkarriere/sbc", label: "sbc", icon: "⇄", match: (path: string) => path.startsWith("/managerkarriere/sbc") },
-  { href: "/managerkarriere/pakker", label: "packs", icon: "✦", match: (path: string) => path.startsWith("/managerkarriere/pakker") || path.startsWith("/managerkarriere/informs") || path.startsWith("/managerkarriere/tots") },
+  { href: "/managerkarriere/pakker", label: "packs", icon: "✦", match: (path: string) => path.startsWith("/managerkarriere/pakker") || path.startsWith("/managerkarriere/informs") || path.startsWith("/managerkarriere/tots") || path.startsWith("/managerkarriere/icons") },
   { href: "/managerkarriere/sesong", label: "season", icon: "▤", match: (path: string) => ["/managerkarriere/sesong", "/managerkarriere/kamplobby", "/managerkarriere/karrierehistorikk"].some((prefix) => path.startsWith(prefix)) },
 ] as const;
 

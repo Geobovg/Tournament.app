@@ -15,7 +15,7 @@ const packDescriptions: Record<string, string> = {
   gull: "ثماني بطاقات، مع ضمان 83 بطاقة واحدة على الأقل أو أفضل.",
   elite: "اثنتا عشرة بطاقة، مع ضمان بطاقتين من فئة 84+ وبطاقة واحدة من فئة 86+.",
   inform: "سبع بطاقات: مضمون بطاقة فورمة واحدة، وواحدة 88+، واثنتان 86+، وثلاث 83+. واحدة أسبوعيًا.",
-  spesial: "بطاقة خاصة عشوائية: بطاقة فورمة أو TOTS. لا يمكن بيعها في السوق.",
+  spesial: "بطاقة خاصة عشوائية: بطاقة فورمة أو TOTS أو Icon. لا يمكن بيعها في السوق.",
   ungdomstoooor: "مجانية! خمس بطاقات 84+ مع بطاقة TOTS واحدة على الأقل مضمونة. واحدة يوميًا حتى الأحد.",
 };
 
@@ -107,11 +107,13 @@ export const market = {
     tooExpensive: "غالي جدًا",
     informOdds: "بطاقة الفورمة (لكل بطاقة)",
     totsOdds: "TOTS (لكل بطاقة)",
+    iconOdds: "Icon (لكل بطاقة)",
     informWeekTitle: "فورمة الأسبوع",
     informWeekIntro: (count: number) => `${count} لاعبين في قمة الفورمة هذا الأسبوع. قد تظهر بطاقاتهم في الحزم.`,
     informWeekResets: (when: string) => `بطاقات فورمة جديدة ${when}`,
     allInforms: "عرض كل بطاقات الفورمة",
     allTots: "عرض كل بطاقات TOTS",
+    allIcons: "عرض كل بطاقات Icon",
     informPulled: "فورمة!",
     untradable: " · غير قابلة للبيع",
     specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "بطاقة فورمة" : scope === "tots" ? "TOTS" : "بطاقة خاصة"}`,

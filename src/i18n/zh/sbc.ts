@@ -33,6 +33,7 @@ export const sbc: SbcDict = {
     super_lig: "土超",
     saudi_pro_league: "沙特职业联赛",
     other: "其他联赛",
+    icons: "传奇",
   },
   groups: { goalkeeper: "守门员", defender: "后卫", midfielder: "中场", attacker: "前锋" },
   req: {

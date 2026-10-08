@@ -33,6 +33,7 @@ export const sbc = {
     super_lig: "Süper Lig",
     saudi_pro_league: "Saudi Pro League",
     other: "Other leagues",
+    icons: "Icons",
   } as Record<string, string>,
   groups: { goalkeeper: "goalkeepers", defender: "defenders", midfielder: "midfielders", attacker: "attackers" },
   req: {

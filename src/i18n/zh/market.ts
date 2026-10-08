@@ -15,7 +15,7 @@ const packDescriptions: Record<string, string> = {
   gull: "八张牌，至少一张 83 或更高的保证。",
   elite: "十二张牌，保证两张 84+ 和一张 86+。",
   inform: "七张卡：保底一张状态卡、一张 88+、两张 86+ 和三张 83+。每周一包。",
-  spesial: "一张随机特殊卡：状态卡或 TOTS。不能在市场出售。",
+  spesial: "一张随机特殊卡：状态卡、TOTS 或传奇卡。不能在市场出售。",
   ungdomstoooor: "免费！五张 84+ 球员卡，保底至少一张 TOTS。每天一包，持续到周日。",
 };
 
@@ -107,11 +107,13 @@ export const market = {
     tooExpensive: "太贵了",
     informOdds: "状态卡（每张）",
     totsOdds: "TOTS（每张）",
+    iconOdds: "传奇卡（每张）",
     informWeekTitle: "本周状态卡",
     informWeekIntro: (count: number) => `本周有 ${count} 名球员状态火热。他们的状态卡可能出现在卡包中。`,
     informWeekResets: (when: string) => `新状态卡 ${when}`,
     allInforms: "查看全部状态卡",
     allTots: "查看全部 TOTS",
+    allIcons: "查看全部传奇卡",
     informPulled: "状态卡！",
     untradable: " · 不可交易",
     specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "状态卡" : scope === "tots" ? "TOTS" : "特殊卡"}`,
