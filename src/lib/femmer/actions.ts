@@ -46,7 +46,7 @@ export async function saveFiveLineupAction(_prev: ActionState, formData: FormDat
 }
 
 export type FivePull = { cardId: string; personId: string; informId: string | null; overall: number; upgrade: boolean };
-export type FivePackState = ActionState & { pulls?: FivePull[]; openedAt?: number; coins?: number; streak?: number };
+export type FivePackState = ActionState & { pulls?: FivePull[]; openedAt?: number; coins?: number };
 type RawPull = { card_id: string; person_id: string; inform_id: string | null; overall: number; upgrade: boolean };
 const toPulls = (data: unknown): FivePull[] => ((Array.isArray(data) ? data : []) as RawPull[]).map((pull) => ({ cardId: pull.card_id, personId: pull.person_id, informId: pull.inform_id ?? null, overall: pull.overall, upgrade: pull.upgrade }));
 
@@ -58,15 +58,6 @@ export async function openFivePackAction(_prev: FivePackState, formData: FormDat
   if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
   revalidatePath(path);
   return { ok: true, pulls: toPulls(data), openedAt: Date.now() };
-}
-
-export async function claimFiveLoginAction(): Promise<FivePackState> {
-  const user = await requireUser();
-  const { data, error } = await supabaseAdmin().rpc("claim_five_login", { target_user: user.id });
-  if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
-  revalidatePath(path);
-  const result = (data ?? {}) as { streak?: number; coins?: number; pulls?: unknown };
-  return { ok: true, pulls: toPulls(result.pulls), openedAt: Date.now(), coins: Number(result.coins ?? 0), streak: Number(result.streak ?? 1) };
 }
 
 export async function claimFiveObjectiveAction(_prev: FivePackState, formData: FormData): Promise<FivePackState> {

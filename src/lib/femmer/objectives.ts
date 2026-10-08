@@ -12,13 +12,13 @@ export type FiveObjectiveMetric = "played" | "wins" | "goals" | "cleanSheets" | 
 export type FiveObjective = { key: string; period: "daily" | "weekly"; metric: FiveObjectiveMetric; target: number; coins: number; packCards: number; inform: boolean };
 
 export const fiveObjectives: FiveObjective[] = [
-  { key: "d_play3", period: "daily", metric: "played", target: 3, coins: 150, packCards: 0, inform: false },
-  { key: "d_win2", period: "daily", metric: "wins", target: 2, coins: 200, packCards: 0, inform: false },
+  { key: "d_play3", period: "daily", metric: "played", target: 3, coins: 40, packCards: 0, inform: false },
+  { key: "d_win2", period: "daily", metric: "wins", target: 2, coins: 50, packCards: 0, inform: false },
   { key: "d_goals6", period: "daily", metric: "goals", target: 6, coins: 0, packCards: 1, inform: false },
   { key: "w_win10", period: "weekly", metric: "wins", target: 10, coins: 0, packCards: 3, inform: false },
-  { key: "w_clean3", period: "weekly", metric: "cleanSheets", target: 3, coins: 500, packCards: 0, inform: false },
-  { key: "w_ai5", period: "weekly", metric: "aiWins", target: 5, coins: 600, packCards: 0, inform: false },
-  { key: "w_social3", period: "weekly", metric: "social", target: 3, coins: 400, packCards: 0, inform: false },
+  { key: "w_clean3", period: "weekly", metric: "cleanSheets", target: 3, coins: 125, packCards: 0, inform: false },
+  { key: "w_ai5", period: "weekly", metric: "aiWins", target: 5, coins: 150, packCards: 0, inform: false },
+  { key: "w_social3", period: "weekly", metric: "social", target: 3, coins: 100, packCards: 0, inform: false },
   { key: "w_goals30", period: "weekly", metric: "goals", target: 30, coins: 0, packCards: 0, inform: true },
 ];
 

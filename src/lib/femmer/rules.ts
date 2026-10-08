@@ -45,7 +45,7 @@ export function fiveMatchReward(result: "win" | "draw" | "loss") {
   return FIVE_MATCH_REWARDS[result];
 }
 /** Premiene i en vennesesong (finish_five_season). Med to managere får bare vinneren premie. */
-export const FIVE_SEASON_PRIZES = [1000, 500, 250];
+export const FIVE_SEASON_PRIZES = [250, 125, 60];
 export const FIVE_SEASON_MAX_MEMBERS = 16;
 
 /**
@@ -63,7 +63,7 @@ export function fivePositionPenalty(position: FivePosition | null, role: FiveRol
   return position === null ? 6 : 4;
 }
 /** Første posisjon er gratis; å bytte senere koster (set_five_card_position). */
-export const FIVE_POSITION_CHANGE_COST = 200;
+export const FIVE_POSITION_CHANGE_COST = 50;
 /**
  * Prisen for +1 rating med mynter (five_upgrade_cost i databasen, migrering 0077). Den starter lavt og
  * blir brattere jo høyere kortet er: 60 fra 70, 260 fra 80, 660 fra 90 og 1124 fra 98.
@@ -72,10 +72,6 @@ export function fiveUpgradeCost(overall: number) {
   const above = Math.max(0, overall - 70);
   return 60 + above * 10 + above * above;
 }
-
-/** Innloggingsbonusen dag 1–7 (claim_five_login). Dag 7 gir en pakke med tre kort i stedet for mynter. */
-export const fiveLoginRewards = [50, 75, 100, 125, 150, 200, 0];
-export const FIVE_LOGIN_PACK_CARDS = 3;
 
 /** Erfaring per kamp. 100 xp gir +1 rating (se record_five_match). */
 export const FIVE_XP = { starter: 15, bench: 8, goal: 10, assist: 5, win: 10 } as const;

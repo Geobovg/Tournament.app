@@ -107,14 +107,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `Uka fra ${date}`,
     points: (points: number, boost: number) => `${points} p · +${boost}`,
   },
-  login: {
-    title: "Daglig bonus",
-    text: "Logg inn hver dag. Dag 7 gir en pakke – hopper du over en dag, starter rekka på nytt.",
-    claim: "Hent",
-    claimed: "Hentet i dag",
-    day: (day: number) => `Dag ${day}`,
-    banner: "Dagens bonus er klar – trykk for å hente den",
-  },
   objectives: {
     daily: "Daglige utfordringer",
     weekly: "Ukentlige utfordringer",

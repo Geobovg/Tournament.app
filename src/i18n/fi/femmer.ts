@@ -106,14 +106,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `Viikko alkaen ${date}`,
     points: (points: number, boost: number) => `${points} p · +${boost}`,
   },
-  login: {
-    title: "Päivittäinen bonus",
-    text: "Kirjaudu sisään joka päivä. Päivä 7 antaa paketin – jos jätät päivän väliin, putki alkaa alusta.",
-    claim: "Lunasta",
-    claimed: "Lunastettu tänään",
-    day: (day: number) => `Päivä ${day}`,
-    banner: "Päivittäinen bonuksesi odottaa – napauta lunastaaksesi",
-  },
   objectives: {
     daily: "Päivän haasteet",
     weekly: "Viikon haasteet",

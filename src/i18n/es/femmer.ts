@@ -106,14 +106,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `Semana del ${date}`,
     points: (points: number, boost: number) => `${points} pts · +${boost}`,
   },
-  login: {
-    title: "Bonus diario",
-    text: "Entra cada día. El día 7 te da un sobre – si te saltas un día, la racha vuelve a empezar.",
-    claim: "Reclamar",
-    claimed: "Reclamado hoy",
-    day: (day: number) => `Día ${day}`,
-    banner: "Tu bonus diario está listo – toca para reclamarlo",
-  },
   objectives: {
     daily: "Desafíos diarios",
     weekly: "Desafíos semanales",

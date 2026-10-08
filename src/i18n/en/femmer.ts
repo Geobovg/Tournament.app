@@ -104,14 +104,6 @@ export const femmer = {
     week: (date: string) => `Week of ${date}`,
     points: (points: number, boost: number) => `${points} pts · +${boost}`,
   },
-  login: {
-    title: "Daily bonus",
-    text: "Log in every day. Day 7 gives a pack – miss a day and the streak starts again.",
-    claim: "Claim",
-    claimed: "Claimed today",
-    day: (day: number) => `Day ${day}`,
-    banner: "Your daily bonus is ready – tap to claim it",
-  },
   objectives: {
     daily: "Daily challenges",
     weekly: "Weekly challenges",
