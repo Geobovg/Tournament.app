@@ -39,7 +39,7 @@ function Scorers({ goals, side }: { goals: { minute: number; side: FiveSide; nam
   return <ul className={`grid gap-0.5 text-xs text-white/75 ${side === "home" ? "text-right" : "text-left"}`}>{mine.map((goal, index) => <li key={index} className="truncate">⚽ {goal.name} <span className="tabular-nums text-white/50">{goal.minute}′</span></li>)}</ul>;
 }
 
-type Props = { matchId: string; match: FiveMatchData; initialShots: FiveShotResult[]; initialTactics: FiveTacticChange[]; status: "live" | "completed"; startedAt: string | null; serverNow: number; isController: boolean; viewerSide: "home" | "away" | null; coins: number; returnPath: string; season: boolean };
+type Props = { matchId: string; match: FiveMatchData; initialShots: FiveShotResult[]; initialTactics: FiveTacticChange[]; status: "live" | "completed"; startedAt: string | null; serverNow: number; isController: boolean; viewerSide: "home" | "away" | null; returnPath: string; season: boolean };
 
 /** Som i managerkarrieren: etter en kamp som nettopp ble spilt, går man tilbake av seg selv etter litt. */
 const RETURN_AFTER_MS = 3_000;
@@ -56,7 +56,7 @@ function pitchTime(clock: FiveClock) {
  * man laster siden på nytt. Den vises på en bane der spillerne og ballen spiller ut hendelsene. Den som
  * spiller, bytter taktikk underveis; på straffer og store sjanser zoomer banen inn og man velger rute.
  */
-export function FiveMatch({ matchId, match: planned, initialShots, initialTactics, status, startedAt, serverNow, isController, viewerSide, coins, returnPath, season }: Props) {
+export function FiveMatch({ matchId, match: planned, initialShots, initialTactics, status, startedAt, serverNow, isController, viewerSide, returnPath, season }: Props) {
   const t = useT().femmer;
   const router = useRouter();
   const [offset] = useState(() => serverNow - Date.now());
@@ -66,7 +66,7 @@ export function FiveMatch({ matchId, match: planned, initialShots, initialTactic
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Satt når kampen ble ferdig mens man så på den: myntene man fikk, fra serveren.
-  const [settled, setSettled] = useState<{ coins: number } | null>(null);
+  const [settled, setSettled] = useState(false);
   const requested = useRef(new Set<string>());
   const live = status === "live" && startedAt !== null;
   const shotMinutes = fiveShotMinutes(planned);
@@ -118,7 +118,7 @@ export function FiveMatch({ matchId, match: planned, initialShots, initialTactic
     const attempt = (tries: number) => completeFiveMatchAction(matchId).then((response) => {
       if (response.ok) {
         if (response.shots) setResults(response.shots);
-        setSettled({ coins: response.coins ?? 0 });
+        setSettled(true);
       } else if (tries < 10) setTimeout(() => attempt(tries + 1), 1_500);
       else setError(response.error ?? null);
     });
@@ -133,8 +133,7 @@ export function FiveMatch({ matchId, match: planned, initialShots, initialTactic
   }, [settled, router, returnPath]);
 
   const score = fiveScore(match, known, clock.minute);
-  const done = !live || settled !== null;
-  const shownCoins = settled ? settled.coins : coins;
+  const done = !live || settled;
   const mine = viewerSide ? score[viewerSide] : score.home;
   const theirs = viewerSide ? score[viewerSide === "home" ? "away" : "home"] : score.away;
   const outcome = mine > theirs ? "win" : mine === theirs ? "draw" : "loss";
@@ -176,7 +175,6 @@ export function FiveMatch({ matchId, match: planned, initialShots, initialTactic
       {done ? <div className="mt-4 grid gap-1">
         {viewerSide ? <p className={`text-2xl font-black ${outcome === "win" ? "text-lime-300" : outcome === "loss" ? "text-red-300" : ""}`}>{t.match[outcome]}</p> : null}
         {best ? <p className="text-sm text-white/70">{t.match.playerOfMatch}: <b>{best}</b></p> : null}
-        {shownCoins > 0 ? <p className="text-sm font-bold text-amber-300">{t.match.reward(shownCoins)}</p> : null}
         {settled ? <p className="mt-2 text-sm text-white/60">{season ? t.match.returningSeason : t.match.returning}</p> : null}
       </div> : null}
     </section>
@@ -186,6 +184,6 @@ export function FiveMatch({ matchId, match: planned, initialShots, initialTactic
 
     {showTactics && isController ? <TacticPanel current={current[controller]} pending={pending} nextFrom={nextFrom} opponent={current[controller === "home" ? "away" : "home"]} busy={busy} onPick={pickTactic} /> : null}
 
-    {done ? <div className="flex flex-wrap justify-center gap-2"><Link href={returnPath} replace={Boolean(settled)} className={buttonClass}>{season ? t.match.backSeason : t.match.back}</Link>{season ? null : <Link href="/femmer?tab=kamp" className={secondaryButtonClass}>{t.match.playAgain}</Link>}</div> : null}
+    {done ? <div className="flex flex-wrap justify-center gap-2"><Link href={returnPath} replace={settled} className={buttonClass}>{season ? t.match.backSeason : t.match.back}</Link>{season ? null : <Link href="/femmer?tab=kamp" className={secondaryButtonClass}>{t.match.playAgain}</Link>}</div> : null}
   </div>;
 }

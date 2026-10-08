@@ -4,14 +4,14 @@ import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../supabase/server";
 import { getFiveMatch, getLiveFiveMatchId, type FivePerson, type FiveState } from "./data";
 import { fiveCardStats, fiveClock, fiveDurationMs, fiveMsPerMinute, fivePlay, fiveScore, fiveShotMinutes, FIVE_SHOT_CELLS, FIVE_SHOT_CHOICE_MS, planFiveMatch, resolveFiveShot, seededRoll, type FiveMatchData, type FivePlayer, type FiveShotResult, type FiveSide, type FiveTeam } from "./match";
-import { FIVE_BENCH, fiveAiRating, fiveFormations, fiveMatchReward, type FiveFormation, type FivePosition } from "./rules";
+import { FIVE_BENCH, fiveAiRating, fiveFormations, type FiveFormation, type FivePosition } from "./rules";
 
 /** Laget slik brukeren har satt det opp, eller null uten en hel startfemmer. */
 export function teamFromState(state: FiveState, name: string, userId: string): FiveTeam | null {
   const byId = new Map(state.cards.map((card) => [card.id, card]));
   const player = (id: string): FivePlayer | null => {
     const card = byId.get(id);
-    return card ? { id: card.id, personId: card.personId, name: card.name, slug: card.slug, overall: card.overall, position: card.position, inform: Boolean(card.informId) } : null;
+    return card ? { id: card.id, personId: card.personId, name: card.name, slug: card.slug, overall: card.overall, position: card.position } : null;
   };
   const starters = state.starters.map(player).filter((entry): entry is FivePlayer => Boolean(entry));
   if (starters.length !== 5) return null;
@@ -43,7 +43,7 @@ export async function createLiveMatch(input: NewMatch): Promise<string | null> {
   const data = planFiveMatch(randomUUID(), input.home, input.away, input.controllerSide);
   const { data: row, error } = await supabaseAdmin().from("five_matches").insert({
     kind: input.kind, status: "live", started_at: new Date().toISOString(), home_user_id: input.homeUserId, away_user_id: input.awayUserId, away_name: input.away.name,
-    ai_level: input.level, home_score: 0, away_score: 0, events: data, coins: 0, controller_id: input.controllerId, controller_side: input.controllerSide, season_id: input.seasonId,
+    ai_level: input.level, home_score: 0, away_score: 0, events: data, controller_id: input.controllerId, controller_side: input.controllerSide, season_id: input.seasonId,
   }).select("id").single();
   if (error) {
     if (error.code === "23505") return null;
@@ -52,10 +52,6 @@ export async function createLiveMatch(input: NewMatch): Promise<string | null> {
   return row.id as string;
 }
 
-function resultFor(score: { home: number; away: number }, side: FiveSide) {
-  const mine = score[side]; const theirs = score[side === "home" ? "away" : "home"];
-  return mine > theirs ? "win" : mine === theirs ? "draw" : "loss";
-}
 
 /**
  * Avgjør et stopp i kampen og lagrer det. Raden skrives bare hvis den ikke finnes fra før,
@@ -96,12 +92,8 @@ export async function settleIfFinished(matchId: string): Promise<boolean> {
   // Motstanderens taktikk svarer på stillingen, så kampen spilles på nytt med alle stoppene avgjort.
   const data = fivePlay(match.data, match.tactics, results).match;
   const score = fiveScore(data, results);
-  const homeResult = resultFor(score, "home"); const awayResult = resultFor(score, "away");
-  // Vennen i en vennekamp spilte ikke selv og får ingen mynter; i sesongkamper får begge.
-  const rewardHome = fiveMatchReward(homeResult);
-  const rewardAway = match.kind === "season" ? fiveMatchReward(awayResult) : 0;
   const { error } = await supabaseAdmin().rpc("settle_five_match", {
-    target_match: matchId, score_home: score.home, score_away: score.away, reward_home: rewardHome, reward_away: rewardAway,
+    target_match: matchId, score_home: score.home, score_away: score.away,
     stats_home: fiveCardStats(data, "home", results), stats_away: match.kind === "season" ? fiveCardStats(data, "away", results) : [],
   });
   if (error) throw new Error(error.message);

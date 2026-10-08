@@ -1,4 +1,4 @@
-// Reglene i Femmer (migrering 0075). Fila brukes både på serveren og i nettleseren.
+// Reglene i Femmer (migrering 0075, uten pakker og mynter fra 0079). Fila brukes både på serveren og i nettleseren.
 
 export const FIVE_START_OVERALL = 70;
 export const FIVE_STARTERS = 5;
@@ -22,30 +22,12 @@ export function isFiveFormation(value: unknown): value is FiveFormation {
   return typeof value === "string" && value in fiveFormations;
 }
 
-/**
- * Pakkene. Prisen og antallet sendes til open_five_pack fra serveren, så nettleseren kan ikke
- * bestemme dem selv. Det finnes ingen gratispakke lenger.
- */
-export const fivePacks = [
-  { key: "single", cards: 1, price: 250 },
-  { key: "triple", cards: 3, price: 650 },
-  { key: "mega", cards: 5, price: 1000 },
-] as const;
-export type FivePackKey = (typeof fivePacks)[number]["key"];
-
 /** AI-stigen har 30 trinn. Ratingen til AI-laget stiger jevnt fra 63 til 98. */
 export const FIVE_AI_LEVELS = 30;
 export function fiveAiRating(level: number) {
   return Math.min(98, Math.round(62 + Math.max(1, level) * 1.2));
 }
 
-/** Mynter per kamp, likt for alle typer kamper: 40 for seier, 15 for uavgjort og ingenting for tap. */
-export const FIVE_MATCH_REWARDS = { win: 40, draw: 15, loss: 0 } as const;
-export function fiveMatchReward(result: "win" | "draw" | "loss") {
-  return FIVE_MATCH_REWARDS[result];
-}
-/** Premiene i en vennesesong (finish_five_season). Med to managere får bare vinneren premie. */
-export const FIVE_SEASON_PRIZES = [250, 125, 60];
 export const FIVE_SEASON_MAX_MEMBERS = 16;
 
 /**
@@ -61,16 +43,6 @@ export function fivePositionPenalty(position: FivePosition | null, role: FiveRol
   if (position === role) return 0;
   if (position === "GK" || role === "GK") return 15;
   return position === null ? 6 : 4;
-}
-/** Første posisjon er gratis; å bytte senere koster (set_five_card_position). */
-export const FIVE_POSITION_CHANGE_COST = 50;
-/**
- * Prisen for +1 rating med mynter (five_upgrade_cost i databasen, migrering 0077). Den starter lavt og
- * blir brattere jo høyere kortet er: 60 fra 70, 260 fra 80, 660 fra 90 og 1124 fra 98.
- */
-export function fiveUpgradeCost(overall: number) {
-  const above = Math.max(0, overall - 70);
-  return 60 + above * 10 + above * above;
 }
 
 /** Erfaring per kamp. 100 xp gir +1 rating (se record_five_match). */
