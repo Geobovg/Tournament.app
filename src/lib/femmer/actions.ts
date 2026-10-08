@@ -195,14 +195,23 @@ export async function chooseFiveShotAction(matchId: string, minute: number, cell
   return result ? { ok: true, result } : { error: t.errors.matchNotLive };
 }
 
-/** Kalles når klokka har gått ut. Kampen gjøres opp bare hvis serverens klokke sier at den er ferdig. */
-export async function completeFiveMatchAction(matchId: string): Promise<ActionState> {
+export type FiveCompleteState = ActionState & { coins?: number; shots?: FiveShotResult[] };
+
+/**
+ * Kalles når klokka har gått ut. Kampen gjøres opp bare hvis serverens klokke sier at den er ferdig.
+ * Svarer med myntene til den som spør og alle avgjorte stopp, så kampsiden kan vise sluttresultatet
+ * uten å hentes på nytt før den sender brukeren tilbake.
+ */
+export async function completeFiveMatchAction(matchId: string): Promise<FiveCompleteState> {
   const user = await requireUser();
   const match = await getFiveMatch(matchId, user.id);
   if (!match) return { error: (await getT()).femmer.errors.matchNotLive };
   if (!(await settleIfFinished(matchId))) return { error: (await getT()).femmer.errors.matchNotFinished };
   revalidatePath(path); revalidatePath(`/femmer/kamp/${matchId}`);
-  return { ok: true };
+  if (match.seasonId) revalidatePath(`/femmer/sesong/${match.seasonId}`);
+  const settled = await getFiveMatch(matchId, user.id);
+  const coins = settled ? (settled.homeUserId === user.id ? settled.coins : settled.awayCoins) : 0;
+  return { ok: true, coins, shots: settled?.shots ?? [] };
 }
 
 // ---------------------------------------------------------------------------

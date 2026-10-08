@@ -32,19 +32,24 @@ function ShotGoal({ match, shot, result, interactive, onPick }: { match: FiveMat
   </div>;
 }
 
-type Props = { matchId: string; match: FiveMatchData; initialShots: FiveShotResult[]; status: "live" | "completed"; startedAt: string | null; serverNow: number; isController: boolean; viewerSide: "home" | "away" | null; coins: number };
+type Props = { matchId: string; match: FiveMatchData; initialShots: FiveShotResult[]; status: "live" | "completed"; startedAt: string | null; serverNow: number; isController: boolean; viewerSide: "home" | "away" | null; coins: number; returnPath: string; season: boolean };
+
+/** Som i managerkarrieren: etter en kamp som nettopp ble spilt, går man tilbake av seg selv etter litt. */
+const RETURN_AFTER_MS = 3_000;
 
 /**
  * Kampen spilles med klokke fra serveren, så den kan ikke hoppes over og fortsetter der den var hvis
  * man laster siden på nytt. På straffer og store sjanser stopper klokka og den som spiller velger.
  */
-export function FiveMatch({ matchId, match, initialShots, status, startedAt, serverNow, isController, viewerSide, coins }: Props) {
+export function FiveMatch({ matchId, match, initialShots, status, startedAt, serverNow, isController, viewerSide, coins, returnPath, season }: Props) {
   const t = useT().femmer;
   const router = useRouter();
   const [offset] = useState(() => serverNow - Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [results, setResults] = useState<FiveShotResult[]>(initialShots);
   const [error, setError] = useState<string | null>(null);
+  // Satt når kampen ble ferdig mens man så på den: myntene man fikk, fra serveren.
+  const [settled, setSettled] = useState<{ coins: number } | null>(null);
   const requested = useRef(new Set<string>());
   const live = status === "live" && startedAt !== null;
   const shotMinutes = fiveShotMinutes(match);
@@ -77,21 +82,31 @@ export function FiveMatch({ matchId, match, initialShots, status, startedAt, ser
     send(activeShot.minute, null);
   });
 
-  // Ferdig på klokka: kampen gjøres opp på serveren, så hentes siden på nytt med resultat og premie.
+  // Ferdig på klokka: kampen gjøres opp på serveren, og sluttresultatet vises med premien.
   useEffect(() => {
     if (!live || clock.phase !== "full_time" || requested.current.has("complete")) return;
     requested.current.add("complete");
     const attempt = (tries: number) => completeFiveMatchAction(matchId).then((response) => {
-      if (response.ok) router.refresh();
-      else if (tries < 10) setTimeout(() => attempt(tries + 1), 1_500);
+      if (response.ok) {
+        if (response.shots) setResults(response.shots);
+        setSettled({ coins: response.coins ?? 0 });
+      } else if (tries < 10) setTimeout(() => attempt(tries + 1), 1_500);
       else setError(response.error ?? null);
     });
     attempt(0);
   });
 
+  // Så går man tilbake av seg selv, til sesongen for sesongkamper og ellers til Femmer.
+  useEffect(() => {
+    if (!settled) return;
+    const timer = setTimeout(() => router.replace(returnPath), RETURN_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [settled, router, returnPath]);
+
   const known = live ? results : initialShots;
   const score = fiveScore(match, known, clock.minute);
-  const done = !live;
+  const done = !live || settled !== null;
+  const shownCoins = settled ? settled.coins : coins;
   const mine = viewerSide ? score[viewerSide] : score.home;
   const theirs = viewerSide ? score[viewerSide === "home" ? "away" : "home"] : score.away;
   const outcome = mine > theirs ? "win" : mine === theirs ? "draw" : "loss";
@@ -123,7 +138,8 @@ export function FiveMatch({ matchId, match, initialShots, status, startedAt, ser
       {done ? <div className="mt-4 grid gap-1">
         {viewerSide ? <p className={`text-2xl font-black ${outcome === "win" ? "text-lime-300" : outcome === "loss" ? "text-red-300" : ""}`}>{t.match[outcome]}</p> : null}
         {best ? <p className="text-sm text-white/70">{t.match.playerOfMatch}: <b>{best}</b></p> : null}
-        {coins > 0 ? <p className="text-sm font-bold text-amber-300">{t.match.reward(coins)}</p> : null}
+        {shownCoins > 0 ? <p className="text-sm font-bold text-amber-300">{t.match.reward(shownCoins)}</p> : null}
+        {settled ? <p className="mt-2 text-sm text-white/60">{season ? t.match.returningSeason : t.match.returning}</p> : null}
       </div> : null}
     </section>
 
@@ -144,6 +160,6 @@ export function FiveMatch({ matchId, match, initialShots, status, startedAt, ser
     </section>
 
     <div className="grid gap-4 lg:grid-cols-2"><Lineup team={match.home} title={match.home.name} /><Lineup team={match.away} title={match.away.name} /></div>
-    {done ? <div className="flex flex-wrap gap-2"><Link href="/femmer?tab=kamp" className={buttonClass}>{t.match.playAgain}</Link><Link href="/femmer" className={secondaryButtonClass}>{t.match.back}</Link></div> : null}
+    {done ? <div className="flex flex-wrap gap-2"><Link href={returnPath} replace={Boolean(settled)} className={buttonClass}>{season ? t.match.backSeason : t.match.back}</Link>{season ? null : <Link href="/femmer?tab=kamp" className={secondaryButtonClass}>{t.match.playAgain}</Link>}</div> : null}
   </div>;
 }

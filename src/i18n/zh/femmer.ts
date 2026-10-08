@@ -204,6 +204,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} 金币`,
     playAgain: "再来一场",
     back: "返回五人制",
+    backSeason: "返回赛季",
+    returning: "即将返回…",
+    returningSeason: "即将返回赛季…",
   },
   errors: {
     invalidFormation: "阵型无效",

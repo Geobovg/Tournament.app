@@ -204,6 +204,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} mønter`,
     playAgain: "Spil igen",
     back: "Tilbage til 5-mands",
+    backSeason: "Tilbage til sæsonen",
+    returning: "Tilbage om et øjeblik…",
+    returningSeason: "Tilbage til sæsonen om et øjeblik…",
   },
   errors: {
     invalidFormation: "Ugyldig formation",

@@ -204,6 +204,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} kolikkoa`,
     playAgain: "Pelaa uudelleen",
     back: "Takaisin viitosfutikseen",
+    backSeason: "Takaisin kauteen",
+    returning: "Palataan hetken kuluttua…",
+    returningSeason: "Palataan kauteen hetken kuluttua…",
   },
   errors: {
     invalidFormation: "Virheellinen muodostelma",

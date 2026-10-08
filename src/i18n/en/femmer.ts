@@ -202,6 +202,9 @@ export const femmer = {
     reward: (coins: number) => `+${coins} coins`,
     playAgain: "Play again",
     back: "Back to five-a-side",
+    backSeason: "Back to the season",
+    returning: "Back to five-a-side in a moment…",
+    returningSeason: "Back to the season in a moment…",
   },
   errors: {
     invalidFormation: "Invalid formation",

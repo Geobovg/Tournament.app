@@ -204,6 +204,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} عملة`,
     playAgain: "العب مجددًا",
     back: "العودة إلى الخماسي",
+    backSeason: "العودة إلى الموسم",
+    returning: "العودة بعد لحظة…",
+    returningSeason: "العودة إلى الموسم بعد لحظة…",
   },
   errors: {
     invalidFormation: "تشكيلة غير صالحة",
