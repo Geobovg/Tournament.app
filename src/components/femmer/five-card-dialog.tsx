@@ -30,8 +30,8 @@ export function FivePositionPicker({ cardId, position, coins }: { cardId: string
   const costs = current !== null;
   return <form action={action} className="grid gap-1">
     <input type="hidden" name="card_id" value={cardId} />
-    <div className="flex flex-wrap gap-1">
-      {fivePositions.map((option) => <button key={option} type="submit" name="position" value={option} disabled={pending || option === current || (costs && coins < FIVE_POSITION_CHANGE_COST)} className={`rounded-lg px-2.5 py-1 text-xs font-black transition ${option === current ? "bg-lime-300 text-slate-950" : "bg-white/10 hover:bg-white/20 disabled:opacity-40"}`}>{t.squad.roles[option]}</button>)}
+    <div className="grid grid-cols-2 gap-1">
+      {fivePositions.map((option) => <button key={option} type="submit" name="position" value={option} disabled={pending || option === current || (costs && coins < FIVE_POSITION_CHANGE_COST)} className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${option === current ? "bg-lime-300 text-slate-950" : "bg-white/10 hover:bg-white/20 disabled:opacity-40"}`}>{t.squad.positionNames[option]}</button>)}
     </div>
     <p className="text-[11px] text-muted">{costs ? t.cardDialog.positionCost(FIVE_POSITION_CHANGE_COST) : t.cardDialog.positionFree}</p>
     {state.error ? <p className="text-xs text-red-400">{state.error}</p> : null}
