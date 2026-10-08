@@ -17,6 +17,12 @@ import { supabaseAdmin } from "./supabase/server";
 
 type Db = ReturnType<typeof supabaseAdmin>;
 
+/**
+ * I vennesesongen skal ratingen avgjøre mer enn i andre kamper: et lag som er 5 bedre vinner omtrent
+ * to av tre kamper, og et lag som er 10 bedre nesten ni av ti (mot drøyt halvparten og 62 % med vekt 1).
+ */
+const FRIEND_SEASON_RATING_WEIGHT = 2.5;
+
 function seasonPaths() { revalidatePath("/managerkarriere"); revalidatePath("/managerkarriere/sesong"); }
 
 /**
@@ -80,7 +86,7 @@ export async function playFriendSeasonMatchAction(_prev: ActionState, formData: 
   if ("error" in snapshots) return { error: snapshots.error };
   const home = snapshots.get(fixture.home_user_id); const away = snapshots.get(fixture.away_user_id);
   if (!home || !away) return { error: errors.bothNeedEleven };
-  const result = await kickOffFixture(db, fixture.id, { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home, away }, { home_user_id: fixture.home_user_id, away_user_id: fixture.away_user_id, away_ai_name: null });
+  const result = await kickOffFixture(db, fixture.id, { type: "kickoff", version: MANAGER_KICKOFF_VERSION, home, away, ratingWeight: FRIEND_SEASON_RATING_WEIGHT }, { home_user_id: fixture.home_user_id, away_user_id: fixture.away_user_id, away_ai_name: null });
   if ("error" in result) return { error: result.error };
   seasonPaths();
   redirect(`/managerkarriere/kamp/${result.matchId}`);
