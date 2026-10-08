@@ -46,7 +46,7 @@ export default async function FemmerPage({ searchParams }: PageProps<"/femmer">)
   else if (tab === "sesong") {
     const [seasons, friends] = await Promise.all([listFiveSeasons(user.id), listFriends(user.id)]);
     content = <FiveSeasons seasons={seasons} friends={friends.map((friend) => ({ id: friend.id, username: friend.username }))} userId={user.id} />;
-  } else if (tab === "pakker") content = <FivePacks coins={profile.coins} freePackAvailable={profile.freePackAvailable} people={people} />;
+  } else if (tab === "pakker") content = <FivePacks coins={profile.coins} people={people} />;
   else if (tab === "utfordringer") content = <div className="grid gap-4"><FiveLoginBonus streak={profile.loginStreak} claimedToday={profile.loginClaimedToday} people={people} coins={profile.coins} /><FiveObjectives objectives={await getFiveObjectives(user.id)} people={people} coins={profile.coins} /></div>;
   else if (tab === "kort") content = <FiveCollection cards={state.cards} people={people} informs={await listFiveInforms()} coins={profile.coins} />;
   else if (tab === "toppliste") content = <FiveLeaderboard board={await getFiveLeaderboard()} userId={user.id} />;
@@ -59,7 +59,7 @@ export default async function FemmerPage({ searchParams }: PageProps<"/femmer">)
     { label: t.aiLevel, value: String(profile.aiLevel) },
     { label: t.record, value: t.recordValue(profile.wins, profile.draws, profile.losses) },
   ];
-  const dots: Partial<Record<TabKey, boolean>> = { pakker: profile.freePackAvailable, utfordringer: !profile.loginClaimedToday, kamp: Boolean(liveMatchId) };
+  const dots: Partial<Record<TabKey, boolean>> = { utfordringer: !profile.loginClaimedToday, kamp: Boolean(liveMatchId) };
 
   return <div className="mx-auto grid w-full max-w-6xl gap-5">
     {heading}

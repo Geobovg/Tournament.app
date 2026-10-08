@@ -24,10 +24,9 @@ export function isFiveFormation(value: unknown): value is FiveFormation {
 
 /**
  * Pakkene. Prisen og antallet sendes til open_five_pack fra serveren, så nettleseren kan ikke
- * bestemme dem selv. Gratispakken kan åpnes én gang per dag.
+ * bestemme dem selv. Det finnes ingen gratispakke lenger.
  */
 export const fivePacks = [
-  { key: "free", cards: 1, price: 0 },
   { key: "single", cards: 1, price: 250 },
   { key: "triple", cards: 3, price: 650 },
   { key: "mega", cards: 5, price: 1000 },
@@ -40,17 +39,10 @@ export function fiveAiRating(level: number) {
   return Math.min(98, Math.round(62 + Math.max(1, level) * 1.2));
 }
 
-/** Mynter per kamp. Alle kamper gir mynter, uansett hvor mange man spiller. */
-export function fiveAiReward(level: number, result: "win" | "draw" | "loss") {
-  if (result === "win") return 100 + level * 10;
-  if (result === "draw") return 40 + level * 3;
-  return 20;
-}
-export function fiveFriendReward(result: "win" | "draw" | "loss") {
-  return result === "win" ? 150 : result === "draw" ? 60 : 25;
-}
-export function fiveSeasonReward(result: "win" | "draw" | "loss") {
-  return result === "win" ? 200 : result === "draw" ? 80 : 30;
+/** Mynter per kamp, likt for alle typer kamper: 40 for seier, 15 for uavgjort og ingenting for tap. */
+export const FIVE_MATCH_REWARDS = { win: 40, draw: 15, loss: 0 } as const;
+export function fiveMatchReward(result: "win" | "draw" | "loss") {
+  return FIVE_MATCH_REWARDS[result];
 }
 /** Premiene i en vennesesong (finish_five_season). Med to managere får bare vinneren premie. */
 export const FIVE_SEASON_PRIZES = [1000, 500, 250];
@@ -72,9 +64,13 @@ export function fivePositionPenalty(position: FivePosition | null, role: FiveRol
 }
 /** Første posisjon er gratis; å bytte senere koster (set_five_card_position). */
 export const FIVE_POSITION_CHANGE_COST = 200;
-/** Prisen for +1 rating med mynter (five_upgrade_cost i databasen). */
+/**
+ * Prisen for +1 rating med mynter (five_upgrade_cost i databasen, migrering 0077). Den starter lavt og
+ * blir brattere jo høyere kortet er: 60 fra 70, 260 fra 80, 660 fra 90 og 1124 fra 98.
+ */
 export function fiveUpgradeCost(overall: number) {
-  return 150 + Math.max(0, overall - 70) * 30;
+  const above = Math.max(0, overall - 70);
+  return 60 + above * 10 + above * above;
 }
 
 /** Innloggingsbonusen dag 1–7 (claim_five_login). Dag 7 gir en pakke med tre kort i stedet for mynter. */

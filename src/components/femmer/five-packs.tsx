@@ -11,7 +11,6 @@ import { FivePositionPicker } from "./five-card-dialog";
 
 const initial: FivePackState = {};
 const packTones: Record<string, string> = {
-  free: "from-lime-400/30 via-emerald-950 to-slate-950",
   single: "from-sky-400/30 via-sky-950 to-slate-950",
   triple: "from-fuchsia-500/35 via-fuchsia-950 to-slate-950",
   mega: "from-amber-300/40 via-amber-950 to-slate-950",
@@ -49,7 +48,7 @@ export function PackReveal({ pulls, people, coins, title, onClose }: { pulls: Fi
 }
 
 /** Pakkebutikken. */
-export function FivePacks({ coins, freePackAvailable, people }: { coins: number; freePackAvailable: boolean; people: FivePerson[] }) {
+export function FivePacks({ coins, people }: { coins: number; people: FivePerson[] }) {
   const t = useT().femmer;
   const [state, action, pending] = useActionState(openFivePackAction, initial);
   const [dismissed, setDismissed] = useState<number | undefined>();
@@ -59,16 +58,15 @@ export function FivePacks({ coins, freePackAvailable, people }: { coins: number;
   return <div className="grid gap-4">
     <p className="text-sm text-muted">{t.packs.rule}</p>
     {state.error ? <p className="text-red-400">{state.error}</p> : null}
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-3">
       {fivePacks.map((pack) => {
-        const free = pack.price === 0;
-        const disabled = pending || (free ? !freePackAvailable : coins < pack.price);
+        const disabled = pending || coins < pack.price;
         return <form key={pack.key} action={action} className={`flex min-h-56 flex-col rounded-2xl border border-white/15 bg-gradient-to-br ${packTones[pack.key]} p-5`}>
           <input type="hidden" name="pack_key" value={pack.key} />
           <p className="text-xs font-black tracking-[.25em] text-white/60">{t.packs.cards(pack.cards)}</p>
           <h3 className="mt-2 text-2xl font-black">{t.packs.names[pack.key]}</h3>
-          <p className="mt-1 text-lg font-black text-lime-300">{free ? t.packs.free : t.coinsValue(pack.price)}</p>
-          <button type="submit" disabled={disabled} className={`${buttonClass} mt-auto bg-white text-slate-950`}>{pending ? t.packs.opening : free && !freePackAvailable ? t.packs.freeUsed : t.packs.open}</button>
+          <p className="mt-1 text-lg font-black text-lime-300">{t.coinsValue(pack.price)}</p>
+          <button type="submit" disabled={disabled} className={`${buttonClass} mt-auto bg-white text-slate-950`}>{pending ? t.packs.opening : t.packs.open}</button>
         </form>;
       })}
     </div>
