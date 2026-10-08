@@ -8,6 +8,21 @@ type DbErrorRule = { pattern: RegExp; message: (t: Dictionary, ...values: string
 
 // Ingen av meldingene inneholder kolon, så de overlever også `stripPrefix` i dbErrorMessage uendret.
 export const DB_ERROR_RULES: DbErrorRule[] = [
+  // Femmer (migrering 0075).
+  { pattern: /^Du har allerede startet Femmer$/, message: (t) => t.femmer.errors.alreadyStarted },
+  { pattern: /^Velg riktig antall kort$/, message: (t) => t.femmer.errors.wrongPickCount },
+  { pattern: /^Du kan ikke velge samme kort to ganger$/, message: (t) => t.femmer.errors.duplicatePick },
+  { pattern: /^Ditt eget kort er allerede med$/, message: (t) => t.femmer.errors.ownCardIncluded },
+  { pattern: /^Fant ikke alle kortene$/, message: (t) => t.femmer.errors.cardsNotFound },
+  { pattern: /^Startfemmeren må ha fem kort$/, message: (t) => t.femmer.errors.needFive },
+  { pattern: /^Benken har plass til fem kort$/, message: (t) => t.femmer.errors.benchFull },
+  { pattern: /^Samme kort kan ikke stå to steder$/, message: (t) => t.femmer.errors.sameCardTwice },
+  { pattern: /^Du eier ikke alle kortene$/, message: (t) => t.femmer.errors.notOwner },
+  { pattern: /^Ugyldig pakke$/, message: (t) => t.femmer.errors.invalidPack },
+  { pattern: /^Du har ikke startet Femmer$/, message: (t) => t.femmer.errors.notStarted },
+  { pattern: /^Du har allerede åpnet dagens gratispakke$/, message: (t) => t.femmer.errors.freePackUsed },
+  { pattern: /^Du har ikke nok mynter$/, message: (t) => t.femmer.errors.notEnoughCoins },
+  { pattern: /^Det finnes ingen personlige kort ennå$/, message: (t) => t.femmer.errors.noPersonalCards },
   { pattern: /^Fant ikke denne SBC-en$/, message: (t) => t.dbErrors.sbcNotFound },
   { pattern: /^Denne pakken kan ikke kjøpes$/, message: (t) => t.dbErrors.packNotForSale },
   { pattern: /^Du har allerede kjøpt denne pakken denne uken$/, message: (t) => t.dbErrors.packWeeklyLimit },

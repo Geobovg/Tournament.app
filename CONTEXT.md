@@ -73,6 +73,10 @@ _Avoid_: Inform-pakke
 Et kort av en ekte manager i appen, med bilde av personen selv. Hver manager kan ha ett, og bare eieren kan ha det: det kan ikke selges, byttes, leveres i SBC, kastes eller trekkes i pakker. Kortet kan spille alle posisjoner. Det starter på 80 og går opp 1 for hvert nytt nivå man når på AI-stigen; det er det høyeste nivået man har nådd som teller, så nedrykk gjør ikke kortet dårligere, og man får ingen oppgradering for å rykke opp igjen til et nivå man har vært på før. Kortet har ikke taket på 99 som alle andre kort: divisjon 1 på Camp Nou gir 129, og første **mestertittel** gir 130. Kortene deles ut for hånd med `grant_personal_card` (migrering 0063).
 _Avoid_: Ikon, Spesialkort (spesialkort er bedre versjoner av ekte spillere, se over)
 
+**Femmer**:
+En egen modus utenfor Managerkarrieren der lagene bare består av **personlige kort**, aldri ekte spillere. Fem står på banen (keeper + fire utespillere) og opptil fem på benken; resten er reserver. Man starter med sitt eget personlige kort (hvis man har ett) og velger resten selv, så man har fem kort. Alle kort starter på 70 her, uansett ratingen i Managerkarrieren. Man kan bare ha ett eksemplar av hver person: trekker man en man har fra før i en pakke, blir kortet 1 bedre. Kortene får også XP av å spille (100 XP = +1). Valutaen er **mynter**, som ikke har noe med MB å gjøre. Kampene simuleres ferdig på serveren og spilles av etterpå; man spiller mot en **AI-stige** med 30 trinn eller mot venners lagrede lag (migrering 0075).
+_Avoid_: Futsal, 5-er-karriere, Managerkarriere (det er noe annet)
+
 **Fantasy**:
 En egen modus utenfor Managerkarrieren, som Premier League Fantasy, men for spillere fra alle de fem store ligaene. Du velger et lag av ekte spillere innenfor et budsjett og får poeng etter hva de gjør i ekte kamper. Kampdataene hentes fra API-Football; appen simulerer ingenting her.
 _Avoid_: Managerkarriere, Draft
