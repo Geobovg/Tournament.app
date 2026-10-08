@@ -11,7 +11,7 @@ export type SeasonOutcome = "promoted" | "relegated" | "stayed" | "champion";
 /** `highestArena` er den høyeste arenaen manageren har nådd, `championTitles` antall mestertitler på Camp Nou. */
 export type AiSeason = { id: string; seasonNumber: number; arena: number; division: number; teams: AiTeam[]; table: SeasonTableRow[]; fixtures: SeasonFixture[]; nextFixture: SeasonFixture | null; played: number; inPlayoff: boolean; previous: { arena: number; division: number; position: number; outcome: SeasonOutcome } | null; highestArena: number; championTitles: number };
 export type FriendSeasonMember = { userId: string; username: string; status: "invited" | "joined" };
-export type FriendSeason = { id: string; name: string; status: "open" | "active" | "completed"; isOwner: boolean; myStatus: "invited" | "joined"; members: FriendSeasonMember[]; table: SeasonTableRow[]; fixtures: SeasonFixture[]; nextFixture: SeasonFixture | null };
+export type FriendSeason = { id: string; name: string; status: "open" | "active" | "completed"; inviteCode: string; isOwner: boolean; myStatus: "invited" | "joined"; members: FriendSeasonMember[]; table: SeasonTableRow[]; fixtures: SeasonFixture[]; nextFixture: SeasonFixture | null };
 
 type FixtureRow = { id: string; round: number; home_user_id: string | null; away_user_id: string | null; home_ai_key: string | null; away_ai_key: string | null; status: SeasonFixture["status"]; home_score: number | null; away_score: number | null; match_id: string | null; stage?: "league" | "playoff" };
 type StandingRow = { participant: string; played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; points: number; table_position: number };
@@ -79,7 +79,7 @@ export async function getFriendSeasons(userId: string): Promise<FriendSeason[]> 
   const ids = (memberships ?? []).map((row) => row.season_id);
   if (!ids.length) return [];
   const [{ data: seasons, error: seasonsError }, { data: members, error: membersError }, { data: fixtures, error: fixturesError }] = await Promise.all([
-    db.from("career_friend_seasons").select("id, name, status, created_by, created_at").in("id", ids).order("created_at", { ascending: false }),
+    db.from("career_friend_seasons").select("id, name, status, invite_code, created_by, created_at").in("id", ids).order("created_at", { ascending: false }),
     db.from("career_friend_season_members").select("season_id, user_id, status").in("season_id", ids),
     db.from("career_season_matches").select("id, friend_season_id, round, home_user_id, away_user_id, home_ai_key, away_ai_key, status, home_score, away_score, match_id").in("friend_season_id", ids).order("round", { ascending: true }),
   ]);
@@ -92,11 +92,23 @@ export async function getFriendSeasons(userId: string): Promise<FriendSeason[]> 
     const { data: standings } = season.status === "open" ? { data: [] } : await db.rpc("season_standings", { target_ai_season: null, target_friend_season: season.id });
     const mine = seasonFixtures.filter((fixture) => fixture.homeIsMe || fixture.awayIsMe);
     return {
-      id: season.id, name: season.name, status: season.status, isOwner: season.created_by === userId,
+      id: season.id, name: season.name, status: season.status, inviteCode: season.invite_code, isOwner: season.created_by === userId,
       myStatus: (memberships ?? []).find((row) => row.season_id === season.id)?.status ?? "invited",
       members: (members ?? []).filter((member) => member.season_id === season.id).map((member) => ({ userId: member.user_id, username: names.get(member.user_id) ?? fallback.friend, status: member.status })),
       table: toTable((standings ?? []) as StandingRow[], names, userId, fallback.unknown),
       fixtures: seasonFixtures, nextFixture: nextFor(mine),
     } as FriendSeason;
   }));
+}
+
+/** Sesongen bak en invitasjonslenke, med hvem som opprettet den og hvor mange som er med så langt. */
+export async function getFriendSeasonByCode(code: string) {
+  const db = supabaseAdmin();
+  const { data: season, error } = await db.from("career_friend_seasons").select("id, name, status, created_by").eq("invite_code", code.toUpperCase()).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!season) return null;
+  const { data: members, error: membersError } = await db.from("career_friend_season_members").select("user_id, status").eq("season_id", season.id);
+  if (membersError) throw new Error(membersError.message);
+  const owner = (await usernames([season.created_by])).get(season.created_by) ?? (await getT()).seasons.fallback.friend;
+  return { id: season.id, name: season.name, status: season.status as FriendSeason["status"], owner, members: (members ?? []) as { user_id: string; status: FriendSeasonMember["status"] }[] };
 }

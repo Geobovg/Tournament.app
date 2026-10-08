@@ -7,9 +7,12 @@ import type { ActionState } from "./actions";
 import { aiTeamSnapshot, type AiTeam } from "./ai-opponent";
 import { aiPlayerMaxOverall } from "./arenas";
 import { requireUser } from "./auth";
+import { recordFailedInviteCode, tooManyFailedInviteCodes } from "./data";
 import { friendshipId } from "./friends";
+import { validInviteCode } from "./invite-code";
 import { MANAGER_KICKOFF_VERSION, planManagerTimeline, type ManagerKickoffEvent } from "./manager-match";
 import { managerTeamSnapshots } from "./manager-snapshot";
+import { getFriendSeasonByCode } from "./seasons";
 import { supabaseAdmin } from "./supabase/server";
 
 type Db = ReturnType<typeof supabaseAdmin>;
@@ -84,7 +87,7 @@ export async function createFriendSeasonAction(_prev: ActionState, formData: For
   const errors = (await getT()).seasons.errors;
   const invited = [...new Set(formData.getAll("friend_id").map(String))].filter((id) => id && id !== user.id);
   if (!name) return { error: errors.nameRequired };
-  if (!invited.length) return { error: errors.inviteAtLeastOne };
+  // Ingen må velges her: sesongen har også en invitasjonslenke som kan deles med hvem som helst.
   for (const friendId of invited) if (!(await friendshipId(user.id, friendId))) return { error: errors.friendsOnly };
   const { data: season, error } = await db.from("career_friend_seasons").insert({ name, created_by: user.id }).select("id").single();
   if (error) return { error: await dbErrorMessage(error) };
@@ -108,6 +111,23 @@ export async function respondFriendSeasonAction(_prev: ActionState, formData: Fo
   const { error } = await query;
   if (error) return { error: await dbErrorMessage(error) };
   seasonPaths(); return { ok: true };
+}
+
+/** Blir med i en vennesesong fra invitasjonslenken. Krever ikke vennskap med noen i sesongen. */
+export async function joinFriendSeasonByCodeAction(code: string): Promise<ActionState> {
+  const user = await requireUser();
+  const t = await getT();
+  if (!validInviteCode(code)) return { error: t.seasons.errors.seasonNotFound };
+  if (await tooManyFailedInviteCodes(user.id)) return { error: t.auth.join.tooManyAttemptsText };
+  const season = await getFriendSeasonByCode(code);
+  if (!season) {
+    await recordFailedInviteCode(user.id);
+    return { error: t.seasons.errors.seasonNotFound };
+  }
+  const { error } = await supabaseAdmin().rpc("join_friend_season", { target_user: user.id, target_season: season.id });
+  if (error) return { error: await dbErrorMessage(error) };
+  seasonPaths();
+  redirect("/managerkarriere/sesong?tab=venner");
 }
 
 export async function startFriendSeasonAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
