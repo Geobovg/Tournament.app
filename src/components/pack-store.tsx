@@ -69,6 +69,7 @@ function PackOdds({ pack, informFactor }: { pack: ManagerPack; informFactor: num
   // Inform-sjansen gjelder hvert kort i pakka, og arenaen du er i løfter den litt.
   const inform = pack.inform_chance * informFactor * 100;
   const tots = pack.tots_chance * informFactor * 100;
+  const icon = pack.icon_chance * informFactor * 100;
   return <dl className="grid gap-1 text-xs">
     {[...pack.odds].reverse().map((tier) => <div key={tier.min} className="flex items-center justify-between gap-3">
       <dt className="text-muted">{tp.rating(tierLabel(tier))}</dt>
@@ -86,6 +87,10 @@ function PackOdds({ pack, informFactor }: { pack: ManagerPack; informFactor: num
     {tots > 0 ? <div className="flex items-center justify-between gap-3">
       <dt className="font-semibold" style={{ color: specialStyles.tots.glow }}>{tp.totsOdds}</dt>
       <dd className="font-semibold tabular-nums">{tp.percent(oddsLabel(tots, locale))}</dd>
+    </div> : null}
+    {icon > 0 ? <div className="flex items-center justify-between gap-3">
+      <dt className="font-semibold" style={{ color: specialStyles.icon.glow }}>{tp.iconOdds}</dt>
+      <dd className="font-semibold tabular-nums">{tp.percent(oddsLabel(icon, locale))}</dd>
     </div> : null}
   </dl>;
 }
@@ -224,6 +229,7 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
     <div className="flex flex-wrap gap-x-4 gap-y-1">
       <Link href="/managerkarriere/informs" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.inform.border }}>{tp.allInforms} →</Link>
       <Link href="/managerkarriere/tots" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.tots.glow }}>{tp.allTots} →</Link>
+      <Link href="/managerkarriere/icons" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.icon.glow }}>{tp.allIcons} →</Link>
     </div>
 
     <div className="grid gap-3 sm:grid-cols-2">

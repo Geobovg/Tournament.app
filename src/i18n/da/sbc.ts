@@ -33,6 +33,7 @@ export const sbc: SbcDict = {
     super_lig: "Süper Lig",
     saudi_pro_league: "Saudi Pro League",
     other: "Andre ligaer",
+    icons: "Icons",
   } as Record<string, string>,
   groups: { goalkeeper: "målmænd", defender: "forsvarsspillere", midfielder: "midtbanespillere", attacker: "angribere" },
   req: {

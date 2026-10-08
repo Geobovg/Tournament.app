@@ -19,6 +19,7 @@ export const career = {
     sbc: "SBC",
     informs: "بطاقات الفورمة",
     tots: "TOTS",
+    icons: "Icons",
   },
   subTabs: {
     squad: "فرقة",
@@ -257,7 +258,7 @@ export const career = {
     unusableCard: "تحتوي الفرقة على بطاقة لا يمكنك استخدامها",
     wrongPosition: "اللاعب في مركز لا يستطيع اللعب فيه",
   },
-  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "شخصية" }, name: { inform: "بطاقة الفورمة", tots: "Team of the Season", personal: "بطاقة شخصية" }, untradable: "غير قابلة للبيع", anyPosition: "الكل", personalHint: "تلعب في كل المراكز. +1 تقييم لكل درجة جديدة تصل إليها" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", icon: "ICON", personal: "شخصية" }, name: { inform: "بطاقة الفورمة", tots: "Team of the Season", icon: "أيقونة", personal: "بطاقة شخصية" }, untradable: "غير قابلة للبيع", anyPosition: "الكل", personalHint: "تلعب في كل المراكز. +1 تقييم لكل درجة جديدة تصل إليها" },
   tots: {
     intro: (count: number) => `${count} بطاقة Team of the Season لأفضل اللاعبين في كل دوري. يمكن أن تظهر في الحزم.`,
     all: "الكل",
@@ -265,6 +266,10 @@ export const career = {
     count: (count: number) => `${count} بطاقة`,
     boost: (boost: number) => `+${boost} عن البطاقة العادية`,
     empty: "لا توجد بطاقات TOTS هنا.",
+  },
+  icons: {
+    intro: (count: number) => `${count} بطاقة Icon لأعظم أساطير تاريخ كرة القدم. هي أندر من TOTS في الحزم.`,
+    empty: "لا توجد بطاقات Icon هنا.",
   },
   informs: {
     intro: (total: number, rounds: number) => `${total} بطاقة فورمة من ${rounds} جولة. تُسحب بطاقات جديدة كل جمعة الساعة 18:00.`,

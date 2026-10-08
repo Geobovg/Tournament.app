@@ -23,6 +23,7 @@ export const career: CareerDict = {
     sbc: "SBC",
     informs: "Informs",
     tots: "TOTS",
+    icons: "Icons",
   },
   subTabs: {
     squad: "Lagtropp",
@@ -262,7 +263,7 @@ export const career: CareerDict = {
     unusableCard: "Troppen inneholder et kort du ikke kan bruke",
     wrongPosition: "En spiller står i en posisjon han ikke kan spille",
   },
-  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "PERSONLIG" }, name: { inform: "Inform", tots: "Team of the Season", personal: "Personlig kort" }, untradable: "Kan ikke selges", anyPosition: "ALLE", personalHint: "Spiller alle posisjoner. +1 i rating for hver ny divisjon du når" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", icon: "ICON", personal: "PERSONLIG" }, name: { inform: "Inform", tots: "Team of the Season", icon: "Icon", personal: "Personlig kort" }, untradable: "Kan ikke selges", anyPosition: "ALLE", personalHint: "Spiller alle posisjoner. +1 i rating for hver ny divisjon du når" },
   tots: {
     intro: (count: number) => `${count} Team of the Season-kort med de beste spillerne i hver liga. De kan dukke opp i pakker.`,
     all: "Alle",
@@ -270,6 +271,10 @@ export const career: CareerDict = {
     count: (count: number) => `${count} kort`,
     boost: (boost: number) => `+${boost} fra vanlig-kortet`,
     empty: "Ingen TOTS-kort her.",
+  },
+  icons: {
+    intro: (count: number) => `${count} Icon-kort av de største legendene i fotballhistorien. De er sjeldnere enn TOTS i pakker.`,
+    empty: "Ingen Icons her.",
   },
   informs: {
     intro: (total: number, rounds: number) => `${total} inform-kort fra ${rounds} ${rounds === 1 ? "runde" : "runder"}. Nye trekkes hver fredag kl. 18:00.`,

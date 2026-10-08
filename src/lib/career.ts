@@ -85,13 +85,13 @@ export async function getCareerMatch(matchId: string, userId: string) {
 export type ManagerCard = { id: string; catalog_id: string | null; special_card_id: string | null; special: SpecialKind | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number>; value: number };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
-export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; tots_chance: number; special_guarantee: number; special_scope: "current" | "all" | "tots"; purchasable: boolean; weekly_limit: number | null; daily_limit: number | null; available_from: string | null; available_until: string | null };
+export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; tots_chance: number; icon_chance: number; special_guarantee: number; special_scope: "current" | "all" | "tots"; purchasable: boolean; weekly_limit: number | null; daily_limit: number | null; available_from: string | null; available_until: string | null };
 // Eventpakker (som Ungdomstoooor) har et tidsvindu. Utenfor vinduet vises de ikke i det hele tatt.
 function packAvailableNow(pack: ManagerPack) {
   const now = Date.now();
   return (!pack.available_from || Date.parse(pack.available_from) <= now) && (!pack.available_until || now < Date.parse(pack.available_until));
 }
-const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, tots_chance, special_guarantee, special_scope, purchasable, weekly_limit, daily_limit, available_from, available_until";
+const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, tots_chance, icon_chance, special_guarantee, special_scope, purchasable, weekly_limit, daily_limit, available_from, available_until";
 
 /**
  * Bare det toppfeltet trenger for å vise lagrating: elleveren og hvilke kort som står i den.
@@ -225,6 +225,16 @@ export async function getTotsCards(): Promise<TotsCard[]> {
   return (data ?? []).flatMap((row) => {
     const catalog = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
     return catalog ? [{ id: row.id, slug: catalog.slug, name: catalog.name, position: catalog.position, overall: row.overall, boost: row.boost, accent: catalog.accent, club: catalog.club, league: catalog.league, attributes: row.attributes as Record<string, number>, special: row.kind as SpecialKind }] : [];
+  });
+}
+
+/** Alle Icon-kortene (migrering 0074), sortert etter rating. */
+export async function getIconCards(): Promise<InformCard[]> {
+  const { data, error } = await supabaseAdmin().from("special_cards").select("id, kind, overall, boost, attributes, player_catalog(slug, name, position, accent, club)").eq("kind", "icon").order("overall", { ascending: false }).order("id");
+  if (error) throw new Error(error.message);
+  return (data ?? []).flatMap((row) => {
+    const catalog = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
+    return catalog ? [{ id: row.id, slug: catalog.slug, name: catalog.name, position: catalog.position, overall: row.overall, boost: row.boost, accent: catalog.accent, club: catalog.club, attributes: row.attributes as Record<string, number>, special: row.kind as SpecialKind }] : [];
   });
 }
 

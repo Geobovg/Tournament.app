@@ -33,6 +33,7 @@ export const sbc: SbcDict = {
     super_lig: "الدوري التركي",
     saudi_pro_league: "دوري روشن السعودي",
     other: "دوريات أخرى",
+    icons: "Icons",
   },
   groups: { goalkeeper: "حراس مرمى", defender: "مدافعين", midfielder: "لاعبي وسط", attacker: "مهاجمين" },
   req: {

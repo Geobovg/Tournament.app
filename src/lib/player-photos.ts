@@ -409,6 +409,20 @@ const withPhoto = new Set([
 ]);
 
 /**
+ * Icons (migrering 0074). 18 er utklipp fra TheSportsDB som de andre. Yashin er laget av TheSportsDB-bildet
+ * hans (VM 1966, i keeperdrakt) med bakgrunnen fjernet, siden det ikke fantes noe utklipp. Cannavaro manglet
+ * der og er hentet fra Wikimedia Commons:
+ * - icon-cannavaro: «Fabio Cannavaro 2011.jpg» av Doha Stadium Plus Qatar, CC BY 2.0
+ *   (https://creativecommons.org/licenses/by/2.0). Beskåret og frilagt.
+ */
+const iconPhotos = new Set<string>([
+  "icon-pele", "icon-maradona", "icon-ronaldo-nazario", "icon-zidane", "icon-cruyff",
+  "icon-beckenbauer", "icon-maldini", "icon-ronaldinho", "icon-eusebio", "icon-yashin",
+  "icon-henry", "icon-puskas", "icon-gullit", "icon-van-basten", "icon-kaka",
+  "icon-pirlo", "icon-xavi", "icon-buffon", "icon-cannavaro", "icon-roberto-carlos",
+]);
+
+/**
  * Bildene på de personlige kortene (migrering 0063) ligger i public/personal. Slugen er den samme som
  * i personal_cards.slug og begynner alltid med «personal-», så den aldri kolliderer med en ekte spiller.
  * Nytt kort: legg bildet i public/personal/<slug>.png (256 × 256, gjennomsiktig bakgrunn) og slugen her.
@@ -417,5 +431,5 @@ const personalPhotos = new Set<string>(["personal-theodor", "personal-wrualswhua
 
 export function playerPhoto(slug: string): string | null {
   if (personalPhotos.has(slug)) return `/personal/${slug}.png`;
-  return withPhoto.has(slug) ? `/players/${slug}.png` : null;
+  return withPhoto.has(slug) || iconPhotos.has(slug) ?`/players/${slug}.png` : null;
 }

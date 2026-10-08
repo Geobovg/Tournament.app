@@ -15,7 +15,7 @@ const packDescriptions: Record<string, string> = {
   gull: "Otte kort, med mindst ét 83 eller bedre garanteret.",
   elite: "Tolv kort, med to på 84+ og ét på 86+ garanteret.",
   inform: "Syv kort: garanteret ét Inform, ét 88+, to 86+ og tre 83+. Én om ugen.",
-  spesial: "Ét tilfældigt specialkort: inform eller TOTS. Kan ikke sælges på markedet.",
+  spesial: "Ét tilfældigt specialkort: inform, TOTS eller Icon. Kan ikke sælges på markedet.",
   ungdomstoooor: "Gratis! Fem kort på 84+, med mindst én TOTS garanteret. Én om dagen til og med søndag.",
 };
 
@@ -107,11 +107,13 @@ export const market = {
     tooExpensive: "For dyr",
     informOdds: "Inform (pr. kort)",
     totsOdds: "TOTS (pr. kort)",
+    iconOdds: "Icon (pr. kort)",
     informWeekTitle: "Ugens Inform",
     informWeekIntro: (count: number) => `${count} spillere er i form denne uge. Deres Inform-kort kan dukke op i pakker.`,
     informWeekResets: (when: string) => `Nye Informs ${when}`,
     allInforms: "Se alle Informs",
     allTots: "Se alle TOTS",
+    allIcons: "Se alle Icons",
     informPulled: "INFORM!",
     untradable: " · kan ikke sælges",
     specialGuarantee: (count: number, scope: "current" | "all" | "tots") => `${count}× ${scope === "current" ? "Inform" : scope === "tots" ? "TOTS" : "specialkort"}`,

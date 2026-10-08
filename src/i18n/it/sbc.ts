@@ -33,6 +33,7 @@ export const sbc: SbcDict = {
     super_lig: "Süper Lig",
     saudi_pro_league: "Saudi Pro League",
     other: "Altri campionati",
+    icons: "Icons",
   },
   groups: { goalkeeper: "portieri", defender: "difensori", midfielder: "centrocampisti", attacker: "attaccanti" },
   req: {

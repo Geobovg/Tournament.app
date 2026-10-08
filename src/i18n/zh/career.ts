@@ -19,6 +19,7 @@ export const career = {
     sbc: "SBC",
     informs: "状态卡",
     tots: "TOTS",
+    icons: "传奇",
   },
   subTabs: {
     squad: "小队",
@@ -257,7 +258,7 @@ export const career = {
     unusableCard: "小队包含一张你无法使用的卡牌",
     wrongPosition: "球员处于无法上场的位置",
   },
-  special: { badge: { inform: "INFORM", tots: "TOTS", personal: "个人" }, name: { inform: "状态卡", tots: "Team of the Season", personal: "个人卡" }, untradable: "不可交易", anyPosition: "全能", personalHint: "可以踢所有位置。每达到一个新级别，评分 +1" },
+  special: { badge: { inform: "INFORM", tots: "TOTS", icon: "ICON", personal: "个人" }, name: { inform: "状态卡", tots: "Team of the Season", icon: "传奇卡", personal: "个人卡" }, untradable: "不可交易", anyPosition: "全能", personalHint: "可以踢所有位置。每达到一个新级别，评分 +1" },
   tots: {
     intro: (count: number) => `${count} 张赛季最佳阵容卡，来自各联赛最好的球员。可能出现在卡包中。`,
     all: "全部",
@@ -265,6 +266,10 @@ export const career = {
     count: (count: number) => `${count} 张卡`,
     boost: (boost: number) => `比普通卡 +${boost}`,
     empty: "这里没有 TOTS 卡。",
+  },
+  icons: {
+    intro: (count: number) => `${count} 张传奇卡，来自足球史上最伟大的传奇球星。在卡包中比 TOTS 更稀有。`,
+    empty: "这里没有传奇卡。",
   },
   informs: {
     intro: (total: number, rounds: number) => `共 ${rounds} 轮，${total} 张状态卡。每周五 18:00 抽取新卡。`,
