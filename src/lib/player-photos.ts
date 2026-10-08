@@ -409,9 +409,9 @@ const withPhoto = new Set([
 ]);
 
 /**
- * Icons (migrering 0074). 18 er utklipp fra TheSportsDB som de andre. To manglet der og er hentet fra
- * Wikimedia Commons, med bakgrunnen fjernet:
- * - icon-yashin: «Lev Yashin 1966.jpg», ukjent fotograf, public domain.
+ * Icons (migrering 0074). 18 er utklipp fra TheSportsDB som de andre. Yashin er laget av TheSportsDB-bildet
+ * hans (VM 1966, i keeperdrakt) med bakgrunnen fjernet, siden det ikke fantes noe utklipp. Cannavaro manglet
+ * der og er hentet fra Wikimedia Commons:
  * - icon-cannavaro: «Fabio Cannavaro 2011.jpg» av Doha Stadium Plus Qatar, CC BY 2.0
  *   (https://creativecommons.org/licenses/by/2.0). Beskåret og frilagt.
  */
