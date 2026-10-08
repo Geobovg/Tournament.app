@@ -11,7 +11,7 @@ export type FivePerson = { personId: string; name: string; slug: string; usernam
 export type FiveInform = { id: string; personId: string; name: string; slug: string; overall: number; boost: number; rank: number; points: number; weekStart: string; current: boolean };
 /** Et kort brukeren eier i Femmer. `informId` er satt på inform-kort. */
 export type FiveCard = FivePerson & { id: string; overall: number; xp: number; goals: number; assists: number; appearances: number; position: FivePosition | null; informId: string | null };
-export type FiveProfile = { coins: number; aiLevel: number; bestAiLevel: number; wins: number; draws: number; losses: number; formation: FiveFormation; freePackAvailable: boolean; loginStreak: number; loginClaimedToday: boolean };
+export type FiveProfile = { coins: number; aiLevel: number; bestAiLevel: number; wins: number; draws: number; losses: number; formation: FiveFormation };
 export type FiveState = { profile: FiveProfile; cards: FiveCard[]; starters: string[]; bench: string[]; rating: number | null };
 
 export function osloToday(at = new Date()) {
@@ -69,14 +69,10 @@ export async function getFiveState(userId: string): Promise<FiveState | null> {
   const starters = ((lineup?.starters ?? []) as string[]).filter((id) => ids.has(id));
   const bench = ((lineup?.bench ?? []) as string[]).filter((id) => ids.has(id));
   const starterCards = starters.map((id) => owned.find((card) => card.id === id)).filter((card): card is FiveCard => Boolean(card));
-  const today = osloToday();
   return {
     profile: {
       coins: profile.coins, aiLevel: profile.ai_level, bestAiLevel: profile.best_ai_level, wins: profile.wins, draws: profile.draws, losses: profile.losses,
       formation: isFiveFormation(profile.formation) ? profile.formation : "1-2-1",
-      freePackAvailable: profile.last_free_pack_on !== today,
-      loginStreak: profile.login_streak ?? 0,
-      loginClaimedToday: profile.last_login_on === today,
     },
     cards: owned, starters, bench,
     rating: starterCards.length === 5 ? teamRating(starterCards) : null,

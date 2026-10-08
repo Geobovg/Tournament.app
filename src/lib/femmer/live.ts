@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../supabase/server";
 import { getFiveMatch, getLiveFiveMatchId, type FivePerson, type FiveState } from "./data";
 import { fiveCardStats, fiveClock, fiveDurationMs, fiveScore, fiveShotMinutes, FIVE_SHOT_CELLS, FIVE_SHOT_CHOICE_MS, planFiveMatch, resolveFiveShot, seededRoll, type FiveMatchData, type FivePlayer, type FiveShotResult, type FiveSide, type FiveTeam } from "./match";
-import { FIVE_BENCH, fiveAiRating, fiveAiReward, fiveFormations, fiveFriendReward, fiveSeasonReward, type FiveFormation, type FivePosition } from "./rules";
+import { FIVE_BENCH, fiveAiRating, fiveFormations, fiveMatchReward, type FiveFormation, type FivePosition } from "./rules";
 
 /** Laget slik brukeren har satt det opp, eller null uten en hel startfemmer. */
 export function teamFromState(state: FiveState, name: string, userId: string): FiveTeam | null {
@@ -96,8 +96,9 @@ export async function settleIfFinished(matchId: string): Promise<boolean> {
   }
   const score = fiveScore(data, results);
   const homeResult = resultFor(score, "home"); const awayResult = resultFor(score, "away");
-  const rewardHome = match.kind === "ai" ? fiveAiReward(match.aiLevel ?? 1, homeResult) : match.kind === "friend" ? fiveFriendReward(homeResult) : fiveSeasonReward(homeResult);
-  const rewardAway = match.kind === "season" ? fiveSeasonReward(awayResult) : 0;
+  // Vennen i en vennekamp spilte ikke selv og får ingen mynter; i sesongkamper får begge.
+  const rewardHome = fiveMatchReward(homeResult);
+  const rewardAway = match.kind === "season" ? fiveMatchReward(awayResult) : 0;
   const { error } = await supabaseAdmin().rpc("settle_five_match", {
     target_match: matchId, score_home: score.home, score_away: score.away, reward_home: rewardHome, reward_away: rewardAway,
     stats_home: fiveCardStats(data, "home", results), stats_away: match.kind === "season" ? fiveCardStats(data, "away", results) : [],

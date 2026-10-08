@@ -106,14 +106,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `Veckan från ${date}`,
     points: (points: number, boost: number) => `${points} p · +${boost}`,
   },
-  login: {
-    title: "Daglig bonus",
-    text: "Logga in varje dag. Dag 7 ger ett paket – missar du en dag börjar sviten om.",
-    claim: "Hämta",
-    claimed: "Hämtad i dag",
-    day: (day: number) => `Dag ${day}`,
-    banner: "Din dagliga bonus väntar – tryck för att hämta den",
-  },
   objectives: {
     daily: "Dagliga utmaningar",
     weekly: "Veckoutmaningar",
@@ -204,6 +196,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} mynt`,
     playAgain: "Spela igen",
     back: "Tillbaka till femmanna",
+    backSeason: "Tillbaka till säsongen",
+    returning: "Tillbaka om ett ögonblick…",
+    returningSeason: "Tillbaka till säsongen om ett ögonblick…",
   },
   errors: {
     invalidFormation: "Ogiltig formation",

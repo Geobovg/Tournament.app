@@ -106,14 +106,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `${date} 当周`,
     points: (points: number, boost: number) => `${points} 分 · +${boost}`,
   },
-  login: {
-    title: "每日奖励",
-    text: "每天登录。第 7 天可获得一个卡包——漏掉一天，连续登录就会重新开始。",
-    claim: "领取",
-    claimed: "今日已领取",
-    day: (day: number) => `第 ${day} 天`,
-    banner: "你的每日奖励已就绪——点击领取",
-  },
   objectives: {
     daily: "每日挑战",
     weekly: "每周挑战",
@@ -204,6 +196,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} 金币`,
     playAgain: "再来一场",
     back: "返回五人制",
+    backSeason: "返回赛季",
+    returning: "即将返回…",
+    returningSeason: "即将返回赛季…",
   },
   errors: {
     invalidFormation: "阵型无效",

@@ -46,7 +46,7 @@ export async function saveFiveLineupAction(_prev: ActionState, formData: FormDat
 }
 
 export type FivePull = { cardId: string; personId: string; informId: string | null; overall: number; upgrade: boolean };
-export type FivePackState = ActionState & { pulls?: FivePull[]; openedAt?: number; coins?: number; streak?: number };
+export type FivePackState = ActionState & { pulls?: FivePull[]; openedAt?: number; coins?: number };
 type RawPull = { card_id: string; person_id: string; inform_id: string | null; overall: number; upgrade: boolean };
 const toPulls = (data: unknown): FivePull[] => ((Array.isArray(data) ? data : []) as RawPull[]).map((pull) => ({ cardId: pull.card_id, personId: pull.person_id, informId: pull.inform_id ?? null, overall: pull.overall, upgrade: pull.upgrade }));
 
@@ -58,15 +58,6 @@ export async function openFivePackAction(_prev: FivePackState, formData: FormDat
   if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
   revalidatePath(path);
   return { ok: true, pulls: toPulls(data), openedAt: Date.now() };
-}
-
-export async function claimFiveLoginAction(): Promise<FivePackState> {
-  const user = await requireUser();
-  const { data, error } = await supabaseAdmin().rpc("claim_five_login", { target_user: user.id });
-  if (error) return { error: await dbErrorMessage(error, { stripPrefix: true }) };
-  revalidatePath(path);
-  const result = (data ?? {}) as { streak?: number; coins?: number; pulls?: unknown };
-  return { ok: true, pulls: toPulls(result.pulls), openedAt: Date.now(), coins: Number(result.coins ?? 0), streak: Number(result.streak ?? 1) };
 }
 
 export async function claimFiveObjectiveAction(_prev: FivePackState, formData: FormData): Promise<FivePackState> {
@@ -195,14 +186,23 @@ export async function chooseFiveShotAction(matchId: string, minute: number, cell
   return result ? { ok: true, result } : { error: t.errors.matchNotLive };
 }
 
-/** Kalles når klokka har gått ut. Kampen gjøres opp bare hvis serverens klokke sier at den er ferdig. */
-export async function completeFiveMatchAction(matchId: string): Promise<ActionState> {
+export type FiveCompleteState = ActionState & { coins?: number; shots?: FiveShotResult[] };
+
+/**
+ * Kalles når klokka har gått ut. Kampen gjøres opp bare hvis serverens klokke sier at den er ferdig.
+ * Svarer med myntene til den som spør og alle avgjorte stopp, så kampsiden kan vise sluttresultatet
+ * uten å hentes på nytt før den sender brukeren tilbake.
+ */
+export async function completeFiveMatchAction(matchId: string): Promise<FiveCompleteState> {
   const user = await requireUser();
   const match = await getFiveMatch(matchId, user.id);
   if (!match) return { error: (await getT()).femmer.errors.matchNotLive };
   if (!(await settleIfFinished(matchId))) return { error: (await getT()).femmer.errors.matchNotFinished };
   revalidatePath(path); revalidatePath(`/femmer/kamp/${matchId}`);
-  return { ok: true };
+  if (match.seasonId) revalidatePath(`/femmer/sesong/${match.seasonId}`);
+  const settled = await getFiveMatch(matchId, user.id);
+  const coins = settled ? (settled.homeUserId === user.id ? settled.coins : settled.awayCoins) : 0;
+  return { ok: true, coins, shots: settled?.shots ?? [] };
 }
 
 // ---------------------------------------------------------------------------

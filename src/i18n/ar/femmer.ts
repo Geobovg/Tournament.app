@@ -106,14 +106,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `أسبوع ${date}`,
     points: (points: number, boost: number) => `${points} نقطة · +${boost}`,
   },
-  login: {
-    title: "المكافأة اليومية",
-    text: "سجّل الدخول كل يوم. اليوم السابع يمنحك حزمة – وإذا فوّت يومًا تبدأ السلسلة من جديد.",
-    claim: "استلم",
-    claimed: "تم الاستلام اليوم",
-    day: (day: number) => `اليوم ${day}`,
-    banner: "مكافأتك اليومية جاهزة – اضغط لاستلامها",
-  },
   objectives: {
     daily: "التحديات اليومية",
     weekly: "التحديات الأسبوعية",
@@ -204,6 +196,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} عملة`,
     playAgain: "العب مجددًا",
     back: "العودة إلى الخماسي",
+    backSeason: "العودة إلى الموسم",
+    returning: "العودة بعد لحظة…",
+    returningSeason: "العودة إلى الموسم بعد لحظة…",
   },
   errors: {
     invalidFormation: "تشكيلة غير صالحة",

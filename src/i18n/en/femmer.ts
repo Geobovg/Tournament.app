@@ -104,14 +104,6 @@ export const femmer = {
     week: (date: string) => `Week of ${date}`,
     points: (points: number, boost: number) => `${points} pts · +${boost}`,
   },
-  login: {
-    title: "Daily bonus",
-    text: "Log in every day. Day 7 gives a pack – miss a day and the streak starts again.",
-    claim: "Claim",
-    claimed: "Claimed today",
-    day: (day: number) => `Day ${day}`,
-    banner: "Your daily bonus is ready – tap to claim it",
-  },
   objectives: {
     daily: "Daily challenges",
     weekly: "Weekly challenges",
@@ -202,6 +194,9 @@ export const femmer = {
     reward: (coins: number) => `+${coins} coins`,
     playAgain: "Play again",
     back: "Back to five-a-side",
+    backSeason: "Back to the season",
+    returning: "Back to five-a-side in a moment…",
+    returningSeason: "Back to the season in a moment…",
   },
   errors: {
     invalidFormation: "Invalid formation",

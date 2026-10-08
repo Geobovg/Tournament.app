@@ -106,14 +106,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `Semaine du ${date}`,
     points: (points: number, boost: number) => `${points} pts · +${boost}`,
   },
-  login: {
-    title: "Bonus quotidien",
-    text: "Connecte-toi chaque jour. Le jour 7 donne un pack – si tu manques un jour, la série recommence.",
-    claim: "Récupérer",
-    claimed: "Récupéré aujourd'hui",
-    day: (day: number) => `Jour ${day}`,
-    banner: "Ton bonus quotidien est prêt – touche pour le récupérer",
-  },
   objectives: {
     daily: "Défis du jour",
     weekly: "Défis de la semaine",
@@ -204,6 +196,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} pièces`,
     playAgain: "Rejouer",
     back: "Retour au foot à 5",
+    backSeason: "Retour à la saison",
+    returning: "Retour dans un instant…",
+    returningSeason: "Retour à la saison dans un instant…",
   },
   errors: {
     invalidFormation: "Formation invalide",

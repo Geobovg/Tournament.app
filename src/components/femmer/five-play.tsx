@@ -6,7 +6,7 @@ import { useT } from "@/i18n/client";
 import type { ActionState } from "@/lib/actions";
 import type { FiveOpponent } from "@/lib/femmer/data";
 import { playFiveAiAction, playFiveFriendAction } from "@/lib/femmer/actions";
-import { FIVE_AI_LEVELS, fiveAiRating, fiveAiReward, fiveFriendReward } from "@/lib/femmer/rules";
+import { FIVE_AI_LEVELS, FIVE_MATCH_REWARDS, fiveAiRating } from "@/lib/femmer/rules";
 import { buttonClass, cardClass, secondaryButtonClass } from "../ui";
 
 const initial: ActionState = {};
@@ -32,7 +32,7 @@ export function FivePlay({ aiLevel, bestAiLevel, opponents, ready, liveMatchId }
       <p className="text-xs font-black tracking-[.25em] text-white/60">{t.play.aiTitle}</p>
       <p className="mt-2 text-5xl font-black">{level}<span className="text-xl text-white/50">/{FIVE_AI_LEVELS}</span></p>
       <p className="mt-2 text-white/80">{t.play.aiText(fiveAiRating(level))}</p>
-      <p className="mt-1 text-sm text-white/60">{t.play.rewardLine(fiveAiReward(level, "win"), fiveAiReward(level, "draw"), fiveAiReward(level, "loss"))}</p>
+      <p className="mt-1 text-sm text-white/60">{t.play.rewardLine(FIVE_MATCH_REWARDS.win, FIVE_MATCH_REWARDS.draw, FIVE_MATCH_REWARDS.loss)}</p>
       <p className="mt-1 text-xs text-white/50">{t.play.best(bestAiLevel)}</p>
       {/* Trinnene som stigen består av, med det man står på uthevet. */}
       <div className="mt-4 flex flex-wrap gap-1">{Array.from({ length: FIVE_AI_LEVELS }, (_, index) => index + 1).map((step) => <span key={step} className={`h-2 w-4 rounded-full ${step < level ? "bg-lime-300" : step === level ? "bg-white" : "bg-white/15"}`} />)}</div>
@@ -44,7 +44,7 @@ export function FivePlay({ aiLevel, bestAiLevel, opponents, ready, liveMatchId }
     </section>
     <section className={`${cardClass} grid content-start gap-3`}>
       <div><h3 className="font-black">{t.play.friendsTitle}</h3><p className="text-sm text-muted">{t.play.friendsText}</p></div>
-      <p className="text-xs text-muted">{t.play.rewardLine(fiveFriendReward("win"), fiveFriendReward("draw"), fiveFriendReward("loss"))}</p>
+      <p className="text-xs text-muted">{t.play.rewardLine(FIVE_MATCH_REWARDS.win, FIVE_MATCH_REWARDS.draw, FIVE_MATCH_REWARDS.loss)}</p>
       {opponents.length ? opponents.map((opponent) => <FriendRow key={opponent.id} opponent={opponent} />) : <p className="text-sm text-muted">{t.play.noFriends}</p>}
     </section>
     <p className="text-xs text-muted lg:col-span-2">{t.play.rewards}</p>

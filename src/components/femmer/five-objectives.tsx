@@ -3,9 +3,8 @@
 import { useActionState, useState } from "react";
 import { useT } from "@/i18n/client";
 import type { FivePerson } from "@/lib/femmer/data";
-import { claimFiveLoginAction, claimFiveObjectiveAction, type FivePackState } from "@/lib/femmer/actions";
+import { claimFiveObjectiveAction, type FivePackState } from "@/lib/femmer/actions";
 import type { FiveObjectiveStatus } from "@/lib/femmer/objectives";
-import { FIVE_LOGIN_PACK_CARDS, fiveLoginRewards } from "@/lib/femmer/rules";
 import { buttonClass, cardClass } from "../ui";
 import { PackReveal } from "./five-packs";
 
@@ -16,29 +15,6 @@ function useReveal(state: FivePackState) {
   const [dismissed, setDismissed] = useState<number | undefined>();
   const open = (state.pulls?.length ?? 0) > 0 && dismissed !== state.openedAt;
   return { open, close: () => setDismissed(state.openedAt) };
-}
-
-/** Innloggingsbonusen: sju dager i rekka, der dag 7 er en pakke. Hopper man over en dag, starter det på nytt. */
-export function FiveLoginBonus({ streak, claimedToday, people, coins }: { streak: number; claimedToday: boolean; people: FivePerson[]; coins: number }) {
-  const t = useT().femmer;
-  const [state, action, pending] = useActionState(claimFiveLoginAction, initial);
-  const reveal = useReveal(state);
-  const claimed = claimedToday || Boolean(state.ok);
-  const currentStreak = state.streak ?? streak;
-  // Dagen man står på i rekka: den man har hentet i dag, ellers den neste.
-  const day = claimed ? ((currentStreak - 1) % 7) + 1 : (currentStreak % 7) + 1;
-  return <section className={`${cardClass} grid gap-3`}>
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div><h3 className="font-black">{t.login.title}</h3><p className="text-sm text-muted">{t.login.text}</p></div>
-      <form action={action}><button type="submit" disabled={pending || claimed} className={buttonClass}>{claimed ? t.login.claimed : t.login.claim}</button></form>
-    </div>
-    <div className="grid grid-cols-7 gap-1">{fiveLoginRewards.map((reward, index) => <div key={index} className={`grid place-items-center rounded-lg border p-1.5 text-center text-[10px] font-black sm:text-xs ${index + 1 < day || (claimed && index + 1 === day) ? "border-lime-300/50 bg-lime-300/20" : index + 1 === day ? "border-amber-300 bg-amber-300/15" : "border-white/10 bg-white/5"}`}>
-      <span className="text-white/50">{t.login.day(index + 1)}</span><span>{reward ? reward : t.packs.cards(FIVE_LOGIN_PACK_CARDS)}</span>
-    </div>)}</div>
-    {state.ok && state.coins ? <p className="text-sm font-bold text-amber-300">{t.match.reward(state.coins)}</p> : null}
-    {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
-    {reveal.open ? <PackReveal key={state.openedAt} pulls={state.pulls!} people={people} coins={coins} onClose={reveal.close} /> : null}
-  </section>;
 }
 
 function ObjectiveRow({ objective, people, coins }: { objective: FiveObjectiveStatus; people: FivePerson[]; coins: number }) {

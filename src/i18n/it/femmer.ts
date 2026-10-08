@@ -106,14 +106,6 @@ export const femmer: Dictionary["femmer"] = {
     week: (date: string) => `Settimana del ${date}`,
     points: (points: number, boost: number) => `${points} pt · +${boost}`,
   },
-  login: {
-    title: "Bonus giornaliero",
-    text: "Accedi ogni giorno. Il giorno 7 ti dà un pacchetto – se salti un giorno, la serie ricomincia.",
-    claim: "Riscatta",
-    claimed: "Riscattato oggi",
-    day: (day: number) => `Giorno ${day}`,
-    banner: "Il tuo bonus giornaliero è pronto – tocca per riscattarlo",
-  },
   objectives: {
     daily: "Sfide giornaliere",
     weekly: "Sfide settimanali",
@@ -204,6 +196,9 @@ export const femmer: Dictionary["femmer"] = {
     reward: (coins: number) => `+${coins} monete`,
     playAgain: "Gioca ancora",
     back: "Torna al calcio a 5",
+    backSeason: "Torna alla stagione",
+    returning: "Si torna indietro tra un attimo…",
+    returningSeason: "Si torna alla stagione tra un attimo…",
   },
   errors: {
     invalidFormation: "Modulo non valido",

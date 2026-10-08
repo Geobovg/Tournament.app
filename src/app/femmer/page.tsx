@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { FiveCollection } from "@/components/femmer/five-collection";
 import { FiveHistory } from "@/components/femmer/five-history";
 import { FiveLeaderboard } from "@/components/femmer/five-leaderboard";
-import { FiveLoginBonus, FiveObjectives } from "@/components/femmer/five-objectives";
+import { FiveObjectives } from "@/components/femmer/five-objectives";
 import { FivePacks } from "@/components/femmer/five-packs";
 import { FivePlay } from "@/components/femmer/five-play";
 import { FiveSeasons } from "@/components/femmer/five-seasons";
@@ -46,8 +46,8 @@ export default async function FemmerPage({ searchParams }: PageProps<"/femmer">)
   else if (tab === "sesong") {
     const [seasons, friends] = await Promise.all([listFiveSeasons(user.id), listFriends(user.id)]);
     content = <FiveSeasons seasons={seasons} friends={friends.map((friend) => ({ id: friend.id, username: friend.username }))} userId={user.id} />;
-  } else if (tab === "pakker") content = <FivePacks coins={profile.coins} freePackAvailable={profile.freePackAvailable} people={people} />;
-  else if (tab === "utfordringer") content = <div className="grid gap-4"><FiveLoginBonus streak={profile.loginStreak} claimedToday={profile.loginClaimedToday} people={people} coins={profile.coins} /><FiveObjectives objectives={await getFiveObjectives(user.id)} people={people} coins={profile.coins} /></div>;
+  } else if (tab === "pakker") content = <FivePacks coins={profile.coins} people={people} />;
+  else if (tab === "utfordringer") content = <FiveObjectives objectives={await getFiveObjectives(user.id)} people={people} coins={profile.coins} />;
   else if (tab === "kort") content = <FiveCollection cards={state.cards} people={people} informs={await listFiveInforms()} coins={profile.coins} />;
   else if (tab === "toppliste") content = <FiveLeaderboard board={await getFiveLeaderboard()} userId={user.id} />;
   else if (tab === "historikk") content = <FiveHistory matches={await listFiveMatches(user.id)} userId={user.id} />;
@@ -59,13 +59,12 @@ export default async function FemmerPage({ searchParams }: PageProps<"/femmer">)
     { label: t.aiLevel, value: String(profile.aiLevel) },
     { label: t.record, value: t.recordValue(profile.wins, profile.draws, profile.losses) },
   ];
-  const dots: Partial<Record<TabKey, boolean>> = { pakker: profile.freePackAvailable, utfordringer: !profile.loginClaimedToday, kamp: Boolean(liveMatchId) };
+  const dots: Partial<Record<TabKey, boolean>> = { kamp: Boolean(liveMatchId) };
 
   return <div className="mx-auto grid w-full max-w-6xl gap-5">
     {heading}
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{stats.map((stat) => <div key={stat.label} className="rounded-xl border border-white/10 bg-slate-900/75 p-3"><p className="text-[11px] font-black tracking-widest text-white/45">{stat.label}</p><p className="truncate text-xl font-black">{stat.value}</p></div>)}</div>
     {liveMatchId && tab !== "kamp" ? <Link href={`/femmer/kamp/${liveMatchId}`} className="rounded-xl border border-amber-300/50 bg-amber-300/15 p-3 text-sm font-black text-amber-200">{t.play.resume}</Link> : null}
-    {!profile.loginClaimedToday && tab !== "utfordringer" ? <Link href="/femmer?tab=utfordringer" className="rounded-xl border border-lime-300/40 bg-lime-300/10 p-3 text-sm font-black text-lime-200">{t.login.banner}</Link> : null}
     <nav className="flex gap-1 overflow-x-auto rounded-xl border border-white/10 bg-slate-900/60 p-1">{tabKeys.map((key) => <Link key={key} href={key === "lag" ? "/femmer" : `/femmer?tab=${key}`} className={`shrink-0 rounded-lg px-4 py-2 text-sm font-black transition ${key === tab ? "bg-white text-slate-950" : "text-white/70 hover:bg-white/10"}`}>{t.tabs[key]}{dots[key] ? " •" : ""}</Link>)}</nav>
     {content}
   </div>;
