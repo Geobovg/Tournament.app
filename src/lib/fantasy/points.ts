@@ -9,7 +9,7 @@ import type { FantasyPosition } from "./squad-rules";
 export const POINTS = {
   minutesUnder60: 1,
   minutes60: 2,
-  goal: { GK: 6, DEF: 6, MID: 5, FWD: 4 } as Record<FantasyPosition, number>,
+  goal: { GK: 10, DEF: 6, MID: 5, FWD: 4 } as Record<FantasyPosition, number>,
   assist: 3,
   cleanSheet: { GK: 4, DEF: 4, MID: 1, FWD: 0 } as Record<FantasyPosition, number>,
   savesPerPoint: 3,
@@ -20,6 +20,10 @@ export const POINTS = {
   yellowCard: -1,
   redCard: -3,
   ownGoal: -2,
+  // Defensive bidrag (nytt i FPL 2025/26): +2 for minst så mange taklinger, blokkeringer og
+  // brytninger i én kamp. FPL teller også klareringer (og ballvinninger for MID/FWD) og krever
+  // 10/12, men de tallene får vi ikke fra API-Football, så grensene er lavere.
+  defensiveContribution: { points: 2, threshold: { GK: null, DEF: 6, MID: 7, FWD: 7 } as Record<FantasyPosition, number | null> },
   bonus: [3, 2, 1],
 } as const;
 
@@ -38,6 +42,8 @@ export type PlayerFixtureLine = {
   ownGoals: number;
   // Baklengsmål mens spilleren var på banen.
   goalsConceded: number;
+  // Taklinger + blokkeringer + brytninger.
+  defensiveActions: number;
   rating: number | null;
 };
 
@@ -53,11 +59,14 @@ export type PointsBreakdown = {
   yellowCards: number;
   redCards: number;
   ownGoals: number;
+  // Mangler i poeng regnet ut før defensive bidrag kom med.
+  defensiveContribution?: number;
   bonus: number;
 };
 
 export function scoreLine(position: FantasyPosition, line: PlayerFixtureLine, bonus: number): { total: number; breakdown: PointsBreakdown } {
   const played = line.minutes > 0;
+  const threshold = POINTS.defensiveContribution.threshold[position];
   const breakdown: PointsBreakdown = {
     minutes: !played ? 0 : line.minutes >= 60 ? POINTS.minutes60 : POINTS.minutesUnder60,
     goals: line.goals * POINTS.goal[position],
@@ -72,9 +81,10 @@ export function scoreLine(position: FantasyPosition, line: PlayerFixtureLine, bo
     yellowCards: line.redCards > 0 ? 0 : line.yellowCards * POINTS.yellowCard,
     redCards: line.redCards > 0 ? POINTS.redCard : 0,
     ownGoals: line.ownGoals * POINTS.ownGoal,
+    defensiveContribution: threshold !== null && line.defensiveActions >= threshold ? POINTS.defensiveContribution.points : 0,
     bonus: played ? bonus : 0,
   };
-  const total = Object.values(breakdown).reduce((sum, value) => sum + value, 0);
+  const total = Object.values(breakdown).reduce((sum, value) => sum + (value ?? 0), 0);
   return { total, breakdown };
 }
 
@@ -130,6 +140,8 @@ export function teamRoundPoints(input: {
 
   // Automatiske innbyttere: en i startelleveren som ikke spilte (og er ferdig), byttes med
   // første på benken som spilte, så lenge formasjonen fortsatt er gyldig. Keeper bare med keeper.
+  // Som i FPL gjelder benkrekkefølgen: har en benkespiller som kan komme inn ikke spilt ennå,
+  // venter vi på ham i stedet for å hoppe til neste på benken.
   if (!benchBoost) {
     for (const starterId of starters) {
       const starter = player(starterId);
@@ -137,13 +149,16 @@ export function teamRoundPoints(input: {
       for (const benchId of bench) {
         if (subbedIn.has(benchId)) continue;
         const candidate = player(benchId);
-        if (candidate.minutes === 0) continue;
         if ((starter.position === "GK") !== (candidate.position === "GK")) continue;
         const after = playing.map((id) => (id === starterId ? benchId : id));
         const counts = new Map<FantasyPosition, number>();
         for (const id of after) counts.set(player(id).position, (counts.get(player(id).position) ?? 0) + 1);
         const valid = (Object.keys(FORMATION_MIN) as FantasyPosition[]).every((position) => (counts.get(position) ?? 0) >= FORMATION_MIN[position]);
         if (!valid) continue;
+        if (candidate.minutes === 0) {
+          if (candidate.done) continue;
+          break;
+        }
         playing[playing.indexOf(starterId)] = benchId;
         subbedIn.add(benchId);
         subbedOut.add(starterId);

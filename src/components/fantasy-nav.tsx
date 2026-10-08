@@ -9,6 +9,7 @@ const TABS = [
   ["team", "/fantasy"],
   ["points", "/fantasy/points"],
   ["leagues", "/fantasy/leagues"],
+  ["stats", "/fantasy/stats"],
   ["fixtures", "/fantasy/fixtures"],
   ["rules", "/fantasy/rules"],
 ] as const;

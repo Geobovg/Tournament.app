@@ -85,6 +85,7 @@ export function fixtureLines(details: ApiFixtureDetails): PlayerFixtureLine[] {
         redCards: stats.cards.red ?? 0,
         ownGoals: ownGoals.get(id) ?? 0,
         goalsConceded: conceded,
+        defensiveActions: (stats.tackles?.total ?? 0) + (stats.tackles?.blocks ?? 0) + (stats.tackles?.interceptions ?? 0),
         rating: rating !== null && Number.isFinite(rating) ? rating : null,
       });
     }
