@@ -10,7 +10,7 @@ import type { ManagerCard, ManagerLineup, ManagerPack, CatalogCard, PackShop } f
 import { specialStyles } from "@/lib/special-cards";
 import { defaultCatalogFilters, type CatalogFilters } from "@/lib/catalog-filters";
 import { catalogBuyMaxOverall, quickSellValue, squadCapacity } from "@/lib/manager-limits";
-import { autoPickBestSquadAction, buyCatalogCardAction, loadCatalogClubsAction, loadCatalogPageAction, moveManagerCardAction, quickSellManagerCardAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
+import { autoPickBestSquadAction, buyCatalogCardAction, loadCatalogClubsAction, loadCatalogPageAction, moveManagerCardAction, quickSellManagerCardAction, quickSellPackCardsAction, saveManagerLineupAction, swapManagerCardsAction } from "@/lib/manager-actions";
 import { PackStore } from "./pack-store";
 import { PlayerCardFace } from "./player-card-face";
 import { buttonClass, cardClass, secondaryButtonClass } from "./ui";
@@ -315,6 +315,25 @@ function QuickSellButton({ card, value }: { card: ManagerCard; value: number }) 
   </>;
 }
 
+// Selger hele lageret i én operasjon. Kort som ligger på markedet og akademikort hoppes over,
+// samme regler som hurtigsalgsknappen på hvert kort.
+function QuickSellStorageButton({ cards }: { cards: ManagerCard[] }) {
+  const [state, action, pending] = useActionState(quickSellPackCardsAction, {});
+  const [confirming, setConfirming] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const tp = useT().market.packs;
+  const payout = cards.reduce((sum, card) => sum + quickSellValue(card.value, card.special), 0);
+  if (!cards.length) return null;
+  return <>
+    <form ref={formRef} action={action} className="flex flex-wrap items-center gap-2">
+      {cards.map((card) => <input key={card.id} type="hidden" name="card_id" value={card.id} />)}
+      <button type="button" className={secondaryButtonClass} disabled={pending} onClick={() => setConfirming(true)}>{pending ? tp.quickSellingAll : tp.quickSellAll(payout)}</button>
+      {state.error ? <span className="text-sm text-danger">{state.error}</span> : null}
+    </form>
+    {confirming ? <ConfirmDialog message={tp.quickSellAllConfirm(cards.length, payout)} onCancel={() => setConfirming(false)} onConfirm={() => { setConfirming(false); formRef.current?.requestSubmit(); }} /> : null}
+  </>;
+}
+
 function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; squad: ManagerCard[]; listedCardIds: Set<string> }) {
   const [moveState, moveAction, movePending] = useActionState(moveManagerCardAction, initial);
   const [swapState, swapAction, swapPending] = useActionState(swapManagerCardsAction, initial);
@@ -337,10 +356,11 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
     return matches.sort((first, second) => second.overall - first.overall || first.name.localeCompare(second.name, intl));
   }, [clubName, intl, position, search, sort, storage]);
   const positions = useMemo(() => positionOrder.filter((item) => storage.some((card) => card.position === item)), [storage]);
+  const sellable = storage.filter((card) => (card.tradable || card.special) && card.catalog_id && !listedCardIds.has(card.id));
   return <section className={`${cardClass} grid gap-4`}>
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div><h2 className="text-lg font-semibold">{text.heading}</h2><p className="text-sm text-muted">{roomInSquad ? text.roomInSquad : text.squadFull}</p></div>
-      <span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{text.cardCount(storage.length)}</span>
+      <div className="flex flex-wrap items-center gap-2"><QuickSellStorageButton cards={sellable} /><span className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{text.cardCount(storage.length)}</span></div>
     </div>
     {storage.length ? <div className="grid gap-2 rounded-xl border border-border bg-surface-raised p-3 sm:grid-cols-[2fr_1fr_1fr] sm:items-end"><label className="text-xs text-muted">{filterText.search}<input className="mt-1 w-full" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={text.searchPlaceholder} /></label><label className="text-xs text-muted">{filterText.position}<select className="mt-1 w-full" value={position} onChange={(event) => setPosition(event.target.value)}><option value="all">{filterText.all}</option>{positions.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs text-muted">{filterText.sort}<select className="mt-1 w-full" value={sort} onChange={(event) => setSort(event.target.value)}><option value="overall-desc">{filterText.ratingHighLow}</option><option value="overall-asc">{filterText.ratingLowHigh}</option><option value="value-desc">{filterText.valueHighLow}</option><option value="position">{filterText.position}</option><option value="name">{filterText.name}</option></select></label></div> : null}
     {storage.length && cards.length !== storage.length ? <p className="text-sm text-muted">{filterText.showing(cards.length, storage.length)}</p> : null}
