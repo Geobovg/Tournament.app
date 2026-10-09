@@ -16,7 +16,6 @@ import {
   getManagerShots,
   getShootout,
   getManagerTimeline,
-  hasSubWindow,
   keeperIsManager,
   keeperZone,
   KICK_REVEAL_AFTER_MS,
@@ -32,6 +31,7 @@ import {
   SHOT_COLUMNS,
   SHOT_CELLS,
   shotMinutesOf,
+  subWindowMs,
   type ManagerPlayerSnapshot,
   type MatchSide,
   type ShootoutKick,
@@ -41,6 +41,7 @@ import {
 } from "@/lib/manager-match";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/client";
+import { SubWindowPanel } from "./sub-window-panel";
 import { buttonClass, cardClass } from "./ui";
 import { useScrollLock } from "./use-scroll-lock";
 
@@ -381,9 +382,9 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const lastMinute = extension.extraTime ? EXTRA_TIME_END : 90;
 
   const elapsed = match.started_at ? Math.max(0, now - new Date(match.started_at).getTime()) : 0;
-  const subWindow = useMemo(() => hasSubWindow(events), [events]);
-  const clock = matchClock(elapsed, shotMinutes, extension, subWindow);
-  const fullTime = elapsed >= plannedDurationMs(shotMinutes, extension, subWindow);
+  const windowMs = useMemo(() => subWindowMs(events), [events]);
+  const clock = matchClock(elapsed, shotMinutes, extension, windowMs);
+  const fullTime = elapsed >= plannedDurationMs(shotMinutes, extension, windowMs);
   const shownMinute = complete ? lastMinute : clock.minute;
   // Målstripa strekkes til 120′ først når ekstraomgangene starter, ellers ville den avslørt at det ender likt.
   const stripMinutes = complete || clock.phase === "extra_break" || shownMinute > 90 ? lastMinute : 90;
@@ -397,6 +398,7 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   const activeShot: TimelineShot | null = clock.phase === "shot" && clock.shotMinute !== null ? shotEvents.find((shot) => shot.minute === clock.shotMinute) ?? null : null;
   const activeResult = activeShot ? match.shots.find((shot) => shot.minute === activeShot.minute) ?? null : null;
   const choosingWindow = Boolean(activeShot) && clock.shotElapsedMs < SHOT_CHOICE_MS;
+  const subWindowOpen = clock.phase === "substitutions" && !complete;
 
   useEffect(() => {
     // Under et straffespark teller sekundene, så da må klokka og serveren følges tettere.
@@ -405,9 +407,10 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
   }, [serverOffset]);
   useEffect(() => {
     if (match.status !== "live") return;
-    const refresh = setInterval(() => router.refresh(), activeShot ? 800 : 3000);
+    // I byttevinduet følges motstanderen tettere, så kampen går videre straks begge er ferdige.
+    const refresh = setInterval(() => router.refresh(), activeShot ? 800 : subWindowOpen ? 1500 : 3000);
     return () => clearInterval(refresh);
-  }, [match.status, router, activeShot]);
+  }, [match.status, router, activeShot, subWindowOpen]);
 
   const visible = timeline.filter((event) => {
     if (event.minute > shownMinute) return false;
@@ -619,6 +622,10 @@ export function LiveManagerMatch({ match, userId, returnAfterComplete = true, he
             <b>{yourReport.strength}</b><span className="text-muted">{t.match.stats.strength}</span><b>{opponentReport.strength}</b>
           </div>
         </section>
+      ) : null}
+
+      {subWindowOpen && userSide && kickoff && kickoff.version >= 6 ? (
+        <SubWindowPanel matchId={match.id} events={events} side={userSide} remainingMs={clock.remainingMs} />
       ) : null}
 
       <div ref={feedRef} className="match-feed rounded-xl border border-border bg-surface p-3">

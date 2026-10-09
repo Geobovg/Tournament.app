@@ -5,7 +5,7 @@ import { dbErrorMessage, getT } from "@/i18n/server";
 import { requireUser } from "./auth";
 import { friendshipId } from "./friends";
 import type { ActionState } from "./actions";
-import { autoShotCell, getManagerKickoff, hasSubWindow, keeperIsManager, MANAGER_KICKOFF_VERSION, getManagerShots, matchClock, NO_EXTENSION, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotKeeperRating, shotMinutesOf, matchExtension, type ManagerKickoffEvent, type ShotResult } from "./manager-match";
+import { autoShotCell, getManagerKickoff, isAiTeam, keeperIsManager, MANAGER_KICKOFF_VERSION, MAX_SUBSTITUTIONS, getManagerShots, matchClock, NO_EXTENSION, planManagerTimeline, plannedDurationMs, playersById, resolveShot, SHOT_CHOICE_MS, shootingOf, shotKeeperRating, shotMinutesOf, matchExtension, squadAtSubWindow, SUB_WINDOW_MAX_MS, SUB_WINDOW_MINUTE, subReadySides, subWindowClosed, subWindowMs, type ManagerKickoffEvent, type ManagerMatchEvent, type MatchClock, type MatchSide, type ShotResult } from "./manager-match";
 import { managerTeamSnapshots } from "./manager-snapshot";
 import { supabaseAdmin } from "./supabase/server";
 
@@ -62,7 +62,7 @@ export async function completeManagerMatchAction(_prev: ActionState, formData: F
   const events = Array.isArray(match.events) ? match.events : [];
   const { data: shotRows } = await db.from("career_match_shots").select("minute, kind, side, shooter_cell, keeper_cell, outcome").eq("match_id", matchId);
   const shots: ShotResult[] = (shotRows ?? []).map((shot) => ({ minute: shot.minute, kind: shot.kind, side: shot.side, shooterCell: shot.shooter_cell, keeperCell: shot.keeper_cell, outcome: shot.outcome }));
-  const fullTime = plannedDurationMs(shotMinutesOf(events), matchExtension(events, shots), hasSubWindow(events));
+  const fullTime = plannedDurationMs(shotMinutesOf(events), matchExtension(events, shots), subWindowMs(events));
   if (match.status !== "live" || !match.started_at || Date.now() - new Date(match.started_at).getTime() < fullTime) return { error: (await getT()).career.errors.notFinished };
   const { data: settled, error } = await db.rpc("settle_finished_manager_matches", { target_match: matchId });
   if (error) return { error: await dbErrorMessage(error) };
@@ -86,7 +86,69 @@ async function liveManagerMatch(matchId: string, userId: string) {
   const side = kickoff.home.userId === userId ? "home" : kickoff.away.userId === userId ? "away" : null;
   if (!side) return { error: (await getT()).career.errors.notParticipant } as const;
   const elapsed = Date.now() - new Date(match.started_at).getTime();
-  return { db, match, events, kickoff, side, elapsed, clock: matchClock(elapsed, shotMinutesOf(events), NO_EXTENSION, hasSubWindow(events)) } as const;
+  return { db, match, events, kickoff, side, elapsed, clock: matchClock(elapsed, shotMinutesOf(events), NO_EXTENSION, subWindowMs(events)) } as const;
+}
+
+/**
+ * Markerer at `side` er ferdig i byttevinduet. Når alle managerne er ferdige (AI-klubber er det
+ * alltid), lukkes vinduet, og hvor lenge det sto åpent lagres så klokka og oppgjøret kan gå videre.
+ */
+function markSubReady(events: ManagerMatchEvent[], kickoff: ManagerKickoffEvent, side: MatchSide, clock: MatchClock): ManagerMatchEvent[] {
+  const ready = new Set([...subReadySides(events), side]);
+  const next: ManagerMatchEvent[] = subReadySides(events).includes(side) ? events : [...events, { type: "sub_ready", side }];
+  const everyoneDone = (["home", "away"] as const).every((entry) => isAiTeam(kickoff[entry]) || ready.has(entry));
+  if (!everyoneDone || subWindowClosed(next)) return next;
+  return [...next, { type: "sub_window_end", ms: Math.max(0, SUB_WINDOW_MAX_MS - clock.remainingMs) }];
+}
+
+type SubWindowStep = (live: Extract<Awaited<ReturnType<typeof liveManagerMatch>>, { db: unknown }>) => Promise<{ error: string } | { events: ManagerMatchEvent[] }>;
+
+/**
+ * Felles for alt som skjer i byttevinduet. Den nye planen skrives bare hvis ingen andre har endret
+ * kampen siden vi leste den – ellers leses den på nytt og forsøket gjentas.
+ */
+async function inSubWindow(matchId: string, userId: string, step: SubWindowStep): Promise<ActionState> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const live = await liveManagerMatch(matchId, userId);
+    if ("error" in live) return { error: live.error };
+    const { db, events, kickoff, side, clock } = live;
+    if (kickoff.version < 6 || clock.phase !== "substitutions" || clock.minute !== SUB_WINDOW_MINUTE || subWindowClosed(events) || subReadySides(events).includes(side)) {
+      return { error: (await getT()).career.errors.subsOnlyInWindow };
+    }
+    const result = await step(live);
+    if ("error" in result) return result;
+    const { data: written, error } = await db.rpc("replace_live_manager_events", { target_match: matchId, expected_events: events, next_events: result.events });
+    if (error) return { error: await dbErrorMessage(error) };
+    if (written) {
+      revalidatePath(`/managerkarriere/kamp/${matchId}`);
+      return { ok: true };
+    }
+  }
+  return { error: (await getT()).career.errors.matchBusy };
+}
+
+/** Ett bytte i vinduet på 70′. Det tredje byttet gjør deg samtidig ferdig. */
+export async function makeManagerSubstitutionAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const matchId = String(formData.get("match_id") ?? "");
+  const outId = String(formData.get("out_id") ?? "");
+  const inId = String(formData.get("in_id") ?? "");
+  return inSubWindow(matchId, user.id, async ({ events, kickoff, side, clock }) => {
+    const errors = (await getT()).career.errors;
+    const squad = squadAtSubWindow(events, side);
+    if (!squad || squad.used >= MAX_SUBSTITUTIONS) return { error: errors.subsUsed };
+    if (!squad.starters.some((member) => member.player.id === outId) || !squad.bench.some((player) => player.id === inId)) return { error: errors.pickSubPlayers };
+    // Byttet skjer på 70′, så det slår inn fra 71′ og kan aldri skrive om noe som alt er spilt.
+    const planned = planManagerTimeline(matchId, [...events, { type: "substitution", side, outId, inId, minute: SUB_WINDOW_MINUTE }]);
+    return { events: squad.used + 1 >= MAX_SUBSTITUTIONS ? markSubReady(planned, kickoff, side, clock) : planned };
+  });
+}
+
+/** «Ferdig» i byttevinduet: hopp over resten av vinduet, eller vent på motstanderen hvis han ikke er ferdig. */
+export async function finishSubWindowAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const matchId = String(formData.get("match_id") ?? "");
+  return inSubWindow(matchId, user.id, async ({ events, kickoff, side, clock }) => ({ events: markSubReady(events as ManagerMatchEvent[], kickoff, side, clock) }));
 }
 
 /**

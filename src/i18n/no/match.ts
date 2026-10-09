@@ -1,6 +1,6 @@
 import type { MatchDict } from "../en/match";
 
-// Simulerte managerkamper: kampsiden, live-kommentarene, straffer/sjanser og kamphistorikken.
+// Simulerte managerkamper: kampsiden, live-kommentarene, straffer/sjanser, bytter og kamphistorikken.
 export const match: MatchDict = {
   page: {
     title: (home: string, away: string) => `${home} mot ${away}`,
@@ -87,6 +87,31 @@ export const match: MatchDict = {
     shots: "Skudd",
     onTarget: "På mål",
     strength: "Lagstyrke",
+  },
+  subs: {
+    title: "BYTTEVINDU · 70′",
+    left: (left: number) => `${left} av 3 bytter igjen`,
+    hint: "Spillerne dine begynner å bli slitne – friske bein fra benken gjør en ekte forskjell nå.",
+    suggestions: "Kjappe bytter",
+    swap: "Bytt",
+    inFor: (name: string) => `inn for ${name}`,
+    pickOut: "Eller trykk på en spiller for å ta ham av",
+    pickIn: (name: string) => `Hvem skal inn for ${name}?`,
+    cancel: "Avbryt",
+    onPitch: "På banen",
+    bench: "Benken",
+    benchEmpty: "Ingen igjen på benken.",
+    fresh: "Uthvilt",
+    done: "Ferdig – spill videre",
+    skip: "Ingen bytter – spill videre",
+    waiting: "Venter på at motstanderen blir ferdig …",
+    allUsed: "Alle tre byttene er brukt.",
+    reasons: {
+      booked: "Har gult kort – står i fare for å bli utvist",
+      stronger: (diff: number) => `Sterkere alternativ (+${diff})`,
+      fresh: "Friske bein inn for en sliten spiller",
+      samePosition: "Bytte på samme posisjon",
+    },
   },
   feed: {
     noEvents: "Kampen er i gang – ingen hendelser ennå.",
