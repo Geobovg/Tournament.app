@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Tavola completa →",
     legend: "Verde: promozione · Blu: spareggio · Rosso: retrocessione",
     playoffInfo: "Spareggio: una partita contro un club della divisione superiore. Devi vincere: il pareggio non basta.",
-    prizeInfo: "Solo la promozione dà un premio: un bonus in MB che aumenta con ogni divisione.",
+    prizeInfo: "Solo la promozione dà un premio: un bonus in MB che aumenta con ogni divisione e un pacchetto che migliora più sali.",
     yourMatches: "Le tue partite",
   },
   friend: {

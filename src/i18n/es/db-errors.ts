@@ -83,6 +83,7 @@ export const dbErrors = {
   sbcRequirementsNotMet: "Las tarjetas no cumplen los requisitos del SBC",
   packNotForSale: "Este sobre no se puede comprar",
   packWeeklyLimit: "Ya compraste este sobre esta semana",
+  packDailyPurchaseLimit: (count: string) => `Has alcanzado el límite diario de este sobre (${count} al día). Vuelve a intentarlo mañana.`,
   packNotAvailable: "Este sobre no está disponible ahora",
   packDailyLimit: "Ya abriste este sobre hoy",
   noSpecialCards: "Todavía no hay cartas especiales para sacar",

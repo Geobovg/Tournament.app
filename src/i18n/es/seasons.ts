@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Tabla completa →",
     legend: "Verde: ascenso · Azul: promoción · Rojo: descenso",
     playoffInfo: "Promoción: un partido contra un club de la división superior. Tienes que ganar: el empate no basta.",
-    prizeInfo: "Solo el ascenso da premio: una bonificación en MB que aumenta con cada división.",
+    prizeInfo: "Solo el ascenso da premio: una bonificación en MB que aumenta con cada división y un sobre que mejora cuanto más alto llegas.",
     yourMatches: "Tus coincidencias",
   },
   friend: {

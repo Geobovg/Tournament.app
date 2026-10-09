@@ -10,6 +10,11 @@ const packNames: Record<string, string> = {
   inform: "Allpacka",
   spesial: "Spesialpakke",
   ungdomstoooor: "Ungdomstoooor",
+  gullpakke: "Gullpakke",
+  gull_spillere: "Gull spillerpakke",
+  premium_gull: "Premium gullpakke",
+  sjeldne_spillere: "Sjeldne spillere",
+  jumbo_premium_gull: "Jumbo premium gull",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -19,7 +24,12 @@ const packDescriptions: Record<string, string> = {
   elite: "Tolv kort, garantert to på 84+ og ett på 86+.",
   inform: "Sju kort: garantert én inform, én 88+, to 86+ og tre 83+. Én per uke.",
   spesial: "Ett tilfeldig spesialkort: inform, TOTS eller Icon. Kan ikke selges på markedet.",
-  ungdomstoooor: "Gratis! Fem kort på 84+, garantert minst én TOTS. Én per dag til og med søndag.",
+  ungdomstoooor: "Seks kort på 78–86, med 3 % sjanse for inform. Én per dag til og med søndag.",
+  gullpakke: "Tre kort, garantert minst ett på 75 eller bedre.",
+  gull_spillere: "Fem kort, garantert minst ett på 78 eller bedre.",
+  premium_gull: "Seks kort, garantert minst to på 80 eller bedre.",
+  sjeldne_spillere: "Fem kort, alle på 80 eller bedre, og minst ett på 83+. Maks 3 per dag.",
+  jumbo_premium_gull: "Tolv kort, garantert tre på 80+ og ett på 83+. Maks 3 per dag.",
 };
 
 export const market: MarketDict = {
@@ -96,7 +106,7 @@ export const market: MarketDict = {
     eyebrow: "PAKKER",
     title: "Bruk managerpoeng på pakker",
     intro: "Dyrere pakke gir flere kort og bedre odds. Kortene havner i troppen, eller på lageret hvis troppen er full.",
-    freePacks: (list: string) => `Du har gratis pakker fra klubbnivå: ${list}.`,
+    freePacks: (list: string) => `Du har gratis pakker fra opprykk: ${list}.`,
     cardCount: (count: number) => `${count} kort`,
     guarantee: (list: string) => `garanti: ${list}`,
     noGuarantee: "ingen garanti",
@@ -124,6 +134,8 @@ export const market: MarketDict = {
     boughtThisWeek: "Kjøpt denne uken",
     guaranteed: "Garantert",
     dailyLeft: (left, total) => `${left}/${total} igjen i dag · til og med søndag`,
+    purchasesLeftToday: (left, total) => `${left}/${total} kjøp igjen i dag`,
+    boughtToday: "Kjøpt maks i dag",
     freeLabel: "Gratis",
     openedToday: "Åpnet i dag",
     jackpot: (amount) => `💰 Du vant ${amount} MB!`,

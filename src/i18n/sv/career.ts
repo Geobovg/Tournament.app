@@ -152,7 +152,7 @@ export const career = {
     loadError: "Det gick inte att ladda spelare. Försök igen.",
     eyebrow: "SPELARMARKNAD",
     heading: "Bygg ditt drömlag",
-    intro: (max: number) => `Katalogen säljer spelare med betyg upp till ${max}. Stjärnor med betyget ${max + 1}+ finns bara på transfermarknaden.`,
+    intro: (max: number) => `Katalogen säljer spelare med betyg upp till ${max}. Stjärnor med betyget ${max + 1}+ finns bara i paket och på transfermarknaden.`,
     playerPlaceholder: "Spelare...",
     hideFilters: "Dölj filter",
     showFilters: "Filter",

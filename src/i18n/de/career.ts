@@ -152,7 +152,7 @@ export const career = {
     loadError: "Spieler konnten nicht geladen werden. Versuchen Sie es erneut.",
     eyebrow: "SPIELERMARKT",
     heading: "Bauen Sie Ihr Traumteam auf",
-    intro: (max: number) => `Der Katalog verkauft Spieler mit einer Bewertung bis zu ${max}. Sterne mit der Bewertung ${max + 1}+ gibt es nur auf dem Transfermarkt.`,
+    intro: (max: number) => `Der Katalog verkauft Spieler mit einer Bewertung bis zu ${max}. Sterne mit der Bewertung ${max + 1}+ gibt es nur in Paketen und auf dem Transfermarkt.`,
     playerPlaceholder: "Spieler…",
     hideFilters: "Filter ausblenden",
     showFilters: "Filter",

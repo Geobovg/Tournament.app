@@ -31,8 +31,8 @@ export default async function ManagerCareerSectionPage({ params, searchParams }:
   if (!validSections.has(section)) notFound();
   // Løse vennskapskamper bor nå under Sesong → Venner.
   if (section === "kamplobby") redirect("/managerkarriere/sesong?tab=venner");
-  // Pakkene og SBC er fjernet (migrering 0081), og spesialkortene fantes bare der.
-  if (["pakker", "sbc", "informs", "tots", "icons"].includes(section)) redirect("/managerkarriere");
+  // SBC er slått av (migrering 0081), og pakkene gir verken TOTS eller Icons (migrering 0082).
+  if (["sbc", "tots", "icons"].includes(section)) redirect("/managerkarriere");
   // Id-en kommer fra den signerte cookien, så alt under kan hentes samtidig i stedet for etter hverandre.
   const userId = await sessionUserId();
   if (!userId) redirect("/login");

@@ -7,6 +7,11 @@ const packNames: Record<string, string> = {
   inform: "Allpacka",
   spesial: "Spezialpaket",
   ungdomstoooor: "Ungdomstoooor",
+  gullpakke: "Goldpaket",
+  gull_spillere: "Gold-Spielerpaket",
+  premium_gull: "Premium-Goldpaket",
+  sjeldne_spillere: "Seltene Spieler",
+  jumbo_premium_gull: "Jumbo-Premium-Gold",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -16,7 +21,12 @@ const packDescriptions: Record<string, string> = {
   elite: "Zwölf Karten, davon zwei 84+ und eine 86+ garantiert.",
   inform: "Sieben Karten: garantiert ein Inform, eine 88+, zwei 86+ und drei 83+. Eins pro Woche.",
   spesial: "Eine zufällige Spezialkarte: Inform, TOTS oder Icon. Nicht auf dem Markt verkaufbar.",
-  ungdomstoooor: "Gratis! Fünf Karten mit 84+, mindestens eine TOTS garantiert. Eins pro Tag bis Sonntag.",
+  ungdomstoooor: "Sechs Karten mit 78–86, mit 3 % Chance auf eine Inform. Eins pro Tag bis Sonntag.",
+  gullpakke: "Drei Karten, mindestens eine mit 75 oder besser garantiert.",
+  gull_spillere: "Fünf Karten, mindestens eine mit 78 oder besser garantiert.",
+  premium_gull: "Sechs Karten, mindestens zwei mit 80 oder besser garantiert.",
+  sjeldne_spillere: "Fünf Karten, alle 80 oder besser, und mindestens eine 83+. Max. 3 pro Tag.",
+  jumbo_premium_gull: "Zwölf Karten, drei mit 80+ und eine mit 83+ garantiert. Max. 3 pro Tag.",
 };
 
 export const market = {
@@ -93,7 +103,7 @@ export const market = {
     eyebrow: "PAKETE",
     title: "Geben Sie Manager-Punkte für Pakete aus",
     intro: "Teurere Pakete bieten mehr Karten und bessere Gewinnchancen. Karten gehen zu Ihrem Trupp oder in den Speicher, wenn der Trupp voll ist.",
-    freePacks: (list: string) => `Sie haben kostenlose Pakete von Ihrem Clublevel: ${list}.`,
+    freePacks: (list: string) => `Du hast kostenlose Pakete aus Aufstiegen: ${list}.`,
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `garantiert: ${list}`,
     noGuarantee: "keine Garantie",
@@ -121,6 +131,8 @@ export const market = {
     boughtThisWeek: "Diese Woche gekauft",
     guaranteed: "Garantiert",
     dailyLeft: (left: number, total: number) => `${left}/${total} heute übrig · bis Sonntag`,
+    purchasesLeftToday: (left: number, total: number) => `Heute noch ${left}/${total} Käufe`,
+    boughtToday: "Tageslimit erreicht",
     freeLabel: "Gratis",
     openedToday: "Heute geöffnet",
     jackpot: (amount: number) => `💰 Du hast ${amount} MB gewonnen!`,

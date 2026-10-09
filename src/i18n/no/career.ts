@@ -157,7 +157,7 @@ export const career: CareerDict = {
     loadError: "Klarte ikke å hente spillere. Prøv igjen.",
     eyebrow: "SPILLERMARKED",
     heading: "Bygg drømmelaget",
-    intro: (max: number) => `Katalogen selger spillere opp til ${max} i rating. Stjerner på ${max + 1}+ finnes bare på overgangsmarkedet.`,
+    intro: (max: number) => `Katalogen selger spillere opp til ${max} i rating. Stjerner på ${max + 1}+ finnes bare i pakker og på overgangsmarkedet.`,
     playerPlaceholder: "Spiller…",
     hideFilters: "Skjul filter",
     showFilters: "Filter",

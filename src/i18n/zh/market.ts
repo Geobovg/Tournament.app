@@ -7,6 +7,11 @@ const packNames: Record<string, string> = {
   inform: "Allpacka",
   spesial: "特殊卡包",
   ungdomstoooor: "Ungdomstoooor",
+  gullpakke: "黄金包",
+  gull_spillere: "黄金球员包",
+  premium_gull: "高级黄金包",
+  sjeldne_spillere: "稀有球员包",
+  jumbo_premium_gull: "巨型高级黄金包",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -16,7 +21,12 @@ const packDescriptions: Record<string, string> = {
   elite: "十二张牌，保证两张 84+ 和一张 86+。",
   inform: "七张卡：保底一张状态卡、一张 88+、两张 86+ 和三张 83+。每周一包。",
   spesial: "一张随机特殊卡：状态卡、TOTS 或传奇卡。不能在市场出售。",
-  ungdomstoooor: "免费！五张 84+ 球员卡，保底至少一张 TOTS。每天一包，持续到周日。",
+  ungdomstoooor: "六张 78–86 的卡，3% 几率获得 Inform。每天一个，持续到周日。",
+  gullpakke: "三张卡，保底至少一张 75 或以上。",
+  gull_spillere: "五张卡，保底至少一张 78 或以上。",
+  premium_gull: "六张卡，保底至少两张 80 或以上。",
+  sjeldne_spillere: "五张卡，全部 80 或以上，且至少一张 83+。每天最多 3 次。",
+  jumbo_premium_gull: "十二张卡，保底三张 80+ 和一张 83+。每天最多 3 次。",
 };
 
 export const market = {
@@ -93,7 +103,7 @@ export const market = {
     eyebrow: "包装",
     title: "使用经理积分购买礼包",
     intro: "价格较高的套装提供更多卡牌和更好的赔率。卡牌会进入你的小队，或者如果小队已满则进入存储。",
-    freePacks: (list: string) => `您拥有俱乐部级别的免费包：${list}。`,
+    freePacks: (list: string) => `你有来自升级的免费卡包：${list}。`,
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `保证：${list}`,
     noGuarantee: "没有保证",
@@ -121,6 +131,8 @@ export const market = {
     boughtThisWeek: "本周已购买",
     guaranteed: "保底",
     dailyLeft: (left: number, total: number) => `今日剩余 ${left}/${total} · 持续到周日`,
+    purchasesLeftToday: (left: number, total: number) => `今日还可购买 ${left}/${total} 次`,
+    boughtToday: "已达今日上限",
     freeLabel: "免费",
     openedToday: "今日已开",
     jackpot: (amount: number) => `💰 你赢得了 ${amount} MB！`,

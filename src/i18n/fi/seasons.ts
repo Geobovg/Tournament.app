@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Täysi pöytä →",
     legend: "Vihreä: nousu · Sininen: karsinta · Punainen: putoaminen",
     playoffInfo: "Karsinta: yksi ottelu ylemmän divisioonan seuraa vastaan. Sinun on voitettava – tasapeli ei riitä.",
-    prizeInfo: "Vain nousu tuo palkinnon: MB-bonuksen, joka kasvaa jokaisen divisioonan myötä.",
+    prizeInfo: "Vain nousu tuo palkinnon: MB-bonuksen, joka kasvaa jokaisen divisioonan myötä, ja pakkauksen, joka paranee mitä korkeammalle nouset.",
     yourMatches: "Sinun ottelusi",
   },
   friend: {

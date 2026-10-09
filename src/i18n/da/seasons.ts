@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Fuldt bord →",
     legend: "Grøn: oprykning · Blå: kvalifikation · Rød: nedrykning",
     playoffInfo: "Kvalifikation: én kamp mod en klub fra divisionen over. Du skal vinde – uafgjort er ikke nok.",
-    prizeInfo: "Kun oprykning giver en præmie: en MB-bonus, der bliver større for hver division.",
+    prizeInfo: "Kun oprykning giver en præmie: en MB-bonus, der bliver større for hver division, og en pakke, der bliver bedre, jo højere du kommer.",
     yourMatches: "Dine kampe",
   },
   friend: {

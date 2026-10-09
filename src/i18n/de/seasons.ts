@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Vollständige Tabelle →",
     legend: "Grün: Aufstieg · Blau: Relegation · Rot: Abstieg",
     playoffInfo: "Relegation: ein Spiel gegen einen Klub aus der Division darüber. Du musst gewinnen – ein Unentschieden reicht nicht.",
-    prizeInfo: "Nur ein Aufstieg bringt eine Prämie: einen MB-Bonus, der mit jeder Division größer wird.",
+    prizeInfo: "Nur ein Aufstieg bringt eine Prämie: einen MB-Bonus, der mit jeder Division größer wird, und ein Paket, das besser wird, je höher du kommst.",
     yourMatches: "Deine Streichhölzer",
   },
   friend: {
