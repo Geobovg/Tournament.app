@@ -1,0 +1,40 @@
+# Kjører nye migreringer i supabase/migrations mot produksjonsdatabasen når de kommer inn på main,
+# så ingen trenger å lime SQL inn i Supabase for hånd.
+# Krever hemmeligheten SUPABASE_DB_URL (Settings -> Secrets and variables -> Actions): tilkoblingsstrengen
+# for «Session pooler» fra Supabase (Connect-knappen øverst), med passordet fylt inn.
+name: Supabase-migreringer
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/migrations/**"]
+  workflow_dispatch:
+
+# Aldri to kjøringer mot databasen samtidig.
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+
+      # Migreringene til og med 0084 ble kjørt for hånd før denne jobben fantes. Her merkes de som kjørt i
+      # Supabase sin historikk, så de ikke kjøres en gang til. Trygt å gjenta.
+      - name: Merk gamle migreringer som kjørt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          versions=$(ls supabase/migrations/*.sql | xargs -n1 basename | cut -d_ -f1 | awk '($1 "") <= "0084"')
+          supabase migration repair --status applied $versions --db-url "$SUPABASE_DB_URL"
+
+      - name: Kjør nye migreringer
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --yes
