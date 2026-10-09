@@ -83,7 +83,7 @@ export const dbErrors = {
   sbcRequirementsNotMet: "البطاقات لا تستوفي متطلبات التحدي",
   packNotForSale: "لا يمكن شراء هذه الحزمة",
   packWeeklyLimit: "لقد اشتريت هذه الحزمة بالفعل هذا الأسبوع",
-  packDailyPurchaseLimit: (count: string) => `لقد اشتريت هذه الحزمة ${count} مرات اليوم. حاول مرة أخرى غدًا.`,
+  packDailyPurchaseLimit: (count: string) => `لقد بلغت الحد اليومي لهذه الحزمة (${count} يوميًا). حاول مرة أخرى غدًا.`,
   packNotAvailable: "هذه الحزمة غير متاحة الآن",
   packDailyLimit: "لقد فتحت هذه الحزمة اليوم بالفعل",
   noSpecialCards: "لا توجد بطاقات خاصة للسحب بعد",

@@ -54,7 +54,8 @@ function glowFor(overall: number) {
 }
 
 function tierLabel(tier: { min: number; max: number }) {
-  return tier.max >= 99 ? `${tier.min}+` : `${tier.min}–${tier.max}`;
+  if (tier.max >= 99) return `${tier.min}+`;
+  return tier.min === tier.max ? `${tier.min}` : `${tier.min}–${tier.max}`;
 }
 
 // Stjernesjansene er små, så de vises med flere desimaler i stedet for å rundes til 0,0 %.

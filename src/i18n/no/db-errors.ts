@@ -87,7 +87,7 @@ export const dbErrors: DbErrorsDict = {
   waitForFriend: "Vent på at vennen din svarer",
   packNotForSale: "Denne pakken kan ikke kjøpes",
   packWeeklyLimit: "Du har allerede kjøpt denne pakken denne uken",
-  packDailyPurchaseLimit: (count: string) => `Du har kjøpt denne pakken ${count} ganger i dag. Prøv igjen i morgen.`,
+  packDailyPurchaseLimit: (count: string) => `Du har nådd dagsgrensen for denne pakken (${count} per dag). Prøv igjen i morgen.`,
   packNotAvailable: "Denne pakken er ikke tilgjengelig nå",
   packDailyLimit: "Du har allerede åpnet denne pakken i dag",
   noSpecialCards: "Det finnes ingen spesialkort å trekke ennå",
