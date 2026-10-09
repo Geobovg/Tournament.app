@@ -5,7 +5,7 @@ En app for å holde styr på en simulert fotball-managerkarriere med spillerkort
 ## Language
 
 **Managerkarriere**:
-Den kortbaserte modusen der du bygger en tropp av spillerkort, kjøper i katalogen, kjøper/selger på overgangsmarkedet og spiller simulerte kamper mot venners tropper. Alt skjer inne i appen. Det finnes ingen pakker (fjernet i migrering 0081), og den eneste premien er MB for opprykk i AI-sesongen.
+Den kortbaserte modusen der du bygger en tropp av spillerkort, kjøper i katalogen, kjøper/selger på overgangsmarkedet og spiller simulerte kamper mot venners tropper. Alt skjer inne i appen. Den eneste premien er opprykk i AI-sesongen, som gir MB og en **pakke**.
 _Avoid_: Karriere alene (tvetydig med Turnering)
 
 **Markedschat**:
@@ -54,15 +54,19 @@ Et kort av en spiller som er bedre enn spillerens vanlige kort og har eget utsee
 _Avoid_: Spesialutgave, Event-kort
 
 **Inform**:
-Spesialkortet for en spiller som er i form denne uken, som Team of the Week i FC. Hver fredag kl. 18:00 trekkes 25 tilfeldige spillere blant topp 400 (en **inform-runde**). Kortet er 1–3 bedre, og har spilleren hatt inform før, bygger det på forrige inform. Spillere fra de to siste rundene trekkes ikke, og topp 20 kan bare få inform én gang.
+Spesialkortet for en spiller som er i form denne uken, som Team of the Week i FC. Hver fredag kl. 18:00 trekkes 25 tilfeldige spillere blant topp 400 (en **inform-runde**). Kortet er 1–3 bedre, men aldri over 89, så bare spillere under 89 kan få inform. Har spilleren hatt inform før, bygger det på forrige inform. Spillere fra de to siste rundene trekkes ikke, og topp 20 kan bare få inform én gang. Informs fra før migrering 0082 teller ikke.
 _Avoid_: TOTW, Ukens lag
 
 **TOTS**:
-Team of the Season, spesialkortet for de beste spillerne i hver liga, som i FC. 200 kort laget én gang (migrering 0065) av spillere fra topp 500: 35 hver fra Premier League, La Liga, Serie A og Bundesliga, alle 26 fra Ligue 1 som er i topp 500, og 34 fra resten av verden, med omtrent en tropps fordeling på posisjoner. Ratingen er 88–95 og følger vanlig-kortet (best vanlig-kort gir 95), og kortet er alltid bedre enn vanlig-kortet. Vanlige pakker kan gi TOTS med halvparten av inform-sjansen, og spesialpakken kan også gi det. Heter «TOTS» på alle språk.
+Team of the Season, spesialkortet for de beste spillerne i hver liga, som i FC. 200 kort laget én gang (migrering 0065) av spillere fra topp 500: 35 hver fra Premier League, La Liga, Serie A og Bundesliga, alle 26 fra Ligue 1 som er i topp 500, og 34 fra resten av verden, med omtrent en tropps fordeling på posisjoner. Ratingen er 88–95 og følger vanlig-kortet (best vanlig-kort gir 95), og kortet er alltid bedre enn vanlig-kortet. Pakkene gir ikke TOTS lenger (migrering 0082). Heter «TOTS» på alle språk.
 _Avoid_: Sesongens lag, Sesong (det er noe annet, se over)
 
+**Pakke**:
+Et sett tilfeldige spillerkort fra katalogen, kjøpt for MB eller fått ved opprykk, som i FC. Det finnes fem (migrering 0082): Gullpakke (40 MB, 3 kort), Gull spillerpakke (75 MB, 5 kort), Premium gullpakke (100 MB, 6 kort), Sjeldne spillere (200 MB, 5 kort på 80+) og Jumbo premium gull (300 MB, 12 kort). Gullpakke og Premium gullpakke kan kjøpes fritt, de tre andre maks 3 ganger per dag (norsk tid). Hurtigsalg av en pakke gir godt under prisen tilbake (40–55 %). Hvert kort som ikke er garantert, kan bli en av ukens **informs** (0,1–1 % per kort). Opprykk til divisjon 9–7 gir en Gullpakke, til 6–2 en Premium gullpakke, til divisjon 1 Sjeldne spillere og til en ny arena en Jumbo premium gull.
+_Avoid_: Kortpakke, Boks
+
 **Inform-pakke**:
-En pakke til 800 MB som garanterer én inform fra ukens runde, og kan kjøpes én gang per uke. Vanlige pakker kan også gi inform, med liten sjanse.
+Fjernet, sammen med de gamle pakkene (bronse, sølv, gull, elite, spesialpakken og Ungdomstoooor). Var en pakke til 800 MB som garanterte én inform fra ukens runde.
 _Avoid_: Spesialpakke (det er SBC-premien)
 
 **Spesialpakke**:

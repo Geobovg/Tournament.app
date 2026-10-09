@@ -83,6 +83,7 @@ export const dbErrors = {
   sbcRequirementsNotMet: "这些卡片不符合 SBC 的要求",
   packNotForSale: "此卡包无法购买",
   packWeeklyLimit: "你本周已经购买过此卡包",
+  packDailyPurchaseLimit: (count: string) => `你今天已经购买此卡包 ${count} 次。请明天再试。`,
   packNotAvailable: "此卡包当前不可用",
   packDailyLimit: "你今天已经开过此卡包",
   noSpecialCards: "目前还没有可抽取的特殊卡",

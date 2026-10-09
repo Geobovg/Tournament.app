@@ -7,6 +7,11 @@ const packNames: Record<string, string> = {
   inform: "Allpacka",
   spesial: "Pack spécial",
   ungdomstoooor: "Ungdomstoooor",
+  gullpakke: "Pack Or",
+  gull_spillere: "Pack Joueurs Or",
+  premium_gull: "Pack Or Premium",
+  sjeldne_spillere: "Joueurs rares",
+  jumbo_premium_gull: "Pack Or Premium Jumbo",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -17,6 +22,11 @@ const packDescriptions: Record<string, string> = {
   inform: "Sept cartes : un Inform, une 88+, deux 86+ et trois 83+ garanties. Un par semaine.",
   spesial: "Une carte spéciale au hasard : inform, TOTS ou Icon. Ne peut pas être vendue sur le marché.",
   ungdomstoooor: "Gratuit ! Cinq cartes 84+ avec au moins un TOTS garanti. Un par jour jusqu'à dimanche.",
+  gullpakke: "Trois cartes, dont au moins une 75 ou plus garantie.",
+  gull_spillere: "Cinq cartes, dont au moins une 78 ou plus garantie. 3 max par jour.",
+  premium_gull: "Six cartes, dont au moins deux 80 ou plus garanties.",
+  sjeldne_spillere: "Cinq cartes, toutes 80 ou plus, dont au moins une 83+. 3 max par jour.",
+  jumbo_premium_gull: "Douze cartes, dont trois 80+ et une 83+ garanties. 3 max par jour.",
 };
 
 export const market = {
@@ -93,7 +103,7 @@ export const market = {
     eyebrow: "PACKS",
     title: "Dépenser des points de gestionnaire sur des packs",
     intro: "Les packs plus chers donnent plus de cartes et de meilleures cotes. Les cartes vont dans votre équipe ou dans le stockage si l'équipe est pleine.",
-    freePacks: (list: string) => `Vous disposez de packs gratuits de votre niveau de club : ${list}.`,
+    freePacks: (list: string) => `Tu as des packs gratuits grâce aux promotions : ${list}.`,
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `garanti : ${list}`,
     noGuarantee: "aucune garantie",
@@ -121,6 +131,8 @@ export const market = {
     boughtThisWeek: "Acheté cette semaine",
     guaranteed: "Garanti",
     dailyLeft: (left: number, total: number) => `${left}/${total} restant aujourd'hui · jusqu'à dimanche`,
+    purchasesLeftToday: (left: number, total: number) => `Encore ${left}/${total} achats aujourd'hui`,
+    boughtToday: "Limite du jour atteinte",
     freeLabel: "Gratuit",
     openedToday: "Ouvert aujourd'hui",
     jackpot: (amount: number) => `💰 Tu as gagné ${amount} MB !`,

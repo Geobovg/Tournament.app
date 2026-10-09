@@ -83,6 +83,7 @@ export const dbErrors = {
   sbcRequirementsNotMet: "Kortene opfylder ikke SBC-kravene",
   packNotForSale: "Denne pakke kan ikke købes",
   packWeeklyLimit: "Du har allerede købt denne pakke denne uge",
+  packDailyPurchaseLimit: (count: string) => `Du har købt denne pakke ${count} gange i dag. Prøv igen i morgen.`,
   packNotAvailable: "Denne pakke er ikke tilgængelig lige nu",
   packDailyLimit: "Du har allerede åbnet denne pakke i dag",
   noSpecialCards: "Der er ingen specialkort at trække endnu",

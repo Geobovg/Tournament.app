@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "全表 →",
     legend: "绿色：升级 · 蓝色：附加赛 · 红色：降级",
     playoffInfo: "附加赛：与上一级联赛的一支球队进行一场比赛。你必须获胜，平局不够。",
-    prizeInfo: "只有升级才有奖励：MB 奖金，级别越高奖金越多。",
+    prizeInfo: "只有升级才有奖励：MB 奖金，级别越高奖金越多，还有一个越往上越好的卡包。",
     yourMatches: "你的比赛",
   },
   friend: {

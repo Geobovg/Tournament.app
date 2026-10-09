@@ -28,6 +28,6 @@ export default async function ManagerCareerPage() {
       <div className="min-w-0 flex-1"><p className="text-xs font-black tracking-widest text-white/45">{t.career.home.yourSquad}</p><p className="truncate font-black">{t.career.home.squadSummary(manager.formation, String(manager.rating ?? "—"), manager.squadCount, squadCapacity)}</p></div>
       <span className="shrink-0 text-sm font-black text-lime-300">{t.career.home.edit}</span>
     </Link>
-    <ManagerOverview userId={user.id} challenges={challenges} matches={matches} record={{ wins: career.manager_career_wins, draws: career.manager_career_draws, losses: career.manager_career_losses }} />
+    <ManagerOverview userId={user.id} challenges={challenges} matches={matches} packs={manager.packs} freePacks={manager.freePacks} budget={career.manager_budget} record={{ wins: career.manager_career_wins, draws: career.manager_career_draws, losses: career.manager_career_losses }} />
   </div>;
 }

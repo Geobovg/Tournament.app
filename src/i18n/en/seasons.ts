@@ -30,7 +30,7 @@ export const seasons = {
     fullTable: "Full table →",
     legend: "Green: promotion · Blue: play-off · Red: relegation",
     playoffInfo: "Play-off: one match against a club from the division above. You have to win – a draw is not enough.",
-    prizeInfo: "Only promotion pays a prize: an MB bonus that gets bigger with every division.",
+    prizeInfo: "Only promotion pays a prize: an MB bonus that grows with every division, plus a pack that gets better the higher you climb.",
     yourMatches: "Your matches",
   },
   friend: {

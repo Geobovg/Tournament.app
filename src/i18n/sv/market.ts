@@ -7,6 +7,11 @@ const packNames: Record<string, string> = {
   inform: "Allpacka",
   spesial: "Specialpaket",
   ungdomstoooor: "Ungdomstoooor",
+  gullpakke: "Guldpaket",
+  gull_spillere: "Guld-spelarpaket",
+  premium_gull: "Premium-guldpaket",
+  sjeldne_spillere: "Sällsynta spelare",
+  jumbo_premium_gull: "Jumbo premium-guld",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -17,6 +22,11 @@ const packDescriptions: Record<string, string> = {
   inform: "Sju kort: garanterat ett Inform, ett 88+, två 86+ och tre 83+. Ett per vecka.",
   spesial: "Ett slumpat specialkort: inform, TOTS eller Icon. Kan inte säljas på marknaden.",
   ungdomstoooor: "Gratis! Fem kort på 84+, minst en TOTS garanterad. Ett per dag till och med söndag.",
+  gullpakke: "Tre kort, minst ett på 75 eller bättre garanterat.",
+  gull_spillere: "Fem kort, minst ett på 78 eller bättre garanterat. Max 3 per dag.",
+  premium_gull: "Sex kort, minst två på 80 eller bättre garanterade.",
+  sjeldne_spillere: "Fem kort, alla på 80 eller bättre, och minst ett på 83+. Max 3 per dag.",
+  jumbo_premium_gull: "Tolv kort, tre på 80+ och ett på 83+ garanterade. Max 3 per dag.",
 };
 
 export const market = {
@@ -93,7 +103,7 @@ export const market = {
     eyebrow: "FÖRPACKNINGAR",
     title: "Spendera managerpoäng på förpackningar",
     intro: "Dyrare paket ger fler kort och bättre odds. Korten går till ditt lag, eller till förvaring om laget är fullt.",
-    freePacks: (list: string) => `Du har gratispaket från din klubbnivå: ${list}.`,
+    freePacks: (list: string) => `Du har gratispaket från uppflyttningar: ${list}.`,
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `garanterat: ${list}`,
     noGuarantee: "ingen garanti",
@@ -121,6 +131,8 @@ export const market = {
     boughtThisWeek: "Köpt den här veckan",
     guaranteed: "Garanterat",
     dailyLeft: (left: number, total: number) => `${left}/${total} kvar i dag · till och med söndag`,
+    purchasesLeftToday: (left: number, total: number) => `${left}/${total} köp kvar i dag`,
+    boughtToday: "Dagens gräns är nådd",
     freeLabel: "Gratis",
     openedToday: "Öppnat i dag",
     jackpot: (amount: number) => `💰 Du vann ${amount} MB!`,

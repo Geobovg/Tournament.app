@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Fullständigt bord →",
     legend: "Grön: uppflyttning · Blå: kval · Röd: nedflyttning",
     playoffInfo: "Kval: en match mot en klubb från divisionen ovanför. Du måste vinna – oavgjort räcker inte.",
-    prizeInfo: "Bara uppflyttning ger ett pris: en MB-bonus som blir större för varje division.",
+    prizeInfo: "Bara uppflyttning ger ett pris: en MB-bonus som blir större för varje division, och ett paket som blir bättre ju högre du kommer.",
     yourMatches: "Dina matchningar",
   },
   friend: {

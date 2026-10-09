@@ -27,7 +27,7 @@ export const seasons: SeasonsDict = {
     fullTable: "Hele tabellen →",
     legend: "Grønn: opprykk · Blå: kvalik · Rød: nedrykk",
     playoffInfo: "Kvalik: én kamp mot en klubb fra divisjonen over. Du må vinne – uavgjort holder ikke.",
-    prizeInfo: "Bare opprykk gir premie: en MB-bonus som blir større for hver divisjon.",
+    prizeInfo: "Bare opprykk gir premie: en MB-bonus som blir større for hver divisjon, og en pakke som blir bedre jo høyere du kommer.",
     yourMatches: "Dine kamper",
   },
   friend: {

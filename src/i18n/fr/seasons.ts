@@ -26,7 +26,7 @@ export const seasons = {
     fullTable: "Tableau complet →",
     legend: "Vert : promotion · Bleu : barrage · Rouge : relégation",
     playoffInfo: "Barrage : un match contre un club de la division supérieure. Tu dois gagner – un nul ne suffit pas.",
-    prizeInfo: "Seule la promotion rapporte une prime : un bonus en Mo qui augmente à chaque division.",
+    prizeInfo: "Seule la promotion rapporte une prime : un bonus en Mo qui augmente à chaque division, et un pack qui s'améliore plus tu montes.",
     yourMatches: "Vos matchs",
   },
   friend: {

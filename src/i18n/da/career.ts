@@ -152,7 +152,7 @@ export const career = {
     loadError: "Kunne ikke indlæse spillere. Prøv igen.",
     eyebrow: "SPILLERMARKED",
     heading: "Byg dit drømmehold",
-    intro: (max: number) => `Kataloget sælger spillere vurderet op til ${max}. Stjerner bedømt ${max + 1}+ findes kun på transfermarkedet.`,
+    intro: (max: number) => `Kataloget sælger spillere vurderet op til ${max}. Stjerner bedømt ${max + 1}+ findes kun i pakker og på transfermarkedet.`,
     playerPlaceholder: "Spiller...",
     hideFilters: "Skjul filtre",
     showFilters: "Filtre",

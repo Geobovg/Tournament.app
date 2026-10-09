@@ -152,7 +152,7 @@ export const career = {
     loadError: "无法加载玩家。再试一次。",
     eyebrow: "球员市场",
     heading: "打造你的梦想团队",
-    intro: (max: number) => `目录出售评分最高为 ${max} 的球员。评分 ${max + 1}+ 的球星只能在转会市场获得。`,
+    intro: (max: number) => `目录出售评分最高为 ${max} 的球员。评分 ${max + 1}+ 的球星只能从卡包和转会市场获得。`,
     playerPlaceholder: "玩家…",
     hideFilters: "隐藏过滤器",
     showFilters: "过滤器",

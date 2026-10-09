@@ -7,6 +7,11 @@ const packNames: Record<string, string> = {
   inform: "Allpacka",
   spesial: "Erikoispaketti",
   ungdomstoooor: "Ungdomstoooor",
+  gullpakke: "Kultapakkaus",
+  gull_spillere: "Kultapelaajapakkaus",
+  premium_gull: "Premium-kultapakkaus",
+  sjeldne_spillere: "Harvinaiset pelaajat",
+  jumbo_premium_gull: "Jumbo premium -kulta",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -17,6 +22,11 @@ const packDescriptions: Record<string, string> = {
   inform: "Seitsemän korttia: taattu yksi Inform, yksi 88+, kaksi 86+ ja kolme 83+. Yksi viikossa.",
   spesial: "Yksi satunnainen erikoiskortti: inform, TOTS tai Icon. Ei myytävissä markkinoilla.",
   ungdomstoooor: "Ilmainen! Viisi 84+ korttia, vähintään yksi TOTS taattu. Yksi päivässä sunnuntaihin asti.",
+  gullpakke: "Kolme korttia, vähintään yksi 75 tai parempi taattu.",
+  gull_spillere: "Viisi korttia, vähintään yksi 78 tai parempi taattu. Enintään 3 päivässä.",
+  premium_gull: "Kuusi korttia, vähintään kaksi 80 tai parempaa taattu.",
+  sjeldne_spillere: "Viisi korttia, kaikki 80 tai parempia, ja vähintään yksi 83+. Enintään 3 päivässä.",
+  jumbo_premium_gull: "Kaksitoista korttia, kolme 80+ ja yksi 83+ taattu. Enintään 3 päivässä.",
 };
 
 export const market = {
@@ -93,7 +103,7 @@ export const market = {
     eyebrow: "PAKETIT",
     title: "Käytä manageripisteitä pakkauksiin",
     intro: "Kalliimpia paketteja saa enemmän kortteja ja parempia kertoimia. Kortit menevät joukkueellesi tai varastoon, jos joukkue on täynnä.",
-    freePacks: (list: string) => `Sinulla on ilmaisia paketteja klubitasoltasi: ${list}.`,
+    freePacks: (list: string) => `Sinulla on ilmaisia pakkauksia nousuista: ${list}.`,
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `taattu: ${list}`,
     noGuarantee: "ei takuuta",
@@ -121,6 +131,8 @@ export const market = {
     boughtThisWeek: "Ostettu tällä viikolla",
     guaranteed: "Taattu",
     dailyLeft: (left: number, total: number) => `${left}/${total} jäljellä tänään · sunnuntaihin asti`,
+    purchasesLeftToday: (left: number, total: number) => `${left}/${total} ostoa jäljellä tänään`,
+    boughtToday: "Päivän raja täynnä",
     freeLabel: "Ilmainen",
     openedToday: "Avattu tänään",
     jackpot: (amount: number) => `💰 Voitit ${amount} MB!`,

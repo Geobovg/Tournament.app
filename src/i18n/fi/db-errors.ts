@@ -83,6 +83,7 @@ export const dbErrors = {
   sbcRequirementsNotMet: "Kortit eivät täytä SBC:n vaatimuksia",
   packNotForSale: "Tätä pakettia ei voi ostaa",
   packWeeklyLimit: "Olet jo ostanut tämän paketin tällä viikolla",
+  packDailyPurchaseLimit: (count: string) => `Olet ostanut tämän pakkauksen ${count} kertaa tänään. Yritä huomenna uudelleen.`,
   packNotAvailable: "Tämä paketti ei ole juuri nyt saatavilla",
   packDailyLimit: "Olet jo avannut tämän paketin tänään",
   noSpecialCards: "Nostettavia erikoiskortteja ei ole vielä",

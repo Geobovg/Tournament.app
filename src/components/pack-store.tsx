@@ -226,18 +226,15 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
     {Object.values(freePacks).some(Boolean) ? <p className="rounded-lg border border-accent/40 bg-accent-soft p-3 text-sm font-semibold text-accent">{tp.freePacks(packs.filter((pack) => freePacks[pack.key]).map((pack) => `${freePacks[pack.key]}× ${nameOf(pack)}`).join(", "))}</p> : null}
 
 
-    <div className="flex flex-wrap gap-x-4 gap-y-1">
-      <Link href="/managerkarriere/informs" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.inform.border }}>{tp.allInforms} →</Link>
-      <Link href="/managerkarriere/tots" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.tots.glow }}>{tp.allTots} →</Link>
-      <Link href="/managerkarriere/icons" className="text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.icon.glow }}>{tp.allIcons} →</Link>
-    </div>
+    <Link href="/managerkarriere/informs" className="justify-self-start text-xs font-black tracking-wide underline-offset-4 hover:underline" style={{ color: specialStyles.inform.border }}>{tp.allInforms} →</Link>
 
     <div className="grid gap-3 sm:grid-cols-2">
       {visible.map((pack) => {
         const affordable = budget >= pack.price;
         const free = freePacks[pack.key] ?? 0;
         const left = pack.weekly_limit === null ? null : Math.max(0, pack.weekly_limit - (shop.purchasedThisWeek[pack.key] ?? 0));
-        const canBuy = pack.purchasable && affordable && left !== 0;
+        const leftToday = pack.daily_purchase_limit === null ? null : Math.max(0, pack.daily_purchase_limit - (shop.purchasedToday[pack.key] ?? 0));
+        const canBuy = pack.purchasable && affordable && left !== 0 && leftToday !== 0;
         const dailyLeft = pack.daily_limit === null ? null : Math.max(0, pack.daily_limit - (shop.openedToday[pack.key] ?? 0));
         const special = pack.special_guarantee > 0;
         const style = specialStyles[pack.special_scope === "tots" ? "tots" : "inform"];
@@ -248,6 +245,7 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
             <p className="mt-2 text-sm">{tp.cardCount(pack.card_count)} · {pack.guarantees.length || special ? tp.guarantee([...(special ? [tp.specialGuarantee(pack.special_guarantee, pack.special_scope)] : []), ...pack.guarantees.map((guarantee) => `${guarantee.count}× ${guarantee.min}+`)].join(", ")) : tp.noGuarantee}</p>
             {left !== null ? <p className={`mt-1 text-xs font-bold ${left ? "" : "text-danger"}`}>{tp.weeklyLeft(left, pack.weekly_limit ?? 0)}</p> : null}
             {dailyLeft !== null ? <p className="mt-1 text-xs font-bold">{tp.dailyLeft(dailyLeft, pack.daily_limit ?? 0)}</p> : null}
+            {leftToday !== null ? <p className={`mt-1 text-xs font-bold ${leftToday ? "" : "text-danger"}`}>{tp.purchasesLeftToday(leftToday, pack.daily_purchase_limit ?? 0)}</p> : null}
           </div>
           {pack.purchasable || dailyLeft !== null ? <button type="button" className="justify-self-start text-xs underline" onClick={() => setOpenOdds((current) => current === pack.key ? null : pack.key)} aria-expanded={openOdds === pack.key}>
             {openOdds === pack.key ? tp.hideOdds : tp.showOdds}
@@ -273,7 +271,7 @@ export function PackStore({ packs, freePacks, budget, shop }: { packs: ManagerPa
               <input type="hidden" name="pack_key" value={pack.key} />
               <span className="rounded-full bg-black/10 px-3 py-1 text-sm font-bold">{pack.price} MB</span>
               <button className={canBuy ? buttonClass : secondaryButtonClass} disabled={!canBuy || pending}>
-                {pending ? tp.openingShort : left === 0 ? tp.boughtThisWeek : affordable ? tp.openPack : tp.tooExpensive}
+                {pending ? tp.openingShort : left === 0 ? tp.boughtThisWeek : leftToday === 0 ? tp.boughtToday : affordable ? tp.openPack : tp.tooExpensive}
               </button>
             </form> : null}
           </div>

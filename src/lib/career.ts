@@ -85,13 +85,13 @@ export async function getCareerMatch(matchId: string, userId: string) {
 export type ManagerCard = { id: string; catalog_id: string | null; special_card_id: string | null; special: SpecialKind | null; name: string; position: string; overall: number; tradable: boolean; is_starter: boolean; acquired_price: number; location: "squad" | "storage"; slug: string | null; accent: string; club: string; attributes: Record<string, number>; value: number };
 export type CatalogCard = { id: string; slug: string; name: string; position: string; overall: number; price: number; accent: string; club: string; attributes: Record<string, number> };
 export type ManagerLineup = { formation: string; starters: string[]; bench: string[]; updated_at: string };
-export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; tots_chance: number; icon_chance: number; special_guarantee: number; special_scope: "current" | "all" | "tots"; purchasable: boolean; weekly_limit: number | null; daily_limit: number | null; available_from: string | null; available_until: string | null };
+export type ManagerPack = { key: string; name: string; description: string; price: number; card_count: number; guarantee_min: number; guarantee_count: number; guarantees: { min: number; count: number }[]; odds: { min: number; max: number; weight: number }[]; accent: string; inform_chance: number; tots_chance: number; icon_chance: number; special_guarantee: number; special_scope: "current" | "all" | "tots"; purchasable: boolean; weekly_limit: number | null; daily_purchase_limit: number | null; daily_limit: number | null; available_from: string | null; available_until: string | null };
 // Eventpakker (som Ungdomstoooor) har et tidsvindu. Utenfor vinduet vises de ikke i det hele tatt.
 function packAvailableNow(pack: ManagerPack) {
   const now = Date.now();
   return (!pack.available_from || Date.parse(pack.available_from) <= now) && (!pack.available_until || now < Date.parse(pack.available_until));
 }
-const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, tots_chance, icon_chance, special_guarantee, special_scope, purchasable, weekly_limit, daily_limit, available_from, available_until";
+const packColumns = "key, name, description, price, card_count, guarantee_min, guarantee_count, guarantees, odds, accent, inform_chance, tots_chance, icon_chance, special_guarantee, special_scope, purchasable, weekly_limit, daily_purchase_limit, daily_limit, available_from, available_until";
 
 /**
  * Bare det toppfeltet trenger for å vise lagrating: elleveren og hvilke kort som står i den.
@@ -155,22 +155,23 @@ export async function getManagerCareer(userId: string): Promise<{ cards: Manager
 }
 
 export type InformCard = { id: string; slug: string; name: string; position: string; overall: number; boost: number; accent: string; club: string; attributes: Record<string, number>; special: SpecialKind };
-export type PackShop = { purchasedThisWeek: Record<string, number>; openedToday: Record<string, number>; informFactor: number; informs: InformCard[]; nextReset: string };
+export type PackShop = { purchasedThisWeek: Record<string, number>; purchasedToday: Record<string, number>; openedToday: Record<string, number>; informFactor: number; informs: InformCard[]; nextReset: string };
 
 /**
  * Det pakkebutikken trenger i tillegg: ukens inform-kort (runden lages her hvis den ikke finnes ennå),
- * hvor mange av hver pakke som er kjøpt denne uken, hvor mange dagspakker som er åpnet i dag,
+ * hvor mange av hver pakke som er kjøpt denne uken og i dag, hvor mange dagspakker som er åpnet i dag,
  * og hvor mye arenaen løfter inform-sjansen.
  */
 export async function getPackShop(userId: string): Promise<PackShop> {
   const db = supabaseAdmin();
-  const [{ data: roundId, error: roundError }, { data: bounds, error: boundsError }, { data: factor, error: factorError }, { data: openedToday, error: openedError }] = await Promise.all([
+  const [{ data: roundId, error: roundError }, { data: bounds, error: boundsError }, { data: factor, error: factorError }, { data: openedToday, error: openedError }, { data: boughtToday, error: boughtError }] = await Promise.all([
     db.rpc("ensure_special_round"),
     db.rpc("sbc_week_bounds"),
     db.rpc("manager_inform_factor", { target_user: userId }),
     db.rpc("daily_packs_opened", { target_user: userId }),
+    db.rpc("daily_packs_bought", { target_user: userId }),
   ]);
-  if (roundError || boundsError || factorError || openedError) throw new Error(roundError?.message ?? boundsError?.message ?? factorError?.message ?? openedError?.message);
+  if (roundError || boundsError || factorError || openedError || boughtError) throw new Error(roundError?.message ?? boundsError?.message ?? factorError?.message ?? openedError?.message ?? boughtError?.message);
   const [{ data: informs, error: informsError }, { data: openings, error: openingsError }] = await Promise.all([
     db.from("special_cards").select("id, kind, overall, boost, attributes, player_catalog(slug, name, position, accent, club)").eq("round_id", roundId).order("overall", { ascending: false }),
     db.from("pack_openings").select("pack_key").eq("user_id", userId).gt("price", 0).gte("created_at", bounds.week_start),
@@ -179,7 +180,7 @@ export async function getPackShop(userId: string): Promise<PackShop> {
   const purchasedThisWeek: Record<string, number> = {};
   for (const row of openings ?? []) purchasedThisWeek[row.pack_key] = (purchasedThisWeek[row.pack_key] ?? 0) + 1;
   return {
-    purchasedThisWeek, openedToday: (openedToday ?? {}) as Record<string, number>, informFactor: Number(factor ?? 1), nextReset: bounds.next_reset,
+    purchasedThisWeek, purchasedToday: (boughtToday ?? {}) as Record<string, number>, openedToday: (openedToday ?? {}) as Record<string, number>, informFactor: Number(factor ?? 1), nextReset: bounds.next_reset,
     informs: (informs ?? []).flatMap((row) => {
       const catalog = Array.isArray(row.player_catalog) ? row.player_catalog[0] : row.player_catalog;
       return catalog ? [{ id: row.id, slug: catalog.slug, name: catalog.name, position: catalog.position, overall: row.overall, boost: row.boost, accent: catalog.accent, club: catalog.club, attributes: row.attributes as Record<string, number>, special: row.kind as SpecialKind }] : [];
@@ -197,7 +198,12 @@ export async function getInformHistory(): Promise<InformRound[]> {
   const db = supabaseAdmin();
   const { error: roundError } = await db.rpc("ensure_special_round");
   if (roundError) throw new Error(roundError.message);
-  const { data: rounds, error } = await db.from("special_rounds").select("id, starts_at, ends_at").eq("kind", "inform").order("starts_at", { ascending: false });
+  // Informs fra før migrering 0082 kunne gå over 89 og kan ikke trekkes lenger, så historikken starter der.
+  const { data: since, error: sinceError } = await db.from("game_settings").select("value").eq("key", "inform_history_from").maybeSingle();
+  if (sinceError) throw new Error(sinceError.message);
+  let roundsQuery = db.from("special_rounds").select("id, starts_at, ends_at").eq("kind", "inform").order("starts_at", { ascending: false });
+  if (typeof since?.value === "string") roundsQuery = roundsQuery.gte("starts_at", since.value);
+  const { data: rounds, error } = await roundsQuery;
   if (error) throw new Error(error.message);
   // 25 kort per uke passerer grensa på 1000 rader etter et snaut år, så kortene hentes i biter.
   const cards: InformCard[] = []; const roundOf = new Map<string, string>();

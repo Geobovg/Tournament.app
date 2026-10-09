@@ -380,7 +380,7 @@ function Storage({ storage, squad, listedCardIds }: { storage: ManagerCard[]; sq
 
 export type ManagerCareerSection = "squad" | "storage" | "packs" | "catalog";
 
-const emptyShop: PackShop = { purchasedThisWeek: {}, openedToday: {}, informFactor: 1, informs: [], nextReset: "" };
+const emptyShop: PackShop = { purchasedThisWeek: {}, purchasedToday: {}, openedToday: {}, informFactor: 1, informs: [], nextReset: "" };
 
 export function ManagerCareer({ cards, catalogPage = { cards: [], total: 0 }, lineup, packs, listedCardIds, freePacks = {}, budget, section, shop = emptyShop }: { cards: ManagerCard[]; catalogPage?: { cards: CatalogCard[]; total: number }; lineup: ManagerLineup | null; packs: ManagerPack[]; listedCardIds: string[]; freePacks?: Record<string, number>; budget: number; section: ManagerCareerSection; shop?: PackShop }) {
   const squad = cards.filter((card) => card.location === "squad");

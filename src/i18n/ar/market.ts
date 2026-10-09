@@ -7,6 +7,11 @@ const packNames: Record<string, string> = {
   inform: "Allpacka",
   spesial: "حزمة خاصة",
   ungdomstoooor: "Ungdomstoooor",
+  gullpakke: "حزمة ذهبية",
+  gull_spillere: "حزمة لاعبين ذهبية",
+  premium_gull: "حزمة ذهبية مميزة",
+  sjeldne_spillere: "لاعبون نادرون",
+  jumbo_premium_gull: "حزمة ذهبية مميزة عملاقة",
 };
 
 const packDescriptions: Record<string, string> = {
@@ -17,6 +22,11 @@ const packDescriptions: Record<string, string> = {
   inform: "سبع بطاقات: مضمون بطاقة فورمة واحدة، وواحدة 88+، واثنتان 86+، وثلاث 83+. واحدة أسبوعيًا.",
   spesial: "بطاقة خاصة عشوائية: بطاقة فورمة أو TOTS أو Icon. لا يمكن بيعها في السوق.",
   ungdomstoooor: "مجانية! خمس بطاقات 84+ مع بطاقة TOTS واحدة على الأقل مضمونة. واحدة يوميًا حتى الأحد.",
+  gullpakke: "ثلاث بطاقات، مع ضمان بطاقة واحدة على الأقل بتقييم 75 أو أكثر.",
+  gull_spillere: "خمس بطاقات، مع ضمان بطاقة واحدة على الأقل بتقييم 78 أو أكثر. 3 كحد أقصى يوميًا.",
+  premium_gull: "ست بطاقات، مع ضمان بطاقتين على الأقل بتقييم 80 أو أكثر.",
+  sjeldne_spillere: "خمس بطاقات، كلها بتقييم 80 أو أكثر، وواحدة على الأقل 83+. 3 كحد أقصى يوميًا.",
+  jumbo_premium_gull: "اثنتا عشرة بطاقة، مع ضمان ثلاث بتقييم 80+ وواحدة 83+. 3 كحد أقصى يوميًا.",
 };
 
 export const market = {
@@ -93,7 +103,7 @@ export const market = {
     eyebrow: "حزم",
     title: "إنفاق نقاط المدير على الحزم",
     intro: "توفر الحزم الأعلى سعرًا المزيد من البطاقات واحتمالات أفضل. تذهب البطاقات إلى فريقك، أو إلى مخزنها إذا كانت الفرقة ممتلئة.",
-    freePacks: (list: string) => `لديك حزم مجانية من مستوى ناديك: ${list}.`,
+    freePacks: (list: string) => `لديك حزم مجانية من الترقيات: ${list}.`,
     cardCount: (count: number) => `${count} ${count === 1 ? "card" : "cards"}`,
     guarantee: (list: string) => `مضمون: ${list}`,
     noGuarantee: "لا يوجد ضمان",
@@ -121,6 +131,8 @@ export const market = {
     boughtThisWeek: "تم الشراء هذا الأسبوع",
     guaranteed: "مضمون",
     dailyLeft: (left: number, total: number) => `${left}/${total} متبقية اليوم · حتى الأحد`,
+    purchasesLeftToday: (left: number, total: number) => `متبقٍ ${left}/${total} من عمليات الشراء اليوم`,
+    boughtToday: "تم بلوغ الحد اليومي",
     freeLabel: "مجانية",
     openedToday: "فُتحت اليوم",
     jackpot: (amount: number) => `💰 لقد ربحت ${amount} MB!`,
