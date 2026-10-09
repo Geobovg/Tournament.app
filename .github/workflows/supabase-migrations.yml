@@ -7,7 +7,7 @@ name: Supabase-migreringer
 on:
   push:
     branches: [main]
-    paths: ["supabase/migrations/**"]
+    paths: ["supabase/migrations/**", ".github/workflows/supabase-migrations.yml"]
   workflow_dispatch:
 
 # Aldri to kjøringer mot databasen samtidig.
@@ -33,6 +33,16 @@ jobs:
         run: |
           versions=$(ls supabase/migrations/*.sql | xargs -n1 basename | cut -d_ -f1 | awk '($1 "") <= "0084"')
           supabase migration repair --status applied $versions --db-url "$SUPABASE_DB_URL"
+
+      # Historikken hadde 13 oppføringer med tidsstempel fra september, som ikke finnes som filer her. SQL-en deres
+      # er allerede i databasen, så de fjernes fra historikken (selve databasen endres ikke). Trygt å gjenta.
+      - name: Fjern gamle oppføringer uten fil
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: >-
+          supabase migration repair --status reverted --db-url "$SUPABASE_DB_URL"
+          20260916125224 20260921093145 20260921093257 20260921101138 20260921102142 20260921102730 20260921110720
+          20260921110911 20260921123848 20260921125834 20260921130505 20260921150353 20260921154158
 
       - name: Kjør nye migreringer
         env:
